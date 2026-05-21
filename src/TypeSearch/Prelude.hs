@@ -28,7 +28,7 @@ module TypeSearch.Prelude
     module Data.Void,
     module Witherable,
     Generic,
-    Generically,
+    Generically (..),
     Typeable,
     Hashable,
     FromJSON,
@@ -84,7 +84,7 @@ import Data.Traversable
 import Data.Typeable (Typeable)
 import Data.Void
 import Flat (Flat)
-import GHC.Generics (Generic, Generically)
+import GHC.Generics
 import GHC.Stack
 import Witherable
 import Prelude hiding (curry, filter, foldl1, foldr1, head, last, maximum, minimum, unzip)

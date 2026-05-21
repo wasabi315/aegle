@@ -11,7 +11,6 @@ import TypeSearch.Core.Evaluation
 import TypeSearch.Core.Name
 import TypeSearch.Core.Term
 import TypeSearch.Database.Feature
-import TypeSearch.Database.Query qualified as Q
 import TypeSearch.Prelude
 
 --------------------------------------------------------------------------------
@@ -47,8 +46,8 @@ saveManyItems conn items =
       "INSERT INTO library_items(name_qual,name_unqual,module,sig,body,return_type_head,polymorphic,arity,arity_has_var) VALUES (?,?,?,?,?,?,?,?,?)"
       items
 
-fetchResolution :: Connection -> Q.Term -> IO (M.Map Name [QName])
-fetchResolution conn a = do
+fetchResolution :: Connection -> S.Set PQName -> IO (M.Map Name [QName])
+fetchResolution conn names = do
   res :: [(QName, Name)] <-
     query
       conn
@@ -61,7 +60,7 @@ fetchResolution conn a = do
             res
   pure resol
   where
-    (quals, unquals) = partitionEithers $ map (\case Unqual x -> Right x; Qual m x -> Left (QName m x)) $ S.toList (Q.freeVars a)
+    (quals, unquals) = partitionEithers $ map (\case Unqual x -> Right x; Qual m x -> Left (QName m x)) $ S.toList names
 
 filterByFeatures :: Connection -> Feature PQName -> IO [Item]
 filterByFeatures conn (Feature {..}) = do

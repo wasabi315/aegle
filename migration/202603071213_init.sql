@@ -2,7 +2,7 @@ CREATE EXTENSION IF NOT EXISTS pg_trgm;
 
 CREATE TABLE library_items (
     id                   bigserial PRIMARY KEY,
-    name_qual            text      NOT NULL,        -- Can't be UNIQUE because we have overloading
+    name_qual            text      NOT NULL,        -- Can't be UNIQUE because we have overloaded record constructors
     name_unqual          text      NOT NULL,
     module               text      NOT NULL,
     sig                  bytea     NOT NULL,

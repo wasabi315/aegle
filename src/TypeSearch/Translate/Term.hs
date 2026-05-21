@@ -99,7 +99,7 @@ translateSigma ty args =
   translateArgs ty args >>= \case
     -- fully applied
     [a, TS.Lam x b] -> do
-      let x' = if 0 `S.member` TS.freeVar b then x else "_"
+      let x' = if 0 `S.member` TS.freeVars b then x else "_"
       pure $ TS.Sigma x' a b
     [a, b] -> pure $ TS.Sigma "x" a $ TS.weakenBy 1 b `TS.App` TS.Var 0
     -- partially applied

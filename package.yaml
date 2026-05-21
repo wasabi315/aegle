@@ -35,6 +35,7 @@ dependencies:
   - flat
   - hashable
   - haskeline
+  - list-t
   - megaparsec
   - mtl
   - optparse-applicative

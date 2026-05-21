@@ -36,6 +36,7 @@ library
       TypeSearch.Core.Module
       TypeSearch.Core.Name
       TypeSearch.Core.Term
+      TypeSearch.Database.Backend
       TypeSearch.Database.Feature
       TypeSearch.Database.Index
       TypeSearch.Database.Parser
@@ -114,6 +115,7 @@ library
     , flat
     , hashable
     , haskeline
+    , list-t
     , megaparsec
     , mtl
     , optparse-applicative
@@ -194,6 +196,7 @@ executable dependent-type-search
     , flat
     , hashable
     , haskeline
+    , list-t
     , megaparsec
     , mtl
     , optparse-applicative
@@ -275,6 +278,7 @@ test-suite dependent-type-search-test
     , flat
     , hashable
     , haskeline
+    , list-t
     , megaparsec
     , mtl
     , optparse-applicative

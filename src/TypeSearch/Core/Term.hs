@@ -4,7 +4,7 @@ module TypeSearch.Core.Term
     Pruning,
     RevPruning (..),
     revPruning,
-    freeVar,
+    freeVars,
     subst,
     rename,
     weakenBy,
@@ -57,22 +57,22 @@ revPruning = RevPruning . reverse
 
 --------------------------------------------------------------------------------
 
-freeVar :: Term -> S.Set Index
-freeVar = \case
+freeVars :: Term -> S.Set Index
+freeVars = \case
   Var i -> S.singleton i
   Meta {} -> S.empty
   Top {} -> S.empty
   U -> S.empty
-  Pi _ a b -> freeVar a <> freeVarBind b
+  Pi _ a b -> freeVars a <> freeVarBind b
   Lam _ t -> freeVarBind t
-  App t u -> freeVar t <> freeVar u
-  Sigma _ a b -> freeVar a <> freeVarBind b
-  Pair t u -> freeVar t <> freeVar u
-  Proj1 t -> freeVar t
-  Proj2 t -> freeVar t
+  App t u -> freeVars t <> freeVars u
+  Sigma _ a b -> freeVars a <> freeVarBind b
+  Pair t u -> freeVars t <> freeVars u
+  Proj1 t -> freeVars t
+  Proj2 t -> freeVars t
   AppPruning {} -> error "freeVar: AppPruning is not supported yet"
   where
-    freeVarBind t = S.mapMonotonic (subtract 1) $ S.filter (> 0) $ freeVar t
+    freeVarBind t = S.mapMonotonic (subtract 1) $ S.filter (> 0) $ freeVars t
 
 subst :: (Index -> Term) -> Term -> Term
 subst s = \case

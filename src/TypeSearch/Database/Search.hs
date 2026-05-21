@@ -30,9 +30,10 @@ search :: Connection -> S.Set QName -> T.Text -> IO ()
 search conn transparentDefNames typ =
   either putStrLn pure =<< runExceptT do
     typ <- parseQuery "interactive" typ ??% displayException
+    let names = Q.freeVars typ
+    resol <- liftIO $ fetchResolution conn names
     feats <- featureQ transparentDefNames typ ??: "Ill-formed type"
     cands <- liftIO $ filterByFeatures conn feats
-    resol <- liftIO $ fetchResolution conn typ
     tenv <- liftIO $ fetchTopEnv conn $ map (.nameQual) cands
     (result, time) <- liftIO $ timed $ typeSearch tenv resol typ cands
     let sorted = sortOn (termSize . (.solution)) result
