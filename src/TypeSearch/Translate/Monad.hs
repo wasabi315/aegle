@@ -102,8 +102,8 @@ reduceTransparentDef t =
 isErasable :: Type -> Transl Bool
 isErasable a = do
   TelV tel b <- telView a
-  addContext tel $
-    orM
+  addContext tel
+    $ orM
       [ isLevelType b,
         isJust <$> isSizeType b
       ]

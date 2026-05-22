@@ -33,10 +33,10 @@ library
       TypeSearch.Cli
       TypeSearch.Core.Evaluation
       TypeSearch.Core.Isomorphism
-      TypeSearch.Core.Module
       TypeSearch.Core.Name
       TypeSearch.Core.Term
       TypeSearch.Database.Backend
+      TypeSearch.Database.Backend.PostgreSQL
       TypeSearch.Database.Feature
       TypeSearch.Database.Index
       TypeSearch.Database.Parser
@@ -45,8 +45,6 @@ library
       TypeSearch.Database.Search
       TypeSearch.Prelude
       TypeSearch.Pretty
-      TypeSearch.Translate.Definition
-      TypeSearch.Translate.Module
       TypeSearch.Translate.Monad
       TypeSearch.Translate.Name
       TypeSearch.Translate.Term
@@ -115,6 +113,11 @@ library
     , flat
     , hashable
     , haskeline
+    , hasql
+    , hasql-dynamic-statements
+    , hasql-migration
+    , hasql-th
+    , hasql-transaction
     , list-t
     , megaparsec
     , mtl
@@ -122,11 +125,13 @@ library
     , parser-combinators
     , postgresql-migration
     , postgresql-simple
+    , profunctors
     , repline
     , streamly
     , text
     , time
     , unordered-containers
+    , vector
     , witherable
   default-language: GHC2021
 
@@ -196,6 +201,11 @@ executable dependent-type-search
     , flat
     , hashable
     , haskeline
+    , hasql
+    , hasql-dynamic-statements
+    , hasql-migration
+    , hasql-th
+    , hasql-transaction
     , list-t
     , megaparsec
     , mtl
@@ -203,11 +213,13 @@ executable dependent-type-search
     , parser-combinators
     , postgresql-migration
     , postgresql-simple
+    , profunctors
     , repline
     , streamly
     , text
     , time
     , unordered-containers
+    , vector
     , witherable
   default-language: GHC2021
 
@@ -278,6 +290,11 @@ test-suite dependent-type-search-test
     , flat
     , hashable
     , haskeline
+    , hasql
+    , hasql-dynamic-statements
+    , hasql-migration
+    , hasql-th
+    , hasql-transaction
     , list-t
     , megaparsec
     , mtl
@@ -285,10 +302,12 @@ test-suite dependent-type-search-test
     , parser-combinators
     , postgresql-migration
     , postgresql-simple
+    , profunctors
     , repline
     , streamly
     , text
     , time
     , unordered-containers
+    , vector
     , witherable
   default-language: GHC2021

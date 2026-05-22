@@ -18,7 +18,6 @@ import TypeSearch.Core.Name
 import TypeSearch.Core.Term
 import TypeSearch.Database.Feature
 import TypeSearch.Database.Parser
-import TypeSearch.Database.PostgreSQL
 import TypeSearch.Database.Query qualified as Q
 import TypeSearch.Prelude
 import TypeSearch.Pretty
@@ -28,16 +27,17 @@ import TypeSearch.Unification
 
 search :: Connection -> S.Set QName -> T.Text -> IO ()
 search conn transparentDefNames typ =
-  either putStrLn pure =<< runExceptT do
-    typ <- parseQuery "interactive" typ ??% displayException
-    let names = Q.freeVars typ
-    resol <- liftIO $ fetchResolution conn names
-    feats <- featureQ transparentDefNames typ ??: "Ill-formed type"
-    cands <- liftIO $ filterByFeatures conn feats
-    tenv <- liftIO $ fetchTopEnv conn $ map (.nameQual) cands
-    (result, time) <- liftIO $ timed $ typeSearch tenv resol typ cands
-    let sorted = sortOn (termSize . (.solution)) result
-    liftIO $ displayTypeSearchResults cands sorted time
+  -- either putStrLn pure =<< runExceptT do
+  --   typ <- parseQuery "interactive" typ ??% displayException
+  --   let names = Q.freeVars typ
+  --   resol <- liftIO $ fetchResolution conn names
+  --   feats <- featureQ transparentDefNames typ ??: "Ill-formed type"
+  --   cands <- liftIO $ filterByFeatures conn feats
+  --   tenv <- liftIO $ fetchTopEnv conn $ map (.nameQual) cands
+  --   (result, time) <- liftIO $ timed $ typeSearch tenv resol typ cands
+  --   let sorted = sortOn (termSize . (.solution)) result
+  --   liftIO $ displayTypeSearchResults cands sorted time
+  undefined
 
 -- Interactive search shell
 interactive :: Connection -> S.Set QName -> IO ()
@@ -64,45 +64,45 @@ interactive conn transparentDefNames = evalReplOpts ReplOpts {..}
 
 --------------------------------------------------------------------------------
 
-data TypeSearchResult = TypeSearchResult
-  { name :: QName,
-    sig :: Type,
-    iso :: Iso,
-    solution :: Term
-  }
+-- data TypeSearchResult = TypeSearchResult
+--   { name :: QName,
+--     sig :: Type,
+--     iso :: Iso,
+--     solution :: Term
+--   }
 
-typeSearch :: TopEnv -> M.Map Name [QName] -> Q.Type -> [Item] -> IO [TypeSearchResult]
-typeSearch tenv resol query items = do
-  let queries = Q.possibleResolutions resol query
-  Streamly.toList
-    $ Streamly.parConcatMap
-      id
-      ( \item ->
-          case ImS.streamToMaybe $ foldMapA (\query -> typeSearchOne tenv query item) queries of
-            Nothing -> Streamly.nil
-            Just res -> Streamly.cons res Streamly.nil
-      )
-    $ Streamly.fromList items
+-- typeSearch :: TopEnv -> M.Map Name [QName] -> Q.Type -> [Item] -> IO [TypeSearchResult]
+-- typeSearch tenv resol query items = do
+--   let queries = Q.possibleResolutions resol query
+--   Streamly.toList
+--     $ Streamly.parConcatMap
+--       id
+--       ( \item ->
+--           case ImS.streamToMaybe $ foldMapA (\query -> typeSearchOne tenv query item) queries of
+--             Nothing -> Streamly.nil
+--             Just res -> Streamly.cons res Streamly.nil
+--       )
+--     $ Streamly.fromList items
 
-typeSearchOne :: TopEnv -> Term -> Item -> ImS.Stream TypeSearchResult
-typeSearchOne tenv query Item {sig, nameQual = name} = do
-  (i, inst) <- check name (initCtx tenv, Here) (eval emptyMetaCtx tenv [] query) (eval emptyMetaCtx tenv [] sig)
-  pure (TypeSearchResult name sig i inst)
+-- typeSearchOne :: TopEnv -> Term -> Item -> ImS.Stream TypeSearchResult
+-- typeSearchOne tenv query Item {sig, nameQual = name} = do
+--   (i, inst) <- check name (initCtx tenv, Here) (eval emptyMetaCtx tenv [] query) (eval emptyMetaCtx tenv [] sig)
+--   pure (TypeSearchResult name sig i inst)
 
-displayTypeSearchResults :: [Item] -> [TypeSearchResult] -> NominalDiffTime -> IO ()
-displayTypeSearchResults cands matches time = do
-  putStrLn $ shows (length matches) $ showString " item(s) matched in " $ shows (length cands) " candidate(s)"
-  putStrLn $ showString "Took " $ shows time "\n"
-  for_ matches \TypeSearchResult {name = QName {..}, ..} -> do
-    putStrLn
-      $ unlines
-      $ concat
-        [ [ showString "- " $ shows name $ showString " : " $ prettyTerm0 Unqualify sig "",
-            showString "  - module        : " $ shows moduleName ""
-          ],
-          case iso of
-            Refl -> []
-            i -> [showString "  - isomorphism   : " $ prettyIso 0 i ""],
-          [ showString "  - solution      : " $ prettyTerm0 Unqualify solution ""
-          ]
-        ]
+-- displayTypeSearchResults :: [Item] -> [TypeSearchResult] -> NominalDiffTime -> IO ()
+-- displayTypeSearchResults cands matches time = do
+--   putStrLn $ shows (length matches) $ showString " item(s) matched in " $ shows (length cands) " candidate(s)"
+--   putStrLn $ showString "Took " $ shows time "\n"
+--   for_ matches \TypeSearchResult {name = QName {..}, ..} -> do
+--     putStrLn
+--       $ unlines
+--       $ concat
+--         [ [ showString "- " $ shows name $ showString " : " $ prettyTerm0 Unqualify sig "",
+--             showString "  - module        : " $ shows moduleName ""
+--           ],
+--           case iso of
+--             Refl -> []
+--             i -> [showString "  - isomorphism   : " $ prettyIso 0 i ""],
+--           [ showString "  - solution      : " $ prettyTerm0 Unqualify solution ""
+--           ]
+--         ]

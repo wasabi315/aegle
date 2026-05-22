@@ -68,7 +68,7 @@ instance FromField QName where
     let (m, f) = first T.init $ T.breakOnEnd "." x
     pure $ QName (coerce m) (coerce f)
 
--- | Possibly qualified names
+-- | Possibly-qualified names
 data PQName
   = Unqual Name
   | Qual ModuleName Name

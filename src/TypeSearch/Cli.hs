@@ -1,13 +1,18 @@
 module TypeSearch.Cli (main) where
 
+import Control.Exception
 import Data.Aeson (eitherDecodeFileStrict)
 import Data.Maybe
 import Data.Text qualified as T
-import Database.PostgreSQL.Simple
+import Hasql.Connection
+import Hasql.Connection.Setting
+import Hasql.Connection.Setting.Connection qualified as ConnSetting
+import Hasql.Connection.Setting.Connection.Param
 import Options.Applicative
 import System.Environment (getEnv, lookupEnv)
 import System.Exit
 import System.FilePath
+import TypeSearch.Database.Backend.PostgreSQL
 import TypeSearch.Database.Index qualified as Index
 import TypeSearch.Database.Search qualified as Search
 import TypeSearch.Prelude
@@ -15,14 +20,14 @@ import TypeSearch.Prelude
 --------------------------------------------------------------------------------
 -- Options
 
-getConnectInfo :: IO ConnectInfo
+getConnectInfo :: IO ConnSetting.Connection
 getConnectInfo = do
-  connectHost <- fromMaybe "127.0.0.1" <$> lookupEnv "DATABASE_HOST"
-  connectPort <- maybe 5432 read <$> lookupEnv "DATABASE_PORT"
-  connectUser <- getEnv "DATABASE_USER"
-  connectPassword <- getEnv "DATABASE_PASSWORD"
-  connectDatabase <- getEnv "DATABASE_NAME"
-  pure ConnectInfo {..}
+  host <- host . T.pack . fromMaybe "127.0.0.1" <$> lookupEnv "DATABASE_HOST"
+  port <- port . maybe 5432 read <$> lookupEnv "DATABASE_PORT"
+  user <- user . T.pack <$> getEnv "DATABASE_USER"
+  password <- password . T.pack <$> getEnv "DATABASE_PASSWORD"
+  database <- dbname . T.pack <$> getEnv "DATABASE_NAME"
+  pure $ ConnSetting.params [host, port, user, password, database]
 
 data Command
   = Index IndexCommand
@@ -86,26 +91,30 @@ main = do
 orDie :: IO (Either String a) -> IO a
 orDie m = m >>= either die pure
 
-dispatchCommand :: Command -> ConnectInfo -> IO ()
+dispatchCommand :: Command -> ConnSetting.Connection -> IO ()
 dispatchCommand = \case
   Index cmd -> index cmd
   Search cmd -> search cmd
   InteractiveSearch cmd -> interactive cmd
 
-index :: IndexCommand -> ConnectInfo -> IO ()
+index :: IndexCommand -> ConnSetting.Connection -> IO ()
 index IndexCommand {..} connInfo = do
   transparentDefNames <- orDie $ eitherDecodeFileStrict transparentDefsFile
-  withConnect connInfo \dbConn -> do
+  bracket (orDie $ first show <$> acquire [connection connInfo]) release \conn -> do
+    migrate conn
+    let dbBuilder = newDbBuilder conn
     Index.indexLibrary Index.Config {..}
 
-search :: SearchCommand -> ConnectInfo -> IO ()
+search :: SearchCommand -> ConnSetting.Connection -> IO ()
 search SearchCommand {..} connInfo = do
-  transparentDefNames <- orDie $ eitherDecodeFileStrict transparentDefsFile
-  withConnect connInfo \conn -> do
-    Search.search conn transparentDefNames query
+  -- transparentDefNames <- orDie $ eitherDecodeFileStrict transparentDefsFile
+  -- withConnect connInfo \conn -> do
+  --   Search.search conn transparentDefNames query
+  undefined
 
-interactive :: InteractiveSearchCommand -> ConnectInfo -> IO ()
+interactive :: InteractiveSearchCommand -> ConnSetting.Connection -> IO ()
 interactive InteractiveSearchCommand {..} connInfo = do
-  transparentDefNames <- orDie $ eitherDecodeFileStrict transparentDefsFile
-  withConnect connInfo \conn -> do
-    Search.interactive conn transparentDefNames
+  -- transparentDefNames <- orDie $ eitherDecodeFileStrict transparentDefsFile
+  -- withConnect connInfo \conn -> do
+  --   Search.interactive conn transparentDefNames
+  undefined

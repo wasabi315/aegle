@@ -35,6 +35,11 @@ dependencies:
   - flat
   - hashable
   - haskeline
+  - hasql
+  - hasql-dynamic-statements
+  - hasql-migration
+  - hasql-th
+  - hasql-transaction
   - list-t
   - megaparsec
   - mtl
@@ -42,11 +47,13 @@ dependencies:
   - parser-combinators
   - postgresql-migration
   - postgresql-simple
+  - profunctors
   - repline
   - streamly
   - text
   - time
   - unordered-containers
+  - vector
   - witherable
 
 language: GHC2021

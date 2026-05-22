@@ -57,23 +57,23 @@ returnTypeHeadQ transparentDefNames (Q.teleView -> TeleView tele cod) =
 --------------------------------------------------------------------------------
 
 -- | Polymorphic feature.
-data Polymorphic = NoPolymorphic | YesPolymorphic
+data Polymorphic = Monomorphic | Polymorphic
   deriving stock (Eq, Ord, Show, Enum)
   deriving (ToField, FromField) via ViaEnum Polymorphic
 
 -- | The input type must be closed. Doesn't perform any reduction.
 polymorphic :: Type -> Polymorphic
 polymorphic = \case
-  Pi _ a _ | endsInSort a -> YesPolymorphic
+  Pi _ a _ | endsInSort a -> Polymorphic
   Pi _ _ b -> polymorphic b
-  _ -> NoPolymorphic
+  _ -> Monomorphic
 
 -- | The input type must be closed.
 polymorphicQ :: Q.Type -> Polymorphic
 polymorphicQ = \case
-  Q.Pi _ a _ | Q.endsInSort a -> YesPolymorphic
+  Q.Pi _ a _ | Q.endsInSort a -> Polymorphic
   Q.Pi _ _ b -> polymorphicQ b
-  _ -> NoPolymorphic
+  _ -> Monomorphic
 
 --------------------------------------------------------------------------------
 
@@ -120,6 +120,7 @@ data Feature n = Feature
     polymorphic :: Polymorphic,
     arity :: Arity
   }
+  deriving stock (Show, Generic)
 
 feature :: Type -> Feature QName
 feature typ =

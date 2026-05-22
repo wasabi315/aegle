@@ -3,7 +3,7 @@ module TypeSearch.Database.Backend
     LibraryItem (..),
     DbReader (..),
     Definition (..),
-    Reexport (..),
+    Export (..),
     LibraryFragment (..),
     DbBuilder (..),
   )
@@ -53,7 +53,7 @@ data Definition = Definition
   }
   deriving stock (Show, Generic)
 
-data Reexport = Reexport
+data Export = Export
   { canonicalName :: QName,
     exportAs :: QName
   }
@@ -61,7 +61,7 @@ data Reexport = Reexport
 
 data LibraryFragment = LibraryFragment
   { definitions :: [Definition],
-    reexports :: [Reexport]
+    exports :: [Export]
   }
   deriving stock (Show, Generic)
   deriving (Semigroup, Monoid) via Generically LibraryFragment

@@ -39,6 +39,7 @@ module TypeSearch.Prelude
     partition,
     sort,
     sortOn,
+    Profunctor (..),
 
     -- * Utils
     impossible,
@@ -77,6 +78,7 @@ import Data.Hashable
 import Data.List (elemIndex, partition, sort, sortOn)
 import Data.Maybe (fromJust, fromMaybe, isJust, isNothing, listToMaybe, maybe, maybeToList)
 import Data.Monoid hiding (First (..), Last (..))
+import Data.Profunctor
 import Data.Semigroup
 import Data.String
 import Data.Time.Clock
