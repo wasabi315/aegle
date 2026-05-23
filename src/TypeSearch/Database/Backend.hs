@@ -6,10 +6,13 @@ module TypeSearch.Database.Backend
     Export (..),
     LibraryFragment (..),
     DbBuilder (..),
+    constructDefinition,
   )
 where
 
 import ListT qualified
+import TypeSearch.Core.Evaluation
+import TypeSearch.Core.Isomorphism
 import TypeSearch.Core.Name
 import TypeSearch.Core.Term
 import TypeSearch.Database.Feature
@@ -71,3 +74,9 @@ newtype DbBuilder m = DbBuilder
     -- Note that re-exports in earlier fragments may refer to canonical names defined in later ones.
     build :: ListT.ListT m LibraryFragment -> m ()
   }
+
+constructDefinition :: QName -> Type -> Maybe Term -> Definition
+constructDefinition name signature body = Definition {feature = feat, ..}
+  where
+    (signature', _) = normalise0 emptyMetaCtx mempty signature
+    feat = feature signature'

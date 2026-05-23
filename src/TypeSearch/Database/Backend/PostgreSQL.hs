@@ -113,8 +113,8 @@ unzip8 xs =
   )
 {-# INLINE unzip8 #-}
 
-insertManyItems :: Statement [DbLibraryItem] ()
-insertManyItems = lmap (unzip8 . V.map adapt . V.fromList) do
+insertManyItems :: Statement (V.Vector DbLibraryItem) ()
+insertManyItems = lmap (unzip8 . V.map adapt) do
   [resultlessStatement|
     INSERT INTO "library_items"
       ( canonical_name
@@ -147,8 +147,8 @@ insertManyItems = lmap (unzip8 . V.map adapt . V.fromList) do
         returnTypeHeadTop
       )
 
-insertManyExports :: Statement [DbExport] ()
-insertManyExports = lmap (V.unzip3 . V.map adapt . V.fromList) do
+insertManyExports :: Statement (V.Vector DbExport) ()
+insertManyExports = lmap (V.unzip3 . V.map adapt) do
   [resultlessStatement|
     INSERT INTO "exports"
       ( canonical_name
@@ -165,9 +165,12 @@ insertManyExports = lmap (V.unzip3 . V.map adapt . V.fromList) do
 
 build :: (MonadIO m) => Connection -> ListT.ListT m LibraryFragment -> m ()
 build conn fragments = do
+  result <- liftIO $ flip run conn do
+    sql "TRUNCATE library_items, exports RESTART IDENTITY;"
+  liftIO $ either throwIO pure result
   flip ListT.traverse_ fragments \LibraryFragment {..} -> liftIO do
-    let items' = convertDefinition <$> definitions
-        exports' = convertExport <$> exports
+    let items' = V.map convertDefinition $ V.fromList definitions
+        exports' = V.map convertExport $ V.fromList exports
     result <- flip run conn $ pipeline do
       Hasql.Pipeline.statement items' insertManyItems
       Hasql.Pipeline.statement exports' insertManyExports

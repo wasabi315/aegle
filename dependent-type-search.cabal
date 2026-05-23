@@ -40,7 +40,6 @@ library
       TypeSearch.Database.Feature
       TypeSearch.Database.Index
       TypeSearch.Database.Parser
-      TypeSearch.Database.PostgreSQL
       TypeSearch.Database.Query
       TypeSearch.Database.Search
       TypeSearch.Prelude

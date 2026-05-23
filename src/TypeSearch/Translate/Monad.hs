@@ -5,7 +5,6 @@ module TypeSearch.Translate.Monad
     addContextAndRenaming,
     translateDBVar,
     isTransparentDef,
-    locallyReduceTransparentDef,
     reduceTransparentDef,
     isErasable,
   )
@@ -37,21 +36,18 @@ data TransEnv = TransEnv
     -- | De Bruijn level → De Bruijn level after erasure
     renaming :: IM.IntMap Int,
     -- | Set of transparent definitions (already resolved)
-    transparentDefNames :: S.Set QName,
-    -- | Should transparent definitions be expanded?
-    reduceTransparentDef :: Bool
+    transparentDefNames :: S.Set QName
   }
 
-runTransl :: S.Set QName -> Transl a -> TCM a
-runTransl = flip runReaderT . initEnv
+runTransl :: Transl a -> S.Set QName -> TCM a
+runTransl m = runReaderT m . initEnv
 
 initEnv :: S.Set QName -> TransEnv
 initEnv transparentDefNames =
   TransEnv
     { contextSizeAfterErasure = 0,
       renaming = mempty,
-      transparentDefNames,
-      reduceTransparentDef = False
+      transparentDefNames
     }
 
 --------------------------------------------------------------------------------
@@ -86,14 +82,10 @@ translateDBVar ix = do
 isTransparentDef :: QName -> Transl Bool
 isTransparentDef x = asks \env -> x `S.member` env.transparentDefNames
 
-locallyReduceTransparentDef :: Transl a -> Transl a
-locallyReduceTransparentDef = local \env -> env {reduceTransparentDef = True}
-
 reduceTransparentDef :: Term -> Transl Term
-reduceTransparentDef t =
-  ifNotM (asks \env -> env.reduceTransparentDef) (pure t) do
-    ds <- asks \env -> OnlyReduceDefs env.transparentDefNames
-    locallyReduceDefs ds $ reduce t
+reduceTransparentDef t = do
+  ds <- asks \env -> OnlyReduceDefs env.transparentDefNames
+  locallyReduceDefs ds $ reduce t
 
 --------------------------------------------------------------------------------
 -- Erase level/size

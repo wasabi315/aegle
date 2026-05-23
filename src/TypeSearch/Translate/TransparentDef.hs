@@ -54,7 +54,7 @@ translateTransparentDefBody def = do
     [cl] -> pure cl
     _ -> bad "Not supported: transparentDef with several clauses"
 
-  locallyReduceTransparentDef $ translatePatternArgs def.defType namedClausePats \ty ->
+  translatePatternArgs def.defType namedClausePats \ty ->
     translateTerm ty (fromMaybe __IMPOSSIBLE__ clauseBody)
 
 translatePatternArgs :: Type -> NAPs -> (Type -> Transl TS.Term) -> Transl TS.Term

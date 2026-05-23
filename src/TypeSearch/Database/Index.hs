@@ -14,7 +14,6 @@ import Agda.Interaction.Library
 import Agda.Interaction.Options
 import Agda.Syntax.Common.Pretty (prettyShow)
 import Agda.Syntax.Concrete.Name qualified as C
-import Agda.Syntax.Internal
 import Agda.Syntax.Position
 import Agda.Syntax.Scope.Base
 import Agda.Utils.FileName
@@ -26,16 +25,13 @@ import Data.DList qualified as DL
 import Data.List.NonEmpty qualified as NE
 import Data.Map qualified as M
 import Data.Set qualified as S
+import ListT qualified
 import System.Directory
 import System.FilePath.Find qualified as Find
 import System.IO
 import TypeSearch.AgdaUtils
-import TypeSearch.Core.Evaluation qualified as TS
-import TypeSearch.Core.Isomorphism qualified as TS
 import TypeSearch.Core.Name qualified as TS
-import TypeSearch.Core.Term qualified as TS
 import TypeSearch.Database.Backend qualified as TS
-import TypeSearch.Database.Feature qualified as TS
 import TypeSearch.Prelude
 import TypeSearch.Translate.Monad
 import TypeSearch.Translate.Name
@@ -58,7 +54,6 @@ data Config = Config
 
 indexLibrary :: Config -> IO ()
 indexLibrary config = do
-  -- TS.migrate config.dbConn
   setCurrentDirectory config.libraryDir
   (Right (_, opts), _) <- pure $ runOptM $ parseBackendOptions [] [] defaultOptions
   runTCMTop' do
@@ -93,7 +88,6 @@ indexLibrary config = do
             src <- parseSource sf
             let m = srcModuleName src
             setCurrentRange (beginningOfFile path) do
-              checkModuleName m (srcOrigin src) Nothing
               withCurrentModule noModuleName
                 $ withTopLevelModule m
                 $ do
@@ -122,13 +116,12 @@ indexLibrary config = do
         src <- parseSource sf
         let m = srcModuleName src
         setCurrentRange (beginningOfFile path) do
-          checkModuleName m (srcOrigin src) Nothing
           withCurrentModule noModuleName
             $ withTopLevelModule m do
               mi <- getNonMainModuleInfo m (Just src)
               setInterface mi.miInterface
               withScope_ mi.miInterface.iInsideScope do
-                runTransl transparentDefNames do
+                flip runTransl transparentDefNames do
                   translateInterface mi.miInterface
 
 --------------------------------------------------------------------------------
@@ -140,15 +133,13 @@ translateInterface intf =
 
 translateScope :: ScopeInfo -> Transl TS.LibraryFragment
 translateScope scopeInfo = do
-  definitions <- forMaybe (collectPublicNames scopeInfo) \(cname, aname) -> do
+  let pubNames = collectPublicNames scopeInfo
+  definitions <- forMaybe (S.toList pubNames) \aname -> do
     def <- getConstInfo aname
-    let name =
-          translateConcreteQName
-            (translateModuleName scopeInfo._scopeCurrent)
-            cname
-    translateDefinition name def
-  let reexports =
-        collectReexportNames scopeInfo
+    translateDefinition def
+  reexports <- lift $ collectReexportNames scopeInfo
+  let reexports' =
+        reexports
           <&> \(cname, aname) -> do
             let exportAs =
                   translateConcreteQName
@@ -158,80 +149,74 @@ translateScope scopeInfo = do
             TS.Export {..}
       exports =
         fmap (\def -> TS.Export {canonicalName = def.name, exportAs = def.name}) definitions
-          ++ reexports
+          ++ reexports'
   pure $! TS.LibraryFragment {..}
 
-collectPublicNames :: ScopeInfo -> [(C.QName, QName)]
+isNameOfTypedThing :: AbstractName -> Bool
+isNameOfTypedThing aname = aname.anameKind /= PatternSynName
+
+collectPublicNames :: ScopeInfo -> S.Set QName
 collectPublicNames scopeInfo =
-  DL.toList $ go id $ getScope scopeInfo._scopeCurrent
+  S.fromList $ DL.toList $ go $ getScope scopeInfo._scopeCurrent
   where
     getScope m = scopeInfo._scopeModules M.! m
 
-    go _ scope
-      | scope.scopeDatatypeModule == Just IsDataModule = mempty
-    go qual scope = names <> namesInChildren
+    go scope = names <> namesInChildren
       where
         names = do
-          (cname, anames) <-
+          anames <-
             DL.fromList
-              $ M.toList
+              $ M.elems
               $ namesInScope @AbstractName [PublicNS] scope
           aname <- DL.fromList $ NE.toList anames
-          guard $ aname.anameKind /= PatternSynName
-          pure (qual (C.QName cname), aname.anameName)
+          guard $ isNameOfTypedThing aname
+          pure aname.anameName
 
         namesInChildren = do
-          (cmodName, amods) <-
+          amods <-
             DL.fromList
-              $ M.toList
+              $ M.elems
               $ namesInScope @AbstractModule [PublicNS] scope
           amod <- DL.fromList $ NE.toList amods
-          go (qual . C.Qual cmodName) (getScope amod.amodName)
+          go (getScope amod.amodName)
 
-collectReexportNames :: ScopeInfo -> [(C.QName, QName)]
-collectReexportNames scopeInfo = do
+collectReexportNames :: ScopeInfo -> TCM [(C.QName, QName)]
+collectReexportNames scopeInfo = ListT.toList do
   let scope = scopeInfo._scopeModules M.! scopeInfo._scopeCurrent
   guard $ scope.scopeDatatypeModule /= Just IsDataModule
-  (cname, anames) <- M.toList $ namesInScope @AbstractName [ImportedNS] scope
-  aname <- NE.toList anames
-  guard $ aname.anameKind /= PatternSynName
+  (cname, anames) <- choose $ M.toList $ namesInScope @AbstractName [ImportedNS] scope
+  aname <- choose anames
+  guard $ isNameOfTypedThing aname
   pure (C.QName cname, useCanonical aname.anameName)
 
 --------------------------------------------------------------------------------
 
-translateDefinition :: TS.QName -> Definition -> Transl (Maybe TS.Definition)
-translateDefinition qname def = setCurrentRangeQ def.defName do
-  ifM
-    (orM [isErasable def.defType, isDeprecated def.defName])
-    do pure Nothing
-    case def.theDef of
-      AxiomDefn {} -> Just <$> translateToAxiom qname def.defType
-      AbstractDefn {} -> Just <$> translateToAxiom qname def.defType
-      FunctionDefn {} -> Just <$> translateFunDef qname def
-      DatatypeDefn {} -> Just <$> translateToAxiom qname def.defType
-      RecordDefn {} -> Just <$> translateToAxiom qname def.defType
-      ConstructorDefn {} -> Just <$> translateToAxiom qname def.defType
-      PrimitiveDefn {} -> Just <$> translateToAxiom qname def.defType
-      DataOrRecSigDefn {} -> pure Nothing
-      GeneralizableVar {} -> pure Nothing
-      PrimitiveSortDefn {} -> pure Nothing
+translateDefinition :: Definition -> Transl (Maybe TS.Definition)
+translateDefinition def = setCurrentRangeQ def.defName do
+  ifM (isErasable def.defType) (pure Nothing) case def.theDef of
+    AxiomDefn {} -> Just <$> translateToAxiom def
+    AbstractDefn {} -> Just <$> translateToAxiom def
+    FunctionDefn {} -> Just <$> translateFunDef def
+    DatatypeDefn {} -> Just <$> translateToAxiom def
+    RecordDefn {} -> Just <$> translateToAxiom def
+    ConstructorDefn {} -> Just <$> translateToAxiom def
+    PrimitiveDefn {} -> Just <$> translateToAxiom def
+    DataOrRecSigDefn {} -> pure Nothing
+    GeneralizableVar {} -> pure Nothing
+    PrimitiveSortDefn {} -> pure Nothing
 
-translateToAxiom :: TS.QName -> Type -> Transl TS.Definition
-translateToAxiom name sig = do
-  signature <- locallyReduceTransparentDef $ translateType sig
-  pure $! constructDefinition name signature Nothing
+translateToAxiom :: Definition -> Transl TS.Definition
+translateToAxiom def = do
+  let name' = translateQName def.defName
+  signature <- translateType def.defType
+  pure $! TS.constructDefinition name' signature Nothing
 
-translateFunDef :: TS.QName -> Definition -> Transl TS.Definition
-translateFunDef name def = do
-  signature <- locallyReduceTransparentDef $ translateType def.defType
+translateFunDef :: Definition -> Transl TS.Definition
+translateFunDef def = do
+  let name = translateQName def.defName
+  signature <- translateType def.defType
   body <- ifM
     (isTransparentDef def.defName)
     do Just <$> translateTransparentDefBody def
     do pure Nothing
-  pure $! constructDefinition name signature body
-
-constructDefinition :: TS.QName -> TS.Type -> Maybe TS.Term -> TS.Definition
-constructDefinition name signature body = TS.Definition {..}
-  where
-    (signature', _) = TS.normalise0 TS.emptyMetaCtx mempty signature
-    feature = TS.feature signature'
+  pure $! TS.constructDefinition name signature body
