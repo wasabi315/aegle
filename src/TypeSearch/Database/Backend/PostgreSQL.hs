@@ -1,4 +1,3 @@
-{-# LANGUAGE ApplicativeDo #-}
 {-# LANGUAGE QuasiQuotes #-}
 
 module TypeSearch.Database.Backend.PostgreSQL
@@ -13,13 +12,19 @@ import Control.Foldl qualified as Foldl
 import Control.Lens
 import Data.ByteString qualified as BS
 import Data.Int
+import Data.List (intersperse)
 import Data.Map.Strict qualified as M
+import Data.Monoid.Do qualified as Monoid
 import Data.Text qualified as T
 import Data.Vector qualified as V
 import Flat
 import Hasql.Connection
+import Hasql.Decoders qualified as Decoders
+import Hasql.DynamicStatements.Snippet qualified as Snippet
+import Hasql.DynamicStatements.Statement
+import Hasql.Encoders qualified as Encoders
 import Hasql.Migration
-import Hasql.Pipeline qualified
+import Hasql.Pipeline qualified as Pipeline
 import Hasql.Session
 import Hasql.Statement
 import Hasql.TH
@@ -27,8 +32,9 @@ import Hasql.Transaction.Sessions
 import ListT qualified
 import Paths_dependent_type_search
 import System.FilePath
-import Text.Read
+import Text.Read (readMaybe)
 import TypeSearch.Core.Name
+import TypeSearch.Core.Term
 import TypeSearch.Database.Backend hiding (loadByAnyFeature, resolveNames)
 import TypeSearch.Database.Feature
 import TypeSearch.Prelude
@@ -92,13 +98,26 @@ qnameText = prism' T.show \txt -> do
     then Nothing
     else Just $ QName (coerce m) (coerce x)
 
+qnameEncoder :: Encoders.Value QName
+qnameEncoder = review qnameText >$< Encoders.text
+
+qnameDecoder :: Decoders.Value QName
+qnameDecoder =
+  flip Decoders.refine Decoders.text \txt ->
+    (txt ^? qnameText) ??: ("Ill-formed QName: " <> txt)
+
 flatBytes :: forall a. (Flat a) => Prism' BS.ByteString a
 flatBytes = prism' flat \bin -> case unflat @a bin of
   Right t -> Just t
   Left _ -> Nothing
 
-polymorphicDb :: Prism' T.Text Polymorphic
-polymorphicDb = prism' T.show (readMaybe . T.unpack)
+flatBytesDecoder :: forall a. (Flat a) => Decoders.Value a
+flatBytesDecoder =
+  flip Decoders.refine Decoders.bytea \bin ->
+    (bin ^? flatBytes) ??: "Ill-formed flat binary"
+
+polymorphicEnum :: Prism' T.Text Polymorphic
+polymorphicEnum = prism' T.show (readMaybe . T.unpack)
 
 returnTypeHeadDb :: Prism' (T.Text, Maybe T.Text) (ReturnTypeHead QName)
 returnTypeHeadDb =
@@ -123,6 +142,9 @@ returnTypeHeadDb =
         _ -> Nothing
     )
 
+returnTypeHeadTagEncoder :: Encoders.Value (ReturnTypeHead QName)
+returnTypeHeadTagEncoder = view (re returnTypeHeadDb . _1) >$< Encoders.text
+
 --------------------------------------------------------------------------------
 -- Build operation
 
@@ -134,7 +156,7 @@ convertDefinition def = DbLibraryItem {..}
     body = review flatBytes <$> def.body
     arity = fromIntegral def.feature.arity.arity
     arityHasVar = def.feature.arity.hasVar
-    polymorphic = polymorphicDb # def.feature.polymorphic
+    polymorphic = polymorphicEnum # def.feature.polymorphic
     (returnTypeHead, returnTypeHeadTop) =
       returnTypeHeadDb # def.feature.returnTypeHead
 
@@ -225,9 +247,8 @@ build conn fragments = do
   liftIO $ either throwIO pure result
   flip ListT.traverse_ fragments \LibraryFragment {..} -> liftIO do
     result <- flip run conn $ pipeline do
-      Hasql.Pipeline.statement definitions insertManyDefinitions
-      Hasql.Pipeline.statement exports insertManyExports
-      pure ()
+      Pipeline.statement definitions insertManyDefinitions
+        *> Pipeline.statement exports insertManyExports
     -- FIXME: better exception handling
     either throwIO pure result
   result <- liftIO $ flip run conn do
@@ -301,9 +322,9 @@ resolveNames conn names = do
   let names' = toList names
       (qualNames, unqualNames) = partitionEithers $ pqNameToEither <$> names'
   result <- liftIO $ flip run conn $ pipeline do
-    resolQual <- Hasql.Pipeline.statement qualNames loadReferentQual
-    resolUnqual <- Hasql.Pipeline.statement unqualNames loadReferentUnqual
-    pure (resolQual, resolUnqual)
+    (,)
+      <$> Pipeline.statement qualNames loadReferentQual
+      <*> Pipeline.statement unqualNames loadReferentUnqual
   (resolQual, resolUnqual) <- liftIO $ either throwIO pure result
   pure $! flip fmapDefault names \case
     Qual m x -> resolQual M.! QName m x
@@ -311,4 +332,84 @@ resolveNames conn names = do
 
 loadByAnyFeature ::
   (MonadIO m, Foldable t) => Connection -> t (Feature QName) -> ListT.ListT m LibraryItem
-loadByAnyFeature _conn _feats = mempty
+loadByAnyFeature _conn (null -> True) = empty
+loadByAnyFeature conn feats = do
+  let snippet = Monoid.do
+        """
+        SELECT
+          i.canonical_name,
+          i.signature,
+          COALESCE (e.reexported_as, '{}') :: text[] AS reexported_as
+        FROM library_items i
+        LEFT JOIN (
+          SELECT
+            canonical_name,
+            array_agg(DISTINCT export_as_qual)
+              FILTER (
+                WHERE export_as_qual IS NOT NULL
+                  AND export_as_qual <> canonical_name
+              ) AS reexported_as
+          FROM exports_qual
+          GROUP BY canonical_name
+        ) e
+          ON e.canonical_name = i.canonical_name
+        WHERE
+        """
+        featuresSnippet feats
+      decoder = Decoders.rowList do
+        canonicalName <- Decoders.column $ Decoders.nonNullable qnameDecoder
+        signature :: Term <- Decoders.column $ Decoders.nonNullable flatBytesDecoder
+        reexportedAs <- Decoders.column $ Decoders.nonNullable $ Decoders.listArray $ Decoders.nonNullable qnameDecoder
+        pure $! LibraryItem {..}
+  result <- liftIO $ flip run conn do
+    statement () $ dynamicallyParameterized snippet decoder False
+  result <- liftIO $ either throwIO pure result
+  choose result
+
+infix 3 `sepBy`
+
+sepBy :: (Monoid m) => [m] -> m -> m
+sepBy xs sep = mconcat (intersperse sep xs)
+
+featuresSnippet :: (Foldable t) => t (Feature QName) -> Snippet.Snippet
+featuresSnippet feats = case toList feats of
+  [] -> "(1 = 0)"
+  feats -> fmap featureSnippet feats `sepBy` " OR "
+
+featureSnippet :: Feature QName -> Snippet.Snippet
+featureSnippet Feature {..} = Monoid.do
+  "("
+  catMaybes
+    [ polymorphicSnippet polymorphic,
+      aritySnippet arity,
+      returnTypeHeadSnippet returnTypeHead
+    ]
+    `sepBy` " AND "
+  ")"
+
+polymorphicSnippet :: Polymorphic -> Maybe Snippet.Snippet
+polymorphicSnippet = \case
+  Monomorphic -> Nothing
+  Polymorphic -> Just "polymorphic = 'Polymorphic'"
+
+aritySnippet :: Arity -> Maybe Snippet.Snippet
+aritySnippet arity | arity.hasVar = Just "arity_has_var"
+aritySnippet arity = Just Monoid.do
+  "(arity_has_var OR arity >= "
+  Snippet.param @Int16 (fromIntegral arity.arity)
+  ")"
+
+returnTypeHeadSnippet :: ReturnTypeHead QName -> Maybe Snippet.Snippet
+returnTypeHeadSnippet = \case
+  RHUnknown -> Nothing
+  RHTop n -> Just Monoid.do
+    """
+    (return_type_head = 'Var' OR
+      (return_type_head = 'Top' AND return_type_head_top =
+    """
+    Snippet.encoderAndParam (Encoders.nonNullable qnameEncoder) n
+    "))"
+  r -> Just Monoid.do
+    "return_type_head IN ('Var', ("
+    Snippet.encoderAndParam (Encoders.nonNullable returnTypeHeadTagEncoder) r
+    " :: return_type_head))"

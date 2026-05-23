@@ -19,6 +19,7 @@ module TypeSearch.Prelude
     module Data.Function,
     module Data.Functor,
     module Data.Functor.Compose,
+    module Data.Functor.Contravariant,
     module Data.Functor.Identity,
     module Data.Maybe,
     module Data.Monoid,
@@ -73,6 +74,7 @@ import Data.Foldable1
 import Data.Function
 import Data.Functor
 import Data.Functor.Compose
+import Data.Functor.Contravariant
 import Data.Functor.Identity
 import Data.Hashable
 import Data.List (elemIndex, partition, sort, sortOn)
