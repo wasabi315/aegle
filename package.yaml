@@ -33,6 +33,7 @@ dependencies:
   - filepath
   - filemanip
   - flat
+  - foldl
   - hashable
   - haskeline
   - hasql
@@ -40,6 +41,7 @@ dependencies:
   - hasql-migration
   - hasql-th
   - hasql-transaction
+  - lens
   - list-t
   - megaparsec
   - mtl

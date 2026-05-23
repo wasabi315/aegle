@@ -53,7 +53,7 @@ returnTypeHeadQ transparentDefNames (Q.teleView -> TeleView tele cod) =
 
 -- | Polymorphic feature.
 data Polymorphic = Monomorphic | Polymorphic
-  deriving stock (Eq, Ord, Show, Enum)
+  deriving stock (Eq, Ord, Show, Read, Enum)
 
 -- | The input type must be closed. Doesn't perform any reduction.
 polymorphic :: Type -> Polymorphic

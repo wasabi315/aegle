@@ -9,6 +9,7 @@ module TypeSearch.Core.Name
   )
 where
 
+import Control.Lens.Wrapped
 import Data.Text qualified as T
 import Flat
 import TypeSearch.Prelude
@@ -18,28 +19,37 @@ import TypeSearch.Prelude
 
 -- | De Bruijn indices
 newtype Index = Index Int
+  deriving stock (Generic)
   deriving newtype (Num, Eq, Ord, Show, Hashable, Enum, Flat)
+  deriving anyclass (Wrapped)
 
 -- | De Bruijn levels
 newtype Level = Level Int
+  deriving stock (Generic)
   deriving newtype (Eq, Ord, Num, Show, Hashable, Flat)
+  deriving anyclass (Wrapped)
 
 -- | Metavariables
 newtype MetaVar = MetaVar Int
+  deriving stock (Generic)
   deriving newtype (Num, Eq, Ord, Hashable, Enum, Flat)
+  deriving anyclass (Wrapped)
 
 instance Show MetaVar where
   showsPrec _ (MetaVar m) = showString "?M" . shows m
 
 -- | Names
 newtype Name = Name T.Text
+  deriving stock (Generic)
   deriving newtype (Eq, Ord, Hashable, IsString, Flat, ToJSON, FromJSON)
+  deriving anyclass (Wrapped)
 
 instance Show Name where
   showsPrec _ (Name n) = showString (T.unpack n)
 
 -- | Module names
 newtype ModuleName = ModuleName T.Text
+  deriving stock (Generic)
   deriving newtype (Eq, Ord, Hashable, IsString, Flat, ToJSON, FromJSON)
 
 instance Show ModuleName where

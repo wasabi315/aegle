@@ -97,24 +97,28 @@ dispatchCommand = \case
   Search cmd -> search cmd
   InteractiveSearch cmd -> interactive cmd
 
+withConnect :: ConnSetting.Connection -> (Connection -> IO r) -> IO r
+withConnect connInfo =
+  bracket (orDie $ first show <$> acquire [connection connInfo]) release
+
 index :: IndexCommand -> ConnSetting.Connection -> IO ()
 index IndexCommand {..} connInfo = do
   transparentDefNames <- orDie $ eitherDecodeFileStrict transparentDefsFile
-  bracket (orDie $ first show <$> acquire [connection connInfo]) release \conn -> do
+  withConnect connInfo \conn -> do
     migrate conn
     let dbBuilder = newDbBuilder conn
     Index.indexLibrary Index.Config {..}
 
 search :: SearchCommand -> ConnSetting.Connection -> IO ()
 search SearchCommand {..} connInfo = do
-  -- transparentDefNames <- orDie $ eitherDecodeFileStrict transparentDefsFile
-  -- withConnect connInfo \conn -> do
-  --   Search.search conn transparentDefNames query
-  undefined
+  transparentDefNames <- orDie $ eitherDecodeFileStrict transparentDefsFile
+  withConnect connInfo \conn -> do
+    let dbReader = newDbReader conn
+    Search.search dbReader transparentDefNames query
 
 interactive :: InteractiveSearchCommand -> ConnSetting.Connection -> IO ()
 interactive InteractiveSearchCommand {..} connInfo = do
-  -- transparentDefNames <- orDie $ eitherDecodeFileStrict transparentDefsFile
-  -- withConnect connInfo \conn -> do
-  --   Search.interactive conn transparentDefNames
-  undefined
+  transparentDefNames <- orDie $ eitherDecodeFileStrict transparentDefsFile
+  withConnect connInfo \conn -> do
+    let dbReader = newDbReader conn
+    Search.interactive dbReader transparentDefNames

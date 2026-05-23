@@ -16,6 +16,7 @@ import TypeSearch.Core.Evaluation
 import TypeSearch.Core.Isomorphism
 import TypeSearch.Core.Name
 import TypeSearch.Core.Term
+import TypeSearch.Database.Backend
 import TypeSearch.Database.Feature
 import TypeSearch.Database.Parser
 import TypeSearch.Database.Query qualified as Q
@@ -25,26 +26,35 @@ import TypeSearch.Unification
 
 --------------------------------------------------------------------------------
 
-search :: Connection -> S.Set QName -> T.Text -> IO ()
-search conn transparentDefNames typ =
-  -- either putStrLn pure =<< runExceptT do
-  --   typ <- parseQuery "interactive" typ ??% displayException
-  --   let names = Q.freeVars typ
-  --   resol <- liftIO $ fetchResolution conn names
-  --   feats <- featureQ transparentDefNames typ ??: "Ill-formed type"
-  --   cands <- liftIO $ filterByFeatures conn feats
-  --   tenv <- liftIO $ fetchTopEnv conn $ map (.nameQual) cands
-  --   (result, time) <- liftIO $ timed $ typeSearch tenv resol typ cands
-  --   let sorted = sortOn (termSize . (.solution)) result
-  --   liftIO $ displayTypeSearchResults cands sorted time
-  undefined
+search :: DbReader IO -> S.Set QName -> T.Text -> IO ()
+search dbReader _transparentDefNames typ =
+  either putStrLn pure =<< runExceptT do
+    typ <- parseQuery "interactive" typ ??% displayException
+    let names = Q.freeVars typ
+    -- resol <- liftIO $ fetchResolution conn names
+    -- feats <- featureQ transparentDefNames typ ??: "Ill-formed type"
+    -- cands <- liftIO $ filterByFeatures conn feats
+    -- tenv <- liftIO $ fetchTopEnv conn $ map (.nameQual) cands
+    -- (result, time) <- liftIO $ timed $ typeSearch tenv resol typ cands
+    -- let sorted = sortOn (termSize . (.solution)) result
+    -- liftIO $ displayTypeSearchResults cands sorted time
+    resols <- liftIO $ resolveNames dbReader $ M.fromSet id names
+    liftIO $ for_ (M.toList resols) \(name, refs) -> do
+      putStrLn $ shows name ":"
+      for_ refs \Referent {..} -> do
+        putStr $ "  " ++ show canonicalName
+        case body of
+          Nothing -> pure ()
+          Just body -> putStr $ " = " ++ prettyTerm0 Unqualify body ""
+        putStrLn ""
+      putStrLn ""
 
 -- Interactive search shell
-interactive :: Connection -> S.Set QName -> IO ()
-interactive conn transparentDefNames = evalReplOpts ReplOpts {..}
+interactive :: DbReader IO -> S.Set QName -> IO ()
+interactive dbReader transparentDefNames = evalReplOpts ReplOpts {..}
   where
     banner _ = pure ">> "
-    command = liftIO . search conn transparentDefNames . T.pack
+    command = liftIO . search dbReader transparentDefNames . T.pack
     prefix = Just ':'
     multilineCommand = Nothing
     tabComplete = Word0 (listWordCompleter [])

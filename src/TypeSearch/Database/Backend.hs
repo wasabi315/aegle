@@ -2,6 +2,8 @@ module TypeSearch.Database.Backend
   ( Referent (..),
     LibraryItem (..),
     DbReader (..),
+    resolveNames,
+    loadByAnyFeature,
     Definition (..),
     Export (..),
     LibraryFragment (..),
@@ -44,6 +46,12 @@ data DbReader m = DbReader
       forall t.
       (Foldable t) => t (Feature QName) -> ListT.ListT m LibraryItem
   }
+
+resolveNames :: (Traversable t) => DbReader m -> t PQName -> m (t [Referent])
+resolveNames DbReader {..} = resolveNames
+
+loadByAnyFeature :: (Foldable t) => DbReader m -> t (Feature QName) -> ListT.ListT m LibraryItem
+loadByAnyFeature DbReader {..} = loadByAnyFeature
 
 --------------------------------------------------------------------------------
 -- Build operation

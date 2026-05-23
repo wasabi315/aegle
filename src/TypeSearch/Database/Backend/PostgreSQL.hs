@@ -3,13 +3,17 @@
 
 module TypeSearch.Database.Backend.PostgreSQL
   ( newDbBuilder,
+    newDbReader,
     migrate,
   )
 where
 
 import Control.Exception
+import Control.Foldl qualified as Foldl
+import Control.Lens
 import Data.ByteString qualified as BS
 import Data.Int
+import Data.Map.Strict qualified as M
 import Data.Text qualified as T
 import Data.Vector qualified as V
 import Flat
@@ -23,8 +27,9 @@ import Hasql.Transaction.Sessions
 import ListT qualified
 import Paths_dependent_type_search
 import System.FilePath
+import Text.Read
 import TypeSearch.Core.Name
-import TypeSearch.Database.Backend
+import TypeSearch.Database.Backend hiding (loadByAnyFeature, resolveNames)
 import TypeSearch.Database.Feature
 import TypeSearch.Prelude
 
@@ -35,6 +40,13 @@ newDbBuilder :: (MonadIO m) => Connection -> DbBuilder m
 newDbBuilder conn =
   DbBuilder
     { build = build conn
+    }
+
+newDbReader :: (MonadIO m) => Connection -> DbReader m
+newDbReader conn =
+  DbReader
+    { resolveNames = resolveNames conn,
+      loadByAnyFeature = loadByAnyFeature conn
     }
 
 migrate :: Connection -> IO ()
@@ -65,38 +77,73 @@ data DbExport = DbExport
     exportAsUnqual :: T.Text
   }
 
+data DbReferent = DbReferent
+  { canonicalName :: T.Text,
+    body :: Maybe BS.ByteString
+  }
+
+--------------------------------------------------------------------------------
+-- Encode/decode
+
+qnameText :: Prism' T.Text QName
+qnameText = prism' T.show \txt -> do
+  let (m, x) = first T.init $ T.breakOnEnd "." txt
+  if T.null m || T.null x
+    then Nothing
+    else Just $ QName (coerce m) (coerce x)
+
+flatBytes :: forall a. (Flat a) => Prism' BS.ByteString a
+flatBytes = prism' flat \bin -> case unflat @a bin of
+  Right t -> Just t
+  Left _ -> Nothing
+
+polymorphicDb :: Prism' T.Text Polymorphic
+polymorphicDb = prism' T.show (readMaybe . T.unpack)
+
+returnTypeHeadDb :: Prism' (T.Text, Maybe T.Text) (ReturnTypeHead QName)
+returnTypeHeadDb =
+  prism'
+    ( \case
+        RHTop n -> ("Top", Just $ qnameText # n)
+        RHU -> ("U", Nothing)
+        RHVar -> ("Var", Nothing)
+        RHSigma -> ("Sigma", Nothing)
+        RHProj1 -> ("Proj1", Nothing)
+        RHProj2 -> ("Proj2", Nothing)
+        RHUnknown -> ("Unknown", Nothing)
+    )
+    ( \case
+        ("Top", Just n) -> RHTop <$> n ^? qnameText
+        ("U", Nothing) -> Just RHU
+        ("Var", Nothing) -> Just RHVar
+        ("Sigma", Nothing) -> Just RHSigma
+        ("Proj1", Nothing) -> Just RHProj1
+        ("Proj2", Nothing) -> Just RHProj2
+        ("Unknown", Nothing) -> Just RHUnknown
+        _ -> Nothing
+    )
+
 --------------------------------------------------------------------------------
 -- Build operation
 
 convertDefinition :: Definition -> DbLibraryItem
-convertDefinition Definition {..} =
-  DbLibraryItem
-    { canonicalName = T.show name,
-      signature = flat signature,
-      body = flat <$> body,
-      arity = fromIntegral feature.arity.arity,
-      arityHasVar = feature.arity.hasVar,
-      polymorphic = T.show feature.polymorphic,
-      returnTypeHead = case feature.returnTypeHead of
-        RHU -> "U"
-        RHVar -> "Var"
-        RHTop {} -> "Top"
-        RHSigma -> "Sigma"
-        RHProj1 -> "Proj1"
-        RHProj2 -> "Proj2"
-        RHUnknown -> "Unknown",
-      returnTypeHeadTop = case feature.returnTypeHead of
-        RHTop n -> Just (T.show n)
-        _ -> Nothing
-    }
+convertDefinition def = DbLibraryItem {..}
+  where
+    canonicalName = qnameText # def.name
+    signature = flatBytes # def.signature
+    body = review flatBytes <$> def.body
+    arity = fromIntegral def.feature.arity.arity
+    arityHasVar = def.feature.arity.hasVar
+    polymorphic = polymorphicDb # def.feature.polymorphic
+    (returnTypeHead, returnTypeHeadTop) =
+      returnTypeHeadDb # def.feature.returnTypeHead
 
 convertExport :: Export -> DbExport
-convertExport Export {..} =
-  DbExport
-    { canonicalName = T.show canonicalName,
-      exportAsQual = T.show exportAs,
-      exportAsUnqual = T.show exportAs.name
-    }
+convertExport export = DbExport {..}
+  where
+    canonicalName = qnameText # export.canonicalName
+    exportAsQual = qnameText # export.exportAs
+    exportAsUnqual = _Unwrapped' # export.exportAs.name
 
 unzip8 ::
   V.Vector (a, b, c, d, e, f, g, h) ->
@@ -113,8 +160,12 @@ unzip8 xs =
   )
 {-# INLINE unzip8 #-}
 
-insertManyItems :: Statement (V.Vector DbLibraryItem) ()
-insertManyItems = lmap (unzip8 . V.map adapt) do
+insertManyDefinitions :: Statement [Definition] ()
+insertManyDefinitions =
+  lmap (V.map convertDefinition . V.fromList) insertManyDbItems
+
+insertManyDbItems :: Statement (V.Vector DbLibraryItem) ()
+insertManyDbItems = lmap (unzip8 . V.map adapt) do
   [resultlessStatement|
     INSERT INTO "library_items"
       ( canonical_name
@@ -147,8 +198,12 @@ insertManyItems = lmap (unzip8 . V.map adapt) do
         returnTypeHeadTop
       )
 
-insertManyExports :: Statement (V.Vector DbExport) ()
-insertManyExports = lmap (V.unzip3 . V.map adapt) do
+insertManyExports :: Statement [Export] ()
+insertManyExports =
+  lmap (V.map convertExport . V.fromList) insertManyDbExports
+
+insertManyDbExports :: Statement (V.Vector DbExport) ()
+insertManyDbExports = lmap (V.unzip3 . V.map adapt) do
   [resultlessStatement|
     INSERT INTO "exports"
       ( canonical_name
@@ -169,11 +224,9 @@ build conn fragments = do
     sql "TRUNCATE library_items, exports RESTART IDENTITY;"
   liftIO $ either throwIO pure result
   flip ListT.traverse_ fragments \LibraryFragment {..} -> liftIO do
-    let items' = V.map convertDefinition $ V.fromList definitions
-        exports' = V.map convertExport $ V.fromList exports
     result <- flip run conn $ pipeline do
-      Hasql.Pipeline.statement items' insertManyItems
-      Hasql.Pipeline.statement exports' insertManyExports
+      Hasql.Pipeline.statement definitions insertManyDefinitions
+      Hasql.Pipeline.statement exports insertManyExports
       pure ()
     -- FIXME: better exception handling
     either throwIO pure result
@@ -184,3 +237,83 @@ build conn fragments = do
       REFRESH MATERIALIZED VIEW qual_name_resolution;
       """
   liftIO $ either throwIO pure result
+
+--------------------------------------------------------------------------------
+-- Read operation
+
+pqNameToEither :: PQName -> Either QName Name
+pqNameToEither = \case
+  Qual m x -> Left (QName m x)
+  Unqual x -> Right x
+
+convertDbReferent :: DbReferent -> Either T.Text Referent
+convertDbReferent DbReferent {..} = do
+  canonicalName <-
+    (canonicalName ^? qnameText) ??: ("Ill-formed QName: " <> canonicalName)
+  body <- for body \body ->
+    (body ^? flatBytes) ??: "Ill-formed Term"
+  pure $! Referent {..}
+
+loadReferentQual :: Statement [QName] (M.Map QName [Referent])
+loadReferentQual =
+  lmap (V.map (review qnameText) . V.fromList) $
+    refineResult
+      (traverse (traverse convertDbReferent) . M.mapKeysMonotonic (^?! qnameText))
+      loadReferentQual'
+
+loadReferentUnqual :: Statement [Name] (M.Map Name [Referent])
+loadReferentUnqual =
+  lmap (V.map (view _Wrapped') . V.fromList) $
+    refineResult
+      (traverse (traverse convertDbReferent) . M.mapKeysMonotonic (view _Unwrapped'))
+      loadReferentUnqual'
+
+referentAggregation :: Foldl.Fold (T.Text, T.Text, Maybe BS.ByteString) (M.Map T.Text [DbReferent])
+referentAggregation =
+  lmap (\(exportAs, canonName, body) -> (exportAs, (canonName, body))) do
+    Foldl.foldByKeyMap (lmap (uncurry DbReferent) Foldl.list)
+
+loadReferentQual' :: Statement (V.Vector T.Text) (M.Map T.Text [DbReferent])
+loadReferentQual' =
+  [foldStatement|
+    SELECT e.export_as_qual :: text, e.canonical_name :: text, i.body :: bytea?
+    FROM library_items i
+    LEFT JOIN exports e
+      ON i.canonical_name = e.canonical_name
+    WHERE e.export_as_qual = ANY($1 :: text[])
+  |]
+    referentAggregation
+
+loadReferentUnqual' :: Statement (V.Vector T.Text) (M.Map T.Text [DbReferent])
+loadReferentUnqual' =
+  [foldStatement|
+    WITH exports_dedup AS (
+      SELECT DISTINCT export_as_unqual, canonical_name
+      FROM exports
+      WHERE export_as_unqual = ANY($1 :: text[])
+    )
+    SELECT e.export_as_unqual :: text, e.canonical_name :: text, i.body :: bytea?
+    FROM library_items i
+    LEFT JOIN exports_dedup e
+      ON i.canonical_name = e.canonical_name
+    WHERE e.export_as_unqual = ANY($1 :: text[])
+  |]
+    referentAggregation
+
+resolveNames ::
+  (MonadIO m, Traversable t) => Connection -> t PQName -> m (t [Referent])
+resolveNames conn names = do
+  let names' = toList names
+      (qualNames, unqualNames) = partitionEithers $ pqNameToEither <$> names'
+  result <- liftIO $ flip run conn $ pipeline do
+    resolQual <- Hasql.Pipeline.statement qualNames loadReferentQual
+    resolUnqual <- Hasql.Pipeline.statement unqualNames loadReferentUnqual
+    pure (resolQual, resolUnqual)
+  (resolQual, resolUnqual) <- liftIO $ either throwIO pure result
+  pure $! flip fmapDefault names \case
+    Qual m x -> resolQual M.! QName m x
+    Unqual x -> resolUnqual M.! x
+
+loadByAnyFeature ::
+  (MonadIO m, Foldable t) => Connection -> t (Feature QName) -> ListT.ListT m LibraryItem
+loadByAnyFeature _conn _feats = mempty
