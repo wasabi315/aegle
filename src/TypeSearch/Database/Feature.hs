@@ -1,10 +1,6 @@
 module TypeSearch.Database.Feature where
 
 import Data.Set qualified as S
-import Database.PostgreSQL.Simple.Extra
-import Database.PostgreSQL.Simple.FromField
-import Database.PostgreSQL.Simple.Newtypes
-import Database.PostgreSQL.Simple.ToField
 import TypeSearch.Core.Name
 import TypeSearch.Core.Term
 import TypeSearch.Database.Query qualified as Q
@@ -23,7 +19,6 @@ data ReturnTypeHead n
   | RHUnknown
   deriving stock (Eq, Ord, Show, Generic, Functor, Foldable, Traversable)
   deriving anyclass (ToJSON, FromJSON)
-  deriving (ToField, FromField) via Aeson (ReturnTypeHead n)
 
 -- | The input type must be closed. Doesn't perform any reduction.
 returnTypeHead :: Type -> ReturnTypeHead QName
@@ -59,7 +54,6 @@ returnTypeHeadQ transparentDefNames (Q.teleView -> TeleView tele cod) =
 -- | Polymorphic feature.
 data Polymorphic = Monomorphic | Polymorphic
   deriving stock (Eq, Ord, Show, Enum)
-  deriving (ToField, FromField) via ViaEnum Polymorphic
 
 -- | The input type must be closed. Doesn't perform any reduction.
 polymorphic :: Type -> Polymorphic
@@ -84,7 +78,6 @@ data Arity = Arity
   }
   deriving stock (Eq, Show, Ord, Generic)
   deriving anyclass (ToJSON, FromJSON)
-  deriving (ToField, FromField) via Aeson Arity
 
 -- | The input type must be closed. Doesn't perform any reduction.
 arity :: Type -> Arity

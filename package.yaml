@@ -45,8 +45,6 @@ dependencies:
   - mtl
   - optparse-applicative
   - parser-combinators
-  - postgresql-migration
-  - postgresql-simple
   - profunctors
   - repline
   - streamly

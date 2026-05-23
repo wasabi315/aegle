@@ -9,7 +9,7 @@ import Data.Map.Strict qualified as M
 import Data.Set qualified as S
 import Data.Text qualified as T
 import Data.Time.Clock
-import Database.PostgreSQL.Simple
+import Hasql.Connection
 import Streamly.Data.Stream.Prelude qualified as Streamly
 import System.Console.Repline
 import TypeSearch.Core.Evaluation

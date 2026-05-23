@@ -28,7 +28,6 @@ source-repository head
 library
   exposed-modules:
       Data.ImmatureStream
-      Database.PostgreSQL.Simple.Extra
       TypeSearch.AgdaUtils
       TypeSearch.Cli
       TypeSearch.Core.Evaluation
@@ -122,8 +121,6 @@ library
     , mtl
     , optparse-applicative
     , parser-combinators
-    , postgresql-migration
-    , postgresql-simple
     , profunctors
     , repline
     , streamly
@@ -210,8 +207,6 @@ executable dependent-type-search
     , mtl
     , optparse-applicative
     , parser-combinators
-    , postgresql-migration
-    , postgresql-simple
     , profunctors
     , repline
     , streamly
@@ -299,8 +294,6 @@ test-suite dependent-type-search-test
     , mtl
     , optparse-applicative
     , parser-combinators
-    , postgresql-migration
-    , postgresql-simple
     , profunctors
     , repline
     , streamly

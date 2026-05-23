@@ -20,9 +20,6 @@ module TypeSearch.Core.Term
 where
 
 import Data.Set qualified as S
-import Database.PostgreSQL.Simple.Extra
-import Database.PostgreSQL.Simple.FromField
-import Database.PostgreSQL.Simple.ToField
 import TypeSearch.Core.Name
 import TypeSearch.Prelude
 
@@ -44,7 +41,6 @@ data Term
   | Proj2 Term -- t.2
   deriving stock (Show, Generic)
   deriving anyclass (Flat)
-  deriving (FromField, ToField) via ViaFlat Term
 
 type Type = Term
 

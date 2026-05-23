@@ -9,10 +9,7 @@ module TypeSearch.Core.Name
   )
 where
 
-import Control.Applicative
 import Data.Text qualified as T
-import Database.PostgreSQL.Simple.FromField hiding (Binary)
-import Database.PostgreSQL.Simple.ToField
 import Flat
 import TypeSearch.Prelude
 
@@ -36,14 +33,14 @@ instance Show MetaVar where
 
 -- | Names
 newtype Name = Name T.Text
-  deriving newtype (Eq, Ord, Hashable, IsString, Flat, ToJSON, FromJSON, ToField, FromField)
+  deriving newtype (Eq, Ord, Hashable, IsString, Flat, ToJSON, FromJSON)
 
 instance Show Name where
   showsPrec _ (Name n) = showString (T.unpack n)
 
 -- | Module names
 newtype ModuleName = ModuleName T.Text
-  deriving newtype (Eq, Ord, Hashable, IsString, Flat, ToJSON, FromJSON, ToField, FromField)
+  deriving newtype (Eq, Ord, Hashable, IsString, Flat, ToJSON, FromJSON)
 
 instance Show ModuleName where
   showsPrec _ (ModuleName n) = showString (T.unpack n)
@@ -58,15 +55,6 @@ data QName = QName
 
 instance Show QName where
   showsPrec _ x = shows x.moduleName . showChar '.' . shows x.name
-
-instance ToField QName where
-  toField x = toField (T.pack $ show x)
-
-instance FromField QName where
-  fromField f dat = do
-    x <- fromField @T.Text f dat
-    let (m, f) = first T.init $ T.breakOnEnd "." x
-    pure $ QName (coerce m) (coerce f)
 
 -- | Possibly-qualified names
 data PQName
