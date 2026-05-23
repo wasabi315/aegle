@@ -233,8 +233,8 @@ build conn fragments = do
   result <- liftIO $ flip run conn do
     sql
       """
-      REFRESH MATERIALIZED VIEW unqual_name_resolution;
-      REFRESH MATERIALIZED VIEW qual_name_resolution;
+      REFRESH MATERIALIZED VIEW exports_unqual;
+      REFRESH MATERIALIZED VIEW exports_qual;
       """
   liftIO $ either throwIO pure result
 
@@ -278,7 +278,7 @@ loadReferentQual' =
   [foldStatement|
     SELECT e.export_as_qual :: text, e.canonical_name :: text, i.body :: bytea?
     FROM library_items i
-    LEFT JOIN exports e
+    JOIN exports_qual e
       ON i.canonical_name = e.canonical_name
     WHERE e.export_as_qual = ANY($1 :: text[])
   |]
@@ -287,14 +287,9 @@ loadReferentQual' =
 loadReferentUnqual' :: Statement (V.Vector T.Text) (M.Map T.Text [DbReferent])
 loadReferentUnqual' =
   [foldStatement|
-    WITH exports_dedup AS (
-      SELECT DISTINCT export_as_unqual, canonical_name
-      FROM exports
-      WHERE export_as_unqual = ANY($1 :: text[])
-    )
     SELECT e.export_as_unqual :: text, e.canonical_name :: text, i.body :: bytea?
     FROM library_items i
-    LEFT JOIN exports_dedup e
+    JOIN exports_unqual e
       ON i.canonical_name = e.canonical_name
     WHERE e.export_as_unqual = ANY($1 :: text[])
   |]

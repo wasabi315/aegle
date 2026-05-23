@@ -40,22 +40,10 @@ CREATE TABLE exports (
     export_as_unqual     text              NOT NULL
 );
 
-CREATE MATERIALIZED VIEW unqual_name_resolution AS
-SELECT
-    e.export_as_unqual,
-    array_agg(
-        DISTINCT e.canonical_name
-        ORDER BY e.canonical_name
-    ) AS canonical_names
-FROM exports e
-GROUP BY e.export_as_unqual;
+CREATE MATERIALIZED VIEW exports_unqual AS
+SELECT DISTINCT export_as_unqual, canonical_name
+FROM exports;
 
-CREATE MATERIALIZED VIEW qual_name_resolution AS
-SELECT
-    e.export_as_qual,
-    array_agg(
-        DISTINCT e.canonical_name
-        ORDER BY e.canonical_name
-    ) AS canonical_names
-FROM exports e
-GROUP BY e.export_as_qual;
+CREATE MATERIALIZED VIEW exports_qual AS
+SELECT DISTINCT export_as_qual, canonical_name
+FROM exports;

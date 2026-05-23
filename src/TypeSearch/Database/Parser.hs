@@ -72,7 +72,7 @@ pIdent = try do
         pure p
       pParts = alternating1 pPart (C.string "_")
   xs <- T.concat <$> pParts
-  guard $ xs /= "_"
+  guard $ xs /= "_" && not (T.all isDigit xs)
   xs <$ ws
 
 pName :: Parser Name
