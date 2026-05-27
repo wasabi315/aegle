@@ -7,14 +7,11 @@ module TypeSearch.Database.Backend
     Definition (..),
     Export (..),
     LibraryFragment (..),
-    DbBuilder (..),
-    constructDefinition,
+    DbBuilder,
   )
 where
 
-import ListT qualified
-import TypeSearch.Core.Evaluation
-import TypeSearch.Core.Isomorphism
+import Control.Foldl qualified as Foldl
 import TypeSearch.Core.Name
 import TypeSearch.Core.Term
 import TypeSearch.Database.Feature
@@ -44,13 +41,16 @@ data DbReader m = DbReader
     -- | Load library items that match at least one of the given features.
     loadByAnyFeature ::
       forall t.
-      (Foldable t) => t (Feature QName) -> ListT.ListT m LibraryItem
+      (Foldable t) => t (Feature QName) -> m [LibraryItem]
   }
+
+-- These accessor functions are provided because the record dot syntax does not work
+-- for polymorphic fields
 
 resolveNames :: (Traversable t) => DbReader m -> t PQName -> m (t [Referent])
 resolveNames DbReader {..} = resolveNames
 
-loadByAnyFeature :: (Foldable t) => DbReader m -> t (Feature QName) -> ListT.ListT m LibraryItem
+loadByAnyFeature :: (Foldable t) => DbReader m -> t (Feature QName) -> m [LibraryItem]
 loadByAnyFeature DbReader {..} = loadByAnyFeature
 
 --------------------------------------------------------------------------------
@@ -77,14 +77,6 @@ data LibraryFragment = LibraryFragment
   deriving stock (Show, Generic)
   deriving (Semigroup, Monoid) via Generically LibraryFragment
 
-newtype DbBuilder m = DbBuilder
-  { -- | Build database from a stream of library fragments.
-    -- Note that re-exports in earlier fragments may refer to canonical names defined in later ones.
-    build :: ListT.ListT m LibraryFragment -> m ()
-  }
-
-constructDefinition :: QName -> Type -> Maybe Term -> Definition
-constructDefinition name signature body = Definition {feature = feat, ..}
-  where
-    (signature', _) = normalise0 emptyMetaCtx mempty signature
-    feat = feature signature'
+-- | Build database by consuming library fragments.
+-- Note that exports in earlier fragments may refer to canonical names defined in later ones.
+type DbBuilder m = Foldl.FoldM m LibraryFragment

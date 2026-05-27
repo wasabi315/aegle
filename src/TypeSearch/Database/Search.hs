@@ -11,7 +11,6 @@ import Data.Set qualified as S
 import Data.Text qualified as T
 import Data.Time.Clock
 import Hasql.Connection
-import ListT qualified
 import Streamly.Data.Stream.Prelude qualified as Streamly
 import System.Console.Repline
 import TypeSearch.Core.Evaluation
@@ -50,7 +49,7 @@ search dbReader _transparentDefNames typ =
           Just body -> putStr $ " = " ++ prettyTerm0 Unqualify body ""
         putStrLn ""
       putStrLn ""
-    cands <- liftIO $ ListT.toList $ loadByAnyFeature dbReader []
+    cands <- liftIO $ loadByAnyFeature dbReader []
     liftIO $ print $ length cands
     liftIO $ for_ cands \LibraryItem {..} -> do
       appendFile "cands.txt" $ shows canonicalName $ showString " : " $ prettyTerm0 Unqualify signature "\n"

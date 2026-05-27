@@ -107,7 +107,7 @@ index IndexCommand {..} connInfo = do
   withConnect connInfo \conn -> do
     migrate conn
     let dbBuilder = newDbBuilder conn
-    Index.indexLibrary Index.Config {..}
+    Index.indexLibrary Index.Config {..} dbBuilder
 
 search :: SearchCommand -> ConnSetting.Connection -> IO ()
 search SearchCommand {..} connInfo = do

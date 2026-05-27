@@ -29,7 +29,6 @@ dependencies:
   - bytestring
   - containers
   - directory
-  - dlist
   - filepath
   - filemanip
   - flat
@@ -42,7 +41,6 @@ dependencies:
   - hasql-th
   - hasql-transaction
   - lens
-  - list-t
   - megaparsec
   - mtl
   - optparse-applicative

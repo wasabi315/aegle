@@ -14,24 +14,26 @@ import Agda.Interaction.Library
 import Agda.Interaction.Options
 import Agda.Syntax.Common.Pretty (prettyShow)
 import Agda.Syntax.Concrete.Name qualified as C
-import Agda.Syntax.Position
 import Agda.Syntax.Scope.Base
 import Agda.Utils.FileName
 import Agda.Utils.IO.Directory
 import Agda.Utils.Impossible (__IMPOSSIBLE__)
 import Agda.Utils.Maybe (ifJustM)
 import Agda.Utils.Monad hiding (guard, unless)
-import Data.DList qualified as DL
+import Control.Foldl qualified as Foldl
 import Data.List.NonEmpty qualified as NE
 import Data.Map qualified as M
 import Data.Set qualified as S
-import ListT qualified
 import System.Directory
 import System.FilePath.Find qualified as Find
 import System.IO
 import TypeSearch.AgdaUtils
+import TypeSearch.Core.Evaluation qualified as TS
+import TypeSearch.Core.Isomorphism qualified as TS
 import TypeSearch.Core.Name qualified as TS
+import TypeSearch.Core.Term qualified as TS
 import TypeSearch.Database.Backend qualified as TS
+import TypeSearch.Database.Feature qualified as TS
 import TypeSearch.Prelude
 import TypeSearch.Translate.Monad
 import TypeSearch.Translate.Name
@@ -45,15 +47,13 @@ data Config = Config
   { -- | Set of fully-qualified definition names subject to definition unfolding during search.
     transparentDefNames :: S.Set TS.QName,
     -- | Path to Agda library.
-    libraryDir :: FilePath,
-    -- | DB builder backend.
-    dbBuilder :: TS.DbBuilder TCM
+    libraryDir :: FilePath
   }
 
--- TODO: make indexer an Agda backend
+-- TODO: make indexer an Agda backend when Agda supports --build-library for arbitrary backend
 
-indexLibrary :: Config -> IO ()
-indexLibrary config = do
+indexLibrary :: Config -> TS.DbBuilder IO a -> IO a
+indexLibrary config builder = do
   setCurrentDirectory config.libraryDir
   (Right (_, opts), _) <- pure $ runOptM $ parseBackendOptions [] [] defaultOptions
   runTCMTop' do
@@ -70,6 +70,7 @@ indexLibrary config = do
       _ -> __IMPOSSIBLE__
     checkAndSetOptionsFromPragma libOpts
     importPrimitiveModules
+
     libDirPrim <- useTC stPrimitiveLibDir
     files <-
       liftIO
@@ -78,51 +79,54 @@ indexLibrary config = do
         . concat
         <$> forM (filePath libDirPrim : paths) (findWithInfo (pure True) (hasAgdaExtension <$> Find.filePath))
 
+    srcs <- for files \file -> do
+      path <- liftIO $ absolute file
+      sf <- srcFromPath path
+      parseSource sf
+
     -- resolve transparent definition names
-    -- FIXME: make this more sensible. traversing entire library twice currently.
-    (transparentDefNames, unresolved) <-
-      foldM
-        ( \(resolved, unresolved) inputFile -> do
-            path <- liftIO (absolute inputFile)
-            sf <- srcFromPath path
-            src <- parseSource sf
-            let m = srcModuleName src
-            setCurrentRange (beginningOfFile path) do
-              withCurrentModule noModuleName
-                $ withTopLevelModule m
-                $ do
-                  mi <- getNonMainModuleInfo m (Just src)
-                  setInterface mi.miInterface
-                  withScope_ mi.miInterface.iInsideScope do
-                    let mname = prettyShow mi.miInterface.iTopLevelModuleName
-                        (toResolve, unresolved') = partition ((mname ==) . show . (.moduleName)) unresolved
-                    resolved' <- forM toResolve \x ->
-                      resolveDefinedName (show x.name) >>= \case
-                        Nothing -> throwError $ GenericException $ "Couldn't find definition " ++ show x
-                        Just x -> pure x
-                    pure (foldr S.insert resolved resolved', unresolved')
-        )
-        (mempty, S.toList config.transparentDefNames)
-        files
+    transparentDefNames <- resolveQNamesIn srcs config.transparentDefNames
 
-    unless (null unresolved) do
-      throwError $ GenericException $ "Couldn't find definitions " ++ show unresolved
+    flip Foldl.foldM srcs
+      $ Foldl.premapM (translateSource transparentDefNames)
+      $ Foldl.hoists liftIO builder
 
-    config.dbBuilder.build do
-      inputFile <- choose files
-      lift do
-        path <- liftIO (absolute inputFile)
-        sf <- srcFromPath path
-        src <- parseSource sf
-        let m = srcModuleName src
-        setCurrentRange (beginningOfFile path) do
-          withCurrentModule noModuleName
-            $ withTopLevelModule m do
+resolveQNamesIn :: [Source] -> S.Set TS.QName -> TCM (S.Set QName)
+resolveQNamesIn srcs transparentDefNames = do
+  (transparentDefNames, unresolved) <-
+    foldM
+      ( \(resolved, unresolved) src -> do
+          let m = src.srcModuleName
+          withCurrentModule noModuleName do
+            withTopLevelModule m do
               mi <- getNonMainModuleInfo m (Just src)
               setInterface mi.miInterface
               withScope_ mi.miInterface.iInsideScope do
-                flip runTransl transparentDefNames do
-                  translateInterface mi.miInterface
+                let mname = prettyShow mi.miInterface.iTopLevelModuleName
+                    (toResolve, unresolved') = partition ((mname ==) . show . (.moduleName)) unresolved
+                resolved' <- forM toResolve \x ->
+                  resolveDefinedName (show x.name) >>= \case
+                    Nothing -> throwError $ GenericException $ "Couldn't find definition " ++ show x
+                    Just x -> pure x
+                pure (foldr S.insert resolved resolved', unresolved')
+      )
+      (mempty, S.toList transparentDefNames)
+      srcs
+
+  unless (null unresolved) do
+    throwError $ GenericException $ "Couldn't find definitions " ++ show unresolved
+
+  pure transparentDefNames
+
+translateSource :: S.Set QName -> Source -> TCM TS.LibraryFragment
+translateSource transparentDefNames src = do
+  let m = src.srcModuleName
+  withCurrentModule noModuleName do
+    withTopLevelModule m do
+      mi <- getNonMainModuleInfo m (Just src)
+      setInterface mi.miInterface
+      flip runTransl transparentDefNames do
+        translateInterface mi.miInterface
 
 --------------------------------------------------------------------------------
 
@@ -137,9 +141,8 @@ translateScope scopeInfo = do
   definitions <- forMaybe (S.toList pubNames) \aname -> do
     def <- getConstInfo aname
     translateDefinition def
-  reexports <- lift $ collectReexportNames scopeInfo
-  let reexports' =
-        reexports
+  let reexports =
+        collectReexportNames scopeInfo
           <&> \(cname, aname) -> do
             let exportAs =
                   translateConcreteQName
@@ -149,7 +152,7 @@ translateScope scopeInfo = do
             TS.Export {..}
       exports =
         fmap (\def -> TS.Export {canonicalName = def.name, exportAs = def.name}) definitions
-          ++ reexports'
+          ++ reexports
   pure $! TS.LibraryFragment {..}
 
 isNameOfTypedThing :: AbstractName -> Bool
@@ -157,35 +160,28 @@ isNameOfTypedThing aname = aname.anameKind /= PatternSynName
 
 collectPublicNames :: ScopeInfo -> S.Set QName
 collectPublicNames scopeInfo =
-  S.fromList $ DL.toList $ go $ getScope scopeInfo._scopeCurrent
+  S.fromList $ go $ getScope scopeInfo._scopeCurrent
   where
     getScope m = scopeInfo._scopeModules M.! m
 
-    go scope = names <> namesInChildren
+    go scope = names ++ namesInChildren
       where
         names = do
-          anames <-
-            DL.fromList
-              $ M.elems
-              $ namesInScope @AbstractName [PublicNS] scope
-          aname <- DL.fromList $ NE.toList anames
+          anames <- M.elems $ namesInScope @AbstractName [PublicNS] scope
+          aname <- NE.toList anames
           guard $ isNameOfTypedThing aname
           pure aname.anameName
 
         namesInChildren = do
-          amods <-
-            DL.fromList
-              $ M.elems
-              $ namesInScope @AbstractModule [PublicNS] scope
-          amod <- DL.fromList $ NE.toList amods
+          amods <- M.elems $ namesInScope @AbstractModule [PublicNS] scope
+          amod <- NE.toList amods
           go (getScope amod.amodName)
 
-collectReexportNames :: ScopeInfo -> TCM [(C.QName, QName)]
-collectReexportNames scopeInfo = ListT.toList do
+collectReexportNames :: ScopeInfo -> [(C.QName, QName)]
+collectReexportNames scopeInfo = do
   let scope = scopeInfo._scopeModules M.! scopeInfo._scopeCurrent
-  guard $ scope.scopeDatatypeModule /= Just IsDataModule
-  (cname, anames) <- choose $ M.toList $ namesInScope @AbstractName [ImportedNS] scope
-  aname <- choose anames
+  (cname, anames) <- M.toList $ namesInScope @AbstractName [ImportedNS] scope
+  aname <- NE.toList anames
   guard $ isNameOfTypedThing aname
   pure (C.QName cname, useCanonical aname.anameName)
 
@@ -209,7 +205,7 @@ translateToAxiom :: Definition -> Transl TS.Definition
 translateToAxiom def = do
   let name' = translateQName def.defName
   signature <- translateType def.defType
-  pure $! TS.constructDefinition name' signature Nothing
+  pure $! constructDefinition name' signature Nothing
 
 translateFunDef :: Definition -> Transl TS.Definition
 translateFunDef def = do
@@ -219,4 +215,10 @@ translateFunDef def = do
     (isTransparentDef def.defName)
     do Just <$> translateTransparentDefBody def
     do pure Nothing
-  pure $! TS.constructDefinition name signature body
+  pure $! constructDefinition name signature body
+
+constructDefinition :: TS.QName -> TS.Type -> Maybe TS.Term -> TS.Definition
+constructDefinition name signature body = TS.Definition {..}
+  where
+    (signature', _) = TS.normalise0 TS.emptyMetaCtx mempty signature
+    feature = TS.feature signature'

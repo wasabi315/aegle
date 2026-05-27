@@ -106,7 +106,6 @@ library
     , bytestring
     , containers
     , directory
-    , dlist
     , filemanip
     , filepath
     , flat
@@ -119,7 +118,6 @@ library
     , hasql-th
     , hasql-transaction
     , lens
-    , list-t
     , megaparsec
     , mtl
     , optparse-applicative
@@ -194,7 +192,6 @@ executable dependent-type-search
     , containers
     , dependent-type-search
     , directory
-    , dlist
     , filemanip
     , filepath
     , flat
@@ -207,7 +204,6 @@ executable dependent-type-search
     , hasql-th
     , hasql-transaction
     , lens
-    , list-t
     , megaparsec
     , mtl
     , optparse-applicative
@@ -283,7 +279,6 @@ test-suite dependent-type-search-test
     , containers
     , dependent-type-search
     , directory
-    , dlist
     , filemanip
     , filepath
     , flat
@@ -296,7 +291,6 @@ test-suite dependent-type-search-test
     , hasql-th
     , hasql-transaction
     , lens
-    , list-t
     , megaparsec
     , mtl
     , optparse-applicative

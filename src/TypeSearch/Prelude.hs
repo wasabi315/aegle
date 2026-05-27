@@ -52,11 +52,13 @@ module TypeSearch.Prelude
     timed,
     (??:),
     (??%),
+    orThrow,
+    sepBy,
   )
 where
 
 import Control.Applicative
-import Control.Exception (Exception (..))
+import Control.Exception (Exception (..), throwIO)
 import Control.Monad
 import Control.Monad.Except
 import Control.Monad.IO.Class
@@ -78,6 +80,7 @@ import Data.Functor.Contravariant
 import Data.Functor.Identity
 import Data.Hashable
 import Data.List (elemIndex, partition, sort, sortOn)
+import Data.List.NonEmpty qualified as NE
 import Data.Maybe (fromJust, fromMaybe, isJust, isNothing, listToMaybe, maybe, maybeToList)
 import Data.Monoid hiding (First (..), Last (..))
 import Data.Profunctor
@@ -138,3 +141,12 @@ infixr 0 ??:, ??%
 
 (??%) :: (MonadError e' m) => Either e a -> (e -> e') -> m a
 (??%) x f = either (throwError . f) pure x
+
+-- TODO: Better exception handling
+orThrow :: (Exception a) => IO (Either a b) -> IO b
+orThrow m = either throwIO pure =<< m
+
+infix 3 `sepBy`
+
+sepBy :: (Semigroup m) => NE.NonEmpty m -> m -> m
+sepBy xs sep = sconcat (NE.intersperse sep xs)
