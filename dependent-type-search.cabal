@@ -78,6 +78,7 @@ library
       MultiWayIf
       NoFieldSelectors
       NoImplicitPrelude
+      OverloadedLabels
       OverloadedStrings
       OverloadedRecordDot
       PackageImports
@@ -119,6 +120,7 @@ library
     , hasql-transaction
     , megaparsec
     , mtl
+    , named
     , optparse-applicative
     , parser-combinators
     , profunctors
@@ -162,6 +164,7 @@ executable dependent-type-search
       MultiWayIf
       NoFieldSelectors
       NoImplicitPrelude
+      OverloadedLabels
       OverloadedStrings
       OverloadedRecordDot
       PackageImports
@@ -204,6 +207,7 @@ executable dependent-type-search
     , hasql-transaction
     , megaparsec
     , mtl
+    , named
     , optparse-applicative
     , parser-combinators
     , profunctors
@@ -248,6 +252,7 @@ test-suite dependent-type-search-test
       MultiWayIf
       NoFieldSelectors
       NoImplicitPrelude
+      OverloadedLabels
       OverloadedStrings
       OverloadedRecordDot
       PackageImports
@@ -290,6 +295,7 @@ test-suite dependent-type-search-test
     , hasql-transaction
     , megaparsec
     , mtl
+    , named
     , optparse-applicative
     , parser-combinators
     , profunctors

@@ -41,6 +41,9 @@ module TypeSearch.Prelude
     sort,
     sortOn,
     Profunctor (..),
+    (:!),
+    (!),
+    pattern Arg,
 
     -- * Utils
     impossible,
@@ -84,7 +87,7 @@ import Data.List.NonEmpty qualified as NE
 import Data.Maybe (fromJust, fromMaybe, isJust, isNothing, listToMaybe, maybe, maybeToList)
 import Data.Monoid hiding (First (..), Last (..))
 import Data.Profunctor
-import Data.Semigroup
+import Data.Semigroup hiding (Arg (..))
 import Data.String
 import Data.Time.Clock
 import Data.Traversable
@@ -93,6 +96,7 @@ import Data.Void
 import Flat (Flat)
 import GHC.Generics
 import GHC.Stack
+import Named
 import Witherable
 import Prelude hiding (curry, filter, foldl1, foldr1, head, last, maximum, minimum, unzip)
 

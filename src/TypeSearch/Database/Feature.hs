@@ -7,6 +7,19 @@ import TypeSearch.Database.Query qualified as Q
 import TypeSearch.Prelude
 
 --------------------------------------------------------------------------------
+
+class Feature a where
+  compatible :: "query" :! a -> "db" :! a -> Bool
+  compatible queryFeat = matchesCompat (toCompat queryFeat)
+
+  -- | Reified compatibility condition produced from a query feature.
+  -- Backend code can compile this e.g. to SQL.
+  data Compat a
+
+  toCompat :: "query" :! a -> Compat a
+  matchesCompat :: Compat a -> "db" :! a -> Bool
+
+--------------------------------------------------------------------------------
 -- Features
 
 data ReturnTypeHead n
@@ -49,6 +62,35 @@ returnTypeHeadQ transparentDefNames (Q.teleView -> TeleView tele cod) =
       Unqual x -> any (\y -> x == y.name) transparentDefNames
       Qual m x -> S.member (QName m x) transparentDefNames
 
+instance Feature (ReturnTypeHead QName) where
+  data Compat (ReturnTypeHead QName)
+    = IsVar
+    | IsVarOrU
+    | IsVarOrTop QName
+    | IsVarOrSigma
+    | IsVarOrProj1
+    | IsVarOrProj2
+    | AnyReturnType
+    deriving stock (Show, Generic)
+
+  toCompat = \case
+    Arg RHU -> IsVarOrU
+    Arg RHVar -> IsVar
+    Arg (RHTop n) -> IsVarOrTop n
+    Arg RHSigma -> IsVarOrSigma
+    Arg RHProj1 -> IsVarOrProj1
+    Arg RHProj2 -> IsVarOrProj2
+    Arg RHUnknown -> AnyReturnType
+
+  matchesCompat = \cases
+    _ (Arg RHVar) -> True
+    IsVarOrU (Arg RHU) -> True
+    (IsVarOrTop x) (Arg (RHTop y)) -> x == y
+    IsVarOrSigma (Arg RHSigma) -> True
+    IsVarOrProj1 (Arg RHProj1) -> True
+    IsVarOrProj2 (Arg RHProj2) -> True
+    _ _ -> False
+
 --------------------------------------------------------------------------------
 
 -- | Polymorphic feature.
@@ -68,6 +110,21 @@ polymorphicQ = \case
   Q.Pi _ a _ | Q.endsInSort a -> Polymorphic
   Q.Pi _ _ b -> polymorphicQ b
   _ -> Monomorphic
+
+instance Feature Polymorphic where
+  data Compat Polymorphic
+    = IsPoly
+    | AnyPoly
+    deriving stock (Show, Generic)
+
+  toCompat = \case
+    (Arg Polymorphic) -> IsPoly
+    (Arg Monomorphic) -> AnyPoly
+
+  matchesCompat = \cases
+    IsPoly (Arg Polymorphic) -> True
+    IsPoly (Arg Monomorphic) -> False
+    AnyPoly _ -> True
 
 --------------------------------------------------------------------------------
 
@@ -106,29 +163,61 @@ arityQ = go [] False 0
           go ((x, a) : ctx) hasVar (arity + 1) b
       _ -> Arity {..}
 
+instance Feature Arity where
+  data Compat Arity
+    = HasVar
+    | HasVarOrGe Int
+    deriving stock (Show, Generic)
+
+  toCompat (Arg Arity {..}) =
+    if hasVar then HasVar else HasVarOrGe arity
+
+  matchesCompat comp (Arg Arity {..}) = case comp of
+    HasVar -> hasVar
+    HasVarOrGe arity' -> hasVar || arity >= arity'
+
 --------------------------------------------------------------------------------
 
-data Feature n = Feature
-  { returnTypeHead :: ReturnTypeHead n,
+data AllFeature = AllFeature
+  { returnTypeHead :: ReturnTypeHead QName,
     polymorphic :: Polymorphic,
     arity :: Arity
   }
   deriving stock (Show, Generic)
 
-feature :: Type -> Feature QName
-feature typ =
-  Feature
+allFeature :: Type -> AllFeature
+allFeature typ =
+  AllFeature
     { returnTypeHead = returnTypeHead typ,
       polymorphic = polymorphic typ,
       arity = arity typ
     }
 
-featureQ :: S.Set QName -> Q.Type -> Maybe (Feature PQName)
-featureQ transparentDefNames typ = do
-  returnTypeHead <- returnTypeHeadQ transparentDefNames typ
-  pure
-    Feature
-      { returnTypeHead,
-        polymorphic = polymorphicQ typ,
-        arity = arityQ typ
+-- featureQ :: S.Set QName -> Q.Type -> Maybe (Feature PQName)
+-- featureQ transparentDefNames typ = do
+--   returnTypeHead <- returnTypeHeadQ transparentDefNames typ
+--   pure
+--     Feature
+--       { returnTypeHead,
+--         polymorphic = polymorphicQ typ,
+--         arity = arityQ typ
+--       }
+
+instance Feature AllFeature where
+  data Compat AllFeature = AllFeatureCompat
+    { returnTypeHead :: Compat (ReturnTypeHead QName),
+      polymorphic :: Compat Polymorphic,
+      arity :: Compat Arity
+    }
+
+  toCompat (Arg AllFeature {..}) =
+    AllFeatureCompat
+      { returnTypeHead = toCompat (Arg returnTypeHead),
+        polymorphic = toCompat (Arg polymorphic),
+        arity = toCompat (Arg arity)
       }
+
+  matchesCompat conds (Arg feats) =
+    matchesCompat conds.returnTypeHead (Arg feats.returnTypeHead)
+      && matchesCompat conds.polymorphic (Arg feats.polymorphic)
+      && matchesCompat conds.arity (Arg feats.arity)

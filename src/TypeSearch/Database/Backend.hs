@@ -38,10 +38,10 @@ data DbReader m = DbReader
     resolveNames ::
       forall t.
       (Traversable t) => t PQName -> m (t [Referent]),
-    -- | Load library items that match at least one of the given features.
+    -- | Load library items that match at least one of the given compatibilities.
     loadByAnyFeature ::
       forall t.
-      (Foldable t) => t (Feature QName) -> m [LibraryItem]
+      (Foldable t) => t (Compat AllFeature) -> m [LibraryItem]
   }
 
 -- These accessor functions are provided because the record dot syntax does not work
@@ -50,7 +50,7 @@ data DbReader m = DbReader
 resolveNames :: (Traversable t) => DbReader m -> t PQName -> m (t [Referent])
 resolveNames DbReader {..} = resolveNames
 
-loadByAnyFeature :: (Foldable t) => DbReader m -> t (Feature QName) -> m [LibraryItem]
+loadByAnyFeature :: (Foldable t) => DbReader m -> t (Compat AllFeature) -> m [LibraryItem]
 loadByAnyFeature DbReader {..} = loadByAnyFeature
 
 --------------------------------------------------------------------------------
@@ -59,7 +59,7 @@ loadByAnyFeature DbReader {..} = loadByAnyFeature
 data Definition = Definition
   { name :: QName,
     signature :: Type,
-    feature :: Feature QName,
+    feature :: AllFeature,
     body :: Maybe Term
   }
   deriving stock (Show, Generic)

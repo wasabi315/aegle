@@ -222,4 +222,4 @@ constructDefinition :: TS.QName -> TS.Type -> Maybe TS.Term -> TS.Definition
 constructDefinition name signature body = TS.Definition {..}
   where
     (signature', _) = TS.normalise0 TS.emptyMetaCtx mempty signature
-    feature = TS.feature signature'
+    feature = TS.allFeature signature'

@@ -103,18 +103,23 @@ encodePolymorphic = \case
 nonNullPolymorphicEnc :: Encoders.NullableOrNot Encoders.Value Polymorphic
 nonNullPolymorphicEnc = Encoders.nonNullable $ encodePolymorphic >$< Encoders.text
 
-encodeReturnTypeHead :: ReturnTypeHead QName -> (T.Text, Maybe T.Text)
-encodeReturnTypeHead = \case
-  RHTop name -> ("Top", Just $ encodeQName name)
-  RHU -> ("U", Nothing)
-  RHVar -> ("Var", Nothing)
-  RHSigma -> ("Sigma", Nothing)
-  RHProj1 -> ("Proj1", Nothing)
-  RHProj2 -> ("Proj2", Nothing)
-  RHUnknown -> ("Unknown", Nothing)
+encodeReturnTypeHeadTag :: ReturnTypeHead n -> T.Text
+encodeReturnTypeHeadTag = \case
+  RHTop {} -> "Top"
+  RHU -> "U"
+  RHVar -> "Var"
+  RHSigma -> "Sigma"
+  RHProj1 -> "Proj1"
+  RHProj2 -> "Proj2"
+  RHUnknown -> "Unknown"
 
-nonNullReturnTypeHeadTagEnc :: Encoders.NullableOrNot Encoders.Value (ReturnTypeHead QName)
-nonNullReturnTypeHeadTagEnc = Encoders.nonNullable $ fst . encodeReturnTypeHead >$< Encoders.text
+encodeReturnTypeHeadTop :: ReturnTypeHead QName -> Maybe T.Text
+encodeReturnTypeHeadTop = \case
+  RHTop name -> Just $ encodeQName name
+  _ -> Nothing
+
+nonNullReturnTypeHeadTagEnc :: Encoders.NullableOrNot Encoders.Value (ReturnTypeHead n)
+nonNullReturnTypeHeadTagEnc = Encoders.nonNullable $ encodeReturnTypeHeadTag >$< Encoders.text
 
 --------------------------------------------------------------------------------
 -- Build operation
@@ -200,7 +205,8 @@ encodeDefinition def = DbLibraryItemRow {..}
     arity = fromIntegral def.feature.arity.arity
     arityHasVar = def.feature.arity.hasVar
     polymorphic = encodePolymorphic def.feature.polymorphic
-    (returnTypeHead, returnTypeHeadTop) = encodeReturnTypeHead def.feature.returnTypeHead
+    returnTypeHead = encodeReturnTypeHeadTag def.feature.returnTypeHead
+    returnTypeHeadTop = encodeReturnTypeHeadTop def.feature.returnTypeHead
 
 encodeExport :: Export -> DbExportRow
 encodeExport export = DbExportRow {..}
@@ -274,13 +280,13 @@ decodeReferent (canonicalName, body) = do
   body <- traverse decodeTerm body
   pure $! Referent {..}
 
-loadByAnyFeature :: (Foldable t) => Connection -> t (Feature QName) -> IO [LibraryItem]
+loadByAnyFeature :: (Foldable t) => Connection -> t (Compat AllFeature) -> IO [LibraryItem]
 loadByAnyFeature conn feats = case NE.nonEmpty (toList feats) of
   Nothing -> pure []
   Just feats -> loadByAnyFeatureNE conn feats
 
-loadByAnyFeatureNE :: Connection -> NE.NonEmpty (Feature QName) -> IO [LibraryItem]
-loadByAnyFeatureNE conn feats = orThrow $ flip run conn do
+loadByAnyFeatureNE :: Connection -> NE.NonEmpty (Compat AllFeature) -> IO [LibraryItem]
+loadByAnyFeatureNE conn compats = orThrow $ flip run conn do
   statement () $ dynamicallyParameterized snippet decoder False
   where
     snippet =
@@ -304,7 +310,7 @@ loadByAnyFeatureNE conn feats = orThrow $ flip run conn do
         ON e.canonical_name = i.canonical_name
       WHERE
       """
-        <> featuresSnippet feats
+        <> featuresSnippet compats
 
     decoder = Decoders.rowList do
       canonicalName <- Decoders.column nonNullQNameDec
@@ -312,11 +318,11 @@ loadByAnyFeatureNE conn feats = orThrow $ flip run conn do
       reexportedAs <- Decoders.column $ Decoders.nonNullable $ Decoders.listArray nonNullQNameDec
       pure $! LibraryItem {..}
 
-featuresSnippet :: NE.NonEmpty (Feature QName) -> Snippet.Snippet
-featuresSnippet feats = orS $ featureSnippet <$> feats
+featuresSnippet :: NE.NonEmpty (Compat AllFeature) -> Snippet.Snippet
+featuresSnippet = orS . fmap featureSnippet
 
-featureSnippet :: Feature QName -> Snippet.Snippet
-featureSnippet Feature {..} =
+featureSnippet :: Compat AllFeature -> Snippet.Snippet
+featureSnippet AllFeatureCompat {..} =
   andS $
     aritySnippet arity
       NE.:| catMaybes
@@ -324,42 +330,46 @@ featureSnippet Feature {..} =
           returnTypeHeadSnippet returnTypeHead
         ]
 
-polymorphicSnippet :: Polymorphic -> Maybe Snippet.Snippet
+polymorphicSnippet :: Compat Polymorphic -> Maybe Snippet.Snippet
 polymorphicSnippet = \case
-  Monomorphic -> Nothing
-  Polymorphic -> Just Monoid.do
+  AnyPoly -> Nothing
+  IsPoly -> Just Monoid.do
     "polymorphic = "
     parS Monoid.do
       Snippet.encoderAndParam nonNullPolymorphicEnc Polymorphic
       " :: polymorphic"
 
-aritySnippet :: Arity -> Snippet.Snippet
-aritySnippet arity | arity.hasVar = "arity_has_var"
-aritySnippet arity =
-  orS
-    [ "arity_has_var",
-      "arity >= " <> Snippet.param @Int16 (fromIntegral arity.arity)
-    ]
+aritySnippet :: Compat Arity -> Snippet.Snippet
+aritySnippet = \case
+  HasVar -> "arity_has_var"
+  HasVarOrGe arity ->
+    orS
+      [ "arity_has_var",
+        "arity >= " <> Snippet.param @Int16 (fromIntegral arity)
+      ]
 
-returnTypeHeadSnippet :: ReturnTypeHead QName -> Maybe Snippet.Snippet
+returnTypeHeadSnippet :: Compat (ReturnTypeHead QName) -> Maybe Snippet.Snippet
 returnTypeHeadSnippet = \case
-  RHUnknown -> Nothing
-  RHTop n ->
-    Just $
-      orS
-        [ "return_type_head = " <> var,
-          andS
-            [ "return_type_head = " <> top,
-              "return_type_head_top = " <> Snippet.encoderAndParam nonNullQNameEnc n
-            ]
-        ]
-  rh -> Just $ "return_type_head IN" <> listS [var, encRH rh]
+  AnyReturnType -> Nothing
+  IsVar -> Just isVar
+  IsVarOrU -> Just $ isVarOr RHU
+  IsVarOrSigma -> Just $ isVarOr RHSigma
+  IsVarOrProj1 -> Just $ isVarOr RHProj1
+  IsVarOrProj2 -> Just $ isVarOr RHProj2
+  IsVarOrTop n -> Just $ orS [isVar, isTop n]
   where
-    var = encRH RHVar
-    top = encRH (RHTop (QName "" "")) -- dummy QName
-    encRH rh = parS Monoid.do
+    enc rh = parS Monoid.do
       Snippet.encoderAndParam nonNullReturnTypeHeadTagEnc rh
       " :: return_type_head"
+
+    var = enc RHVar
+    isVar = "return_type_head = " <> var
+    isVarOr rh = "return_type_head IN " <> listS [var, enc rh]
+    isTop n =
+      andS
+        [ "return_type_head = " <> enc (RHTop ()),
+          "return_type_head_top = " <> Snippet.encoderAndParam nonNullQNameEnc n
+        ]
 
 parS :: Snippet.Snippet -> Snippet.Snippet
 parS s = "(" <> s <> ")"
