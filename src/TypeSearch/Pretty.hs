@@ -1,5 +1,9 @@
 module TypeSearch.Pretty
   ( -- * Pretty printing
+    prettyName,
+    prettyModuleName,
+    prettyQName,
+    prettyPQName,
     prettyTerm,
     prettyTerm0,
     prettyIso,
@@ -31,18 +35,35 @@ piP = 2
 absP = 1
 pairP = 0
 
+prettyName :: Name -> ShowS
+prettyName (Name x) = showString (T.unpack x)
+
+prettyModuleName :: ModuleName -> ShowS
+prettyModuleName (ModuleName m) = showString (T.unpack m)
+
+prettyQName :: QName -> ShowS
+prettyQName (QName m x) = prettyModuleName m . showChar '.' . prettyName x
+
+prettyPQName :: PQName -> ShowS
+prettyPQName = \case
+  Unqual x -> prettyName x
+  Qual m x -> prettyQName (QName m x)
+
+prettyMeta :: MetaVar -> ShowS
+prettyMeta (MetaVar x) = showString "?" . shows x
+
 prettyQuery :: QualifyMode -> Int -> Q.Term -> ShowS
 prettyQuery qm = go
   where
     go p = \case
-      Q.Var (Unqual n) -> shows n
+      Q.Var (Unqual n) -> prettyName n
       Q.Var (Qual m n) -> case qm of
-        Qualify -> shows (Qual m n)
-        Unqualify -> shows n
+        Qualify -> prettyQName (QName m n)
+        Unqualify -> prettyName n
       Q.U -> showString "U"
       Q.Pi "_" a b -> par p piP $ go sigmaP a . showString " → " . go piP b
       Q.Pi n a b -> par p piP $ piBind n a . goPi b
-      Q.Lam n b -> par p absP $ showString "λ " . shows n . goAbs b
+      Q.Lam n b -> par p absP $ showString "λ " . prettyName n . goAbs b
       Q.App a b -> par p appP $ go appP a . showChar ' ' . go projP b
       Q.Sigma "_" a b -> par p piP $ go appP a . showString " × " . go sigmaP b
       Q.Sigma n a b -> par p sigmaP $ piBind n a . showString " × " . go sigmaP b
@@ -52,7 +73,7 @@ prettyQuery qm = go
 
     piBind n a =
       showString "("
-        . shows n
+        . prettyName n
         . showString " : "
         . go pairP a
         . showChar ')'
@@ -65,7 +86,7 @@ prettyQuery qm = go
       b -> showString " → " . go piP b
 
     goAbs = \case
-      Q.Lam n t -> showChar ' ' . shows n . goAbs t
+      Q.Lam n t -> showChar ' ' . prettyName n . goAbs t
       t -> showString " → " . go absP t
 
 data QualifyMode = Qualify | Unqualify
@@ -77,11 +98,11 @@ prettyTerm :: QualifyMode -> [Name] -> Int -> Term -> ShowS
 prettyTerm qm = go
   where
     go ns p = \case
-      Var (Index i) -> shows (ns !! i)
-      Meta m -> shows m
+      Var (Index i) -> prettyName (ns !! i)
+      Meta m -> prettyMeta m
       Top n -> case qm of
-        Qualify -> shows n
-        Unqualify -> shows n.name
+        Qualify -> prettyQName n
+        Unqualify -> prettyName n.name
       U -> showString "U"
       Pi "_" a b ->
         par p piP $ go ns sigmaP a . showString " → " . go ("_" : ns) piP b
@@ -90,7 +111,7 @@ prettyTerm qm = go
       Lam (freshen ns -> n) t ->
         par p absP
           $ showString "λ "
-          . shows n
+          . prettyName n
           . goAbs (n : ns) t
       App t u -> par p appP $ go ns appP t . showChar ' ' . go ns projP u
       AppPruning t pr -> goPruning (go ns appP t) ns pr
@@ -104,7 +125,7 @@ prettyTerm qm = go
 
     piBind n ns a =
       showString "("
-        . shows n
+        . prettyName n
         . showString " : "
         . go ns pairP a
         . showChar ')'
@@ -117,12 +138,12 @@ prettyTerm qm = go
 
     goAbs ns = \case
       Lam (freshen ns -> n) t ->
-        showChar ' ' . shows n . goAbs (n : ns) t
+        showChar ' ' . prettyName n . goAbs (n : ns) t
       t -> showString ". " . go ns absP t
 
     goPruning t = \cases
       [] [] -> t
-      (n : ns) (True : pr) -> goPruning t ns pr . showChar ' ' . shows n
+      (n : ns) (True : pr) -> goPruning t ns pr . showChar ' ' . prettyName n
       (_ : ns) (False : pr) -> goPruning t ns pr
       _ _ -> impossible
 

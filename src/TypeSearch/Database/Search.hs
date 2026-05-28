@@ -41,9 +41,9 @@ search dbReader _transparentDefNames typ =
     -- liftIO $ displayTypeSearchResults cands sorted time
     resols <- liftIO $ resolveNames dbReader $ M.fromSet id names
     liftIO $ for_ (M.toList resols) \(name, refs) -> do
-      putStrLn $ shows name ":"
+      putStrLn $ prettyPQName name ":"
       for_ refs \Referent {..} -> do
-        putStr $ "  " ++ show canonicalName
+        putStr $ "  " ++ prettyQName (coerce canonicalName) ""
         case body of
           Nothing -> pure ()
           Just body -> putStr $ " = " ++ prettyTerm0 Unqualify body ""
@@ -52,9 +52,9 @@ search dbReader _transparentDefNames typ =
     cands <- liftIO $ loadByAnyFeature dbReader []
     liftIO $ print $ length cands
     liftIO $ for_ cands \LibraryItem {..} -> do
-      appendFile "cands.txt" $ shows canonicalName $ showString " : " $ prettyTerm0 Unqualify signature "\n"
+      appendFile "cands.txt" $ prettyQName (coerce canonicalName) $ showString " : " $ prettyTerm0 Unqualify signature "\n"
       unless (null reexportedAs) do
-        appendFile "cands.txt" $ "  re-exported as: " ++ intercalate ", " (map show reexportedAs)
+        appendFile "cands.txt" $ "  re-exported as: " ++ intercalate ", " (flip prettyQName "" <$> reexportedAs)
       appendFile "cands.txt" "\n\n"
 
 -- Interactive search shell

@@ -40,7 +40,6 @@ dependencies:
   - hasql-migration
   - hasql-th
   - hasql-transaction
-  - lens
   - megaparsec
   - mtl
   - optparse-applicative

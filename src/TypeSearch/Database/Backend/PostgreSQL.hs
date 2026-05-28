@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedLists #-}
 {-# LANGUAGE QuasiQuotes #-}
 
 module TypeSearch.Database.Backend.PostgreSQL
@@ -8,7 +9,6 @@ module TypeSearch.Database.Backend.PostgreSQL
 where
 
 import Control.Foldl qualified as Foldl
-import Control.Lens
 import Data.ByteString qualified as BS
 import Data.Int
 import Data.List.NonEmpty qualified as NE
@@ -30,7 +30,6 @@ import Hasql.TH
 import Hasql.Transaction.Sessions
 import Paths_dependent_type_search
 import System.FilePath
-import Text.Read (readMaybe)
 import TypeSearch.Core.Name
 import TypeSearch.Core.Term
 import TypeSearch.Database.Backend hiding (loadByAnyFeature, resolveNames)
@@ -51,7 +50,7 @@ migrate conn = void do
 --------------------------------------------------------------------------------
 -- Types
 
-data DbLibraryItem = DbLibraryItem
+data DbLibraryItemRow = DbLibraryItemRow
   { canonicalName :: T.Text,
     signature :: BS.ByteString,
     body :: Maybe BS.ByteString,
@@ -62,70 +61,60 @@ data DbLibraryItem = DbLibraryItem
     returnTypeHeadTop :: Maybe T.Text
   }
 
-data DbExport = DbExport
+data DbExportRow = DbExportRow
   { canonicalName :: T.Text,
     exportAsQual :: T.Text,
     exportAsUnqual :: T.Text
   }
 
-data DbReferent = DbReferent
-  { canonicalName :: T.Text,
-    body :: Maybe BS.ByteString
-  }
-
 --------------------------------------------------------------------------------
 -- Encode/decode
 
-qnameText :: Prism' T.Text QName
-qnameText = prism' T.show \txt -> do
+encodeQName :: QName -> T.Text
+encodeQName (QName m x) = coerce m <> "." <> coerce x
+
+decodeQName :: T.Text -> Either T.Text QName
+decodeQName txt = do
   let (mod, name) = first T.init $ T.breakOnEnd "." txt
-  guard $ not (T.null mod) && not (T.null name)
+  when (T.null mod || T.null name) do
+    throwError $ "Bad QName: " <> txt
   pure $ QName (coerce mod) (coerce name)
 
-qnameEncoder :: Encoders.Value QName
-qnameEncoder = review qnameText >$< Encoders.text
+nonNullQNameEnc :: Encoders.NullableOrNot Encoders.Value QName
+nonNullQNameEnc = Encoders.nonNullable $ encodeQName >$< Encoders.text
 
-qnameDecoder :: Decoders.Value QName
-qnameDecoder =
-  flip Decoders.refine Decoders.text \txt ->
-    (txt ^? qnameText) ??: ("Ill-formed QName: " <> txt)
+nonNullQNameDec :: Decoders.NullableOrNot Decoders.Value QName
+nonNullQNameDec = Decoders.nonNullable $ Decoders.refine decodeQName Decoders.text
 
-flatBytes :: forall a. (Flat a) => Prism' BS.ByteString a
-flatBytes = prism' flat $ either (const Nothing) Just . unflat @a
+encodeTerm :: Term -> BS.ByteString
+encodeTerm = flat
 
-flatBytesDecoder :: forall a. (Flat a) => Decoders.Value a
-flatBytesDecoder =
-  flip Decoders.refine Decoders.bytea \bin ->
-    (bin ^? flatBytes) ??: "Ill-formed flat binary"
+decodeTerm :: BS.ByteString -> Either T.Text Term
+decodeTerm bin = unflat bin ??% const "Bad flat binary"
 
-polymorphicEnum :: Prism' T.Text Polymorphic
-polymorphicEnum = prism' T.show (readMaybe . T.unpack)
+nonNullTermDec :: Decoders.NullableOrNot Decoders.Value Term
+nonNullTermDec = Decoders.nonNullable $ Decoders.refine decodeTerm Decoders.bytea
 
-returnTypeHeadDb :: Prism' (T.Text, Maybe T.Text) (ReturnTypeHead QName)
-returnTypeHeadDb =
-  prism'
-    ( \case
-        RHTop n -> ("Top", Just $ qnameText # n)
-        RHU -> ("U", Nothing)
-        RHVar -> ("Var", Nothing)
-        RHSigma -> ("Sigma", Nothing)
-        RHProj1 -> ("Proj1", Nothing)
-        RHProj2 -> ("Proj2", Nothing)
-        RHUnknown -> ("Unknown", Nothing)
-    )
-    ( \case
-        ("Top", Just n) -> RHTop <$> n ^? qnameText
-        ("U", Nothing) -> Just RHU
-        ("Var", Nothing) -> Just RHVar
-        ("Sigma", Nothing) -> Just RHSigma
-        ("Proj1", Nothing) -> Just RHProj1
-        ("Proj2", Nothing) -> Just RHProj2
-        ("Unknown", Nothing) -> Just RHUnknown
-        _ -> Nothing
-    )
+encodePolymorphic :: Polymorphic -> T.Text
+encodePolymorphic = \case
+  Monomorphic -> "Monomorphic"
+  Polymorphic -> "Polymorphic"
 
-returnTypeHeadTagEncoder :: Encoders.Value (ReturnTypeHead QName)
-returnTypeHeadTagEncoder = view (re returnTypeHeadDb . _1) >$< Encoders.text
+nonNullPolymorphicEnc :: Encoders.NullableOrNot Encoders.Value Polymorphic
+nonNullPolymorphicEnc = Encoders.nonNullable $ encodePolymorphic >$< Encoders.text
+
+encodeReturnTypeHead :: ReturnTypeHead QName -> (T.Text, Maybe T.Text)
+encodeReturnTypeHead = \case
+  RHTop name -> ("Top", Just $ encodeQName name)
+  RHU -> ("U", Nothing)
+  RHVar -> ("Var", Nothing)
+  RHSigma -> ("Sigma", Nothing)
+  RHProj1 -> ("Proj1", Nothing)
+  RHProj2 -> ("Proj2", Nothing)
+  RHUnknown -> ("Unknown", Nothing)
+
+nonNullReturnTypeHeadTagEnc :: Encoders.NullableOrNot Encoders.Value (ReturnTypeHead QName)
+nonNullReturnTypeHeadTagEnc = Encoders.nonNullable $ fst . encodeReturnTypeHead >$< Encoders.text
 
 --------------------------------------------------------------------------------
 -- Build operation
@@ -147,31 +136,8 @@ newDbBuilder conn = Foldl.FoldM step begin done
         REFRESH MATERIALIZED VIEW exports_qual;
         """
 
-convertDefinition :: Definition -> DbLibraryItem
-convertDefinition def = DbLibraryItem {..}
-  where
-    canonicalName = qnameText # def.name
-    signature = flatBytes # def.signature
-    body = review flatBytes <$> def.body
-    arity = fromIntegral def.feature.arity.arity
-    arityHasVar = def.feature.arity.hasVar
-    polymorphic = polymorphicEnum # def.feature.polymorphic
-    (returnTypeHead, returnTypeHeadTop) =
-      returnTypeHeadDb # def.feature.returnTypeHead
-
-convertExport :: Export -> DbExport
-convertExport export = DbExport {..}
-  where
-    canonicalName = qnameText # export.canonicalName
-    exportAsQual = qnameText # export.exportAs
-    exportAsUnqual = _Unwrapped' # export.exportAs.name
-
 insertManyDefinitions :: Statement [Definition] ()
-insertManyDefinitions =
-  lmap (V.map convertDefinition . V.fromList) insertManyDbItems
-
-insertManyDbItems :: Statement (V.Vector DbLibraryItem) ()
-insertManyDbItems = lmap (unzip8 . V.map adapt) do
+insertManyDefinitions = lmap encodeDefinitions do
   [resultlessStatement|
     INSERT INTO "library_items"
       ( canonical_name
@@ -193,7 +159,8 @@ insertManyDbItems = lmap (unzip8 . V.map adapt) do
       , $8 :: text?[] )
   |]
   where
-    adapt DbLibraryItem {..} =
+    encodeDefinitions = unzip8 . V.map (adapt . encodeDefinition) . V.fromList
+    adapt DbLibraryItemRow {..} =
       ( canonicalName,
         signature,
         body,
@@ -205,11 +172,7 @@ insertManyDbItems = lmap (unzip8 . V.map adapt) do
       )
 
 insertManyExports :: Statement [Export] ()
-insertManyExports =
-  lmap (V.map convertExport . V.fromList) insertManyDbExports
-
-insertManyDbExports :: Statement (V.Vector DbExport) ()
-insertManyDbExports = lmap (V.unzip3 . V.map adapt) do
+insertManyExports = lmap encodeExports do
   [resultlessStatement|
     INSERT INTO "exports"
       ( canonical_name
@@ -221,8 +184,30 @@ insertManyDbExports = lmap (V.unzip3 . V.map adapt) do
       , $3 :: text[] )
   |]
   where
-    adapt DbExport {..} =
-      (canonicalName, exportAsQual, exportAsUnqual)
+    encodeExports = V.unzip3 . V.map (adapt . encodeExport) . V.fromList
+    adapt DbExportRow {..} =
+      ( canonicalName,
+        exportAsQual,
+        exportAsUnqual
+      )
+
+encodeDefinition :: Definition -> DbLibraryItemRow
+encodeDefinition def = DbLibraryItemRow {..}
+  where
+    canonicalName = encodeQName def.name
+    signature = encodeTerm def.signature
+    body = encodeTerm <$> def.body
+    arity = fromIntegral def.feature.arity.arity
+    arityHasVar = def.feature.arity.hasVar
+    polymorphic = encodePolymorphic def.feature.polymorphic
+    (returnTypeHead, returnTypeHeadTop) = encodeReturnTypeHead def.feature.returnTypeHead
+
+encodeExport :: Export -> DbExportRow
+encodeExport export = DbExportRow {..}
+  where
+    canonicalName = encodeQName export.canonicalName
+    exportAsQual = encodeQName export.exportAs
+    exportAsUnqual = coerce export.exportAs.name
 
 --------------------------------------------------------------------------------
 -- Read operation
@@ -234,84 +219,21 @@ newDbReader conn =
       loadByAnyFeature = loadByAnyFeature conn
     }
 
-resolveNames ::
-  (Traversable t) => Connection -> t PQName -> IO (t [Referent])
+resolveNames :: (Traversable t) => Connection -> t PQName -> IO (t [Referent])
 resolveNames conn names = do
   let names' = toList names
       (qualNames, unqualNames) = partitionEithers $ pqNameToEither <$> names'
   (resolQual, resolUnqual) <- orThrow $ flip run conn $ pipeline do
-    (,)
-      <$> Pipeline.statement qualNames loadReferentQual
-      <*> Pipeline.statement unqualNames loadReferentUnqual
+    liftA2
+      (,)
+      do Pipeline.statement qualNames loadReferentQual
+      do Pipeline.statement unqualNames loadReferentUnqual
   pure $! flip fmapDefault names \case
     Qual m x -> resolQual M.! QName m x
     Unqual x -> resolUnqual M.! x
 
-loadByAnyFeature ::
-  (Foldable t) => Connection -> t (Feature QName) -> IO [LibraryItem]
-loadByAnyFeature conn feats = case NE.nonEmpty (toList feats) of
-  Nothing -> pure []
-  Just feats -> do
-    let snippet = Monoid.do
-          """
-          SELECT
-            i.canonical_name,
-            i.signature,
-            COALESCE (e.reexported_as, '{}') :: text[] AS reexported_as
-          FROM library_items i
-          LEFT JOIN (
-            SELECT
-              canonical_name,
-              array_agg(DISTINCT export_as_qual)
-                FILTER (
-                  WHERE export_as_qual IS NOT NULL
-                    AND export_as_qual <> canonical_name
-                ) AS reexported_as
-            FROM exports_qual
-            GROUP BY canonical_name
-          ) e
-            ON e.canonical_name = i.canonical_name
-          WHERE
-          """
-          featuresSnippet feats
-        decoder = Decoders.rowList do
-          canonicalName <- Decoders.column $ Decoders.nonNullable qnameDecoder
-          signature :: Term <- Decoders.column $ Decoders.nonNullable flatBytesDecoder
-          reexportedAs <- Decoders.column $ Decoders.nonNullable $ Decoders.listArray $ Decoders.nonNullable qnameDecoder
-          pure $! LibraryItem {..}
-
-    orThrow $ flip run conn do
-      statement () $ dynamicallyParameterized snippet decoder False
-
-convertDbReferent :: DbReferent -> Either T.Text Referent
-convertDbReferent DbReferent {..} = do
-  canonicalName <-
-    (canonicalName ^? qnameText) ??: ("Ill-formed QName: " <> canonicalName)
-  body <- for body \body ->
-    (body ^? flatBytes) ??: "Ill-formed Term"
-  pure $! Referent {..}
-
 loadReferentQual :: Statement [QName] (M.Map QName [Referent])
-loadReferentQual =
-  lmap (V.map (review qnameText) . V.fromList) $
-    refineResult
-      (traverse (traverse convertDbReferent) . M.mapKeysMonotonic (^?! qnameText))
-      loadReferentQual'
-
-loadReferentUnqual :: Statement [Name] (M.Map Name [Referent])
-loadReferentUnqual =
-  lmap (V.map (view _Wrapped') . V.fromList) $
-    refineResult
-      (traverse (traverse convertDbReferent) . M.mapKeysMonotonic (view _Unwrapped'))
-      loadReferentUnqual'
-
-referentAggregation :: Foldl.Fold (T.Text, T.Text, Maybe BS.ByteString) (M.Map T.Text [DbReferent])
-referentAggregation =
-  lmap (\(exportAs, canonName, body) -> (exportAs, (canonName, body))) do
-    Foldl.foldByKeyMap (lmap (uncurry DbReferent) Foldl.list)
-
-loadReferentQual' :: Statement (V.Vector T.Text) (M.Map T.Text [DbReferent])
-loadReferentQual' =
+loadReferentQual = lmap encodeQNames $ refineResult decodeReferents do
   [foldStatement|
     SELECT e.export_as_qual :: text, e.canonical_name :: text, i.body :: bytea?
     FROM library_items i
@@ -319,10 +241,18 @@ loadReferentQual' =
       ON i.canonical_name = e.canonical_name
     WHERE e.export_as_qual = ANY($1 :: text[])
   |]
-    referentAggregation
+    groupReferents
+  where
+    encodeQNames = V.map encodeQName . V.fromList
+    decodeReferents =
+      traverse (traverse decodeReferent)
+        . M.mapKeysMonotonic (fromRight impossible . decodeQName)
+    groupReferents =
+      lmap (\(exportAs, canonName, body) -> (exportAs, (canonName, body))) do
+        Foldl.foldByKeyMap Foldl.list
 
-loadReferentUnqual' :: Statement (V.Vector T.Text) (M.Map T.Text [DbReferent])
-loadReferentUnqual' =
+loadReferentUnqual :: Statement [Name] (M.Map Name [Referent])
+loadReferentUnqual = lmap encodeNames $ refineResult decodeReferents do
   [foldStatement|
     SELECT e.export_as_unqual :: text, e.canonical_name :: text, i.body :: bytea?
     FROM library_items i
@@ -330,49 +260,118 @@ loadReferentUnqual' =
       ON i.canonical_name = e.canonical_name
     WHERE e.export_as_unqual = ANY($1 :: text[])
   |]
-    referentAggregation
+    groupReferents
+  where
+    encodeNames = coerce @_ @(V.Vector T.Text) . V.fromList
+    decodeReferents = traverse (traverse decodeReferent)
+    groupReferents =
+      lmap (\(exportAs, canonName, body) -> (coerce exportAs, (canonName, body))) do
+        Foldl.foldByKeyMap Foldl.list
+
+decodeReferent :: (T.Text, Maybe BS.ByteString) -> Either T.Text Referent
+decodeReferent (canonicalName, body) = do
+  canonicalName <- decodeQName canonicalName
+  body <- traverse decodeTerm body
+  pure $! Referent {..}
+
+loadByAnyFeature :: (Foldable t) => Connection -> t (Feature QName) -> IO [LibraryItem]
+loadByAnyFeature conn feats = case NE.nonEmpty (toList feats) of
+  Nothing -> pure []
+  Just feats -> loadByAnyFeatureNE conn feats
+
+loadByAnyFeatureNE :: Connection -> NE.NonEmpty (Feature QName) -> IO [LibraryItem]
+loadByAnyFeatureNE conn feats = orThrow $ flip run conn do
+  statement () $ dynamicallyParameterized snippet decoder False
+  where
+    snippet =
+      """
+      SELECT
+        i.canonical_name,
+        i.signature,
+        COALESCE (e.reexported_as, '{}') :: text[] AS reexported_as
+      FROM library_items i
+      LEFT JOIN (
+        SELECT
+          canonical_name,
+          array_agg(DISTINCT export_as_qual)
+            FILTER (
+              WHERE export_as_qual IS NOT NULL
+                AND export_as_qual <> canonical_name
+            ) AS reexported_as
+        FROM exports_qual
+        GROUP BY canonical_name
+      ) e
+        ON e.canonical_name = i.canonical_name
+      WHERE
+      """
+        <> featuresSnippet feats
+
+    decoder = Decoders.rowList do
+      canonicalName <- Decoders.column nonNullQNameDec
+      signature <- Decoders.column nonNullTermDec
+      reexportedAs <- Decoders.column $ Decoders.nonNullable $ Decoders.listArray nonNullQNameDec
+      pure $! LibraryItem {..}
 
 featuresSnippet :: NE.NonEmpty (Feature QName) -> Snippet.Snippet
-featuresSnippet feats =
-  fmap featureSnippet feats `sepBy` " OR "
+featuresSnippet feats = orS $ featureSnippet <$> feats
 
 featureSnippet :: Feature QName -> Snippet.Snippet
 featureSnippet Feature {..} =
-  "(" <> (snippets `sepBy` " AND ") <> ")"
-  where
-    snippets =
-      aritySnippet arity
-        NE.:| catMaybes
-          [ polymorphicSnippet polymorphic,
-            returnTypeHeadSnippet returnTypeHead
-          ]
+  andS $
+    aritySnippet arity
+      NE.:| catMaybes
+        [ polymorphicSnippet polymorphic,
+          returnTypeHeadSnippet returnTypeHead
+        ]
 
 polymorphicSnippet :: Polymorphic -> Maybe Snippet.Snippet
 polymorphicSnippet = \case
   Monomorphic -> Nothing
-  Polymorphic -> Just "polymorphic = 'Polymorphic'"
+  Polymorphic -> Just Monoid.do
+    "polymorphic = "
+    parS Monoid.do
+      Snippet.encoderAndParam nonNullPolymorphicEnc Polymorphic
+      " :: polymorphic"
 
 aritySnippet :: Arity -> Snippet.Snippet
 aritySnippet arity | arity.hasVar = "arity_has_var"
-aritySnippet arity = Monoid.do
-  "(arity_has_var OR arity >= "
-  Snippet.param @Int16 (fromIntegral arity.arity)
-  ")"
+aritySnippet arity =
+  orS
+    [ "arity_has_var",
+      "arity >= " <> Snippet.param @Int16 (fromIntegral arity.arity)
+    ]
 
 returnTypeHeadSnippet :: ReturnTypeHead QName -> Maybe Snippet.Snippet
 returnTypeHeadSnippet = \case
   RHUnknown -> Nothing
-  RHTop n -> Just Monoid.do
-    """
-    (return_type_head = 'Var' OR
-      (return_type_head = 'Top' AND return_type_head_top =
-    """
-    Snippet.encoderAndParam (Encoders.nonNullable qnameEncoder) n
-    "))"
-  r -> Just Monoid.do
-    "return_type_head IN ('Var', ("
-    Snippet.encoderAndParam (Encoders.nonNullable returnTypeHeadTagEncoder) r
-    " :: return_type_head))"
+  RHTop n ->
+    Just $
+      orS
+        [ "return_type_head = " <> var,
+          andS
+            [ "return_type_head = " <> top,
+              "return_type_head_top = " <> Snippet.encoderAndParam nonNullQNameEnc n
+            ]
+        ]
+  rh -> Just $ "return_type_head IN" <> listS [var, encRH rh]
+  where
+    var = encRH RHVar
+    top = encRH (RHTop (QName "" "")) -- dummy QName
+    encRH rh = parS Monoid.do
+      Snippet.encoderAndParam nonNullReturnTypeHeadTagEnc rh
+      " :: return_type_head"
+
+parS :: Snippet.Snippet -> Snippet.Snippet
+parS s = "(" <> s <> ")"
+
+orS :: NE.NonEmpty Snippet.Snippet -> Snippet.Snippet
+orS ss = fmap parS ss `sepBy` " OR "
+
+andS :: NE.NonEmpty Snippet.Snippet -> Snippet.Snippet
+andS ss = fmap parS ss `sepBy` " AND "
+
+listS :: NE.NonEmpty Snippet.Snippet -> Snippet.Snippet
+listS ss = parS $ ss `sepBy` ", "
 
 --------------------------------------------------------------------------------
 -- Utils

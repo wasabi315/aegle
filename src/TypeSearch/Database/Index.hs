@@ -35,6 +35,7 @@ import TypeSearch.Core.Term qualified as TS
 import TypeSearch.Database.Backend qualified as TS
 import TypeSearch.Database.Feature qualified as TS
 import TypeSearch.Prelude
+import TypeSearch.Pretty
 import TypeSearch.Translate.Monad
 import TypeSearch.Translate.Name
 import TypeSearch.Translate.Term
@@ -103,10 +104,10 @@ resolveQNamesIn srcs transparentDefNames = do
               setInterface mi.miInterface
               withScope_ mi.miInterface.iInsideScope do
                 let mname = prettyShow mi.miInterface.iTopLevelModuleName
-                    (toResolve, unresolved') = partition ((mname ==) . show . (.moduleName)) unresolved
+                    (toResolve, unresolved') = partition ((mname ==) . flip prettyModuleName "" . (.moduleName)) unresolved
                 resolved' <- forM toResolve \x ->
-                  resolveDefinedName (show x.name) >>= \case
-                    Nothing -> throwError $ GenericException $ "Couldn't find definition " ++ show x
+                  resolveDefinedName (prettyName x.name "") >>= \case
+                    Nothing -> throwError $ GenericException $ "Couldn't find definition " ++ prettyQName x ""
                     Just x -> pure x
                 pure (foldr S.insert resolved resolved', unresolved')
       )
@@ -114,7 +115,7 @@ resolveQNamesIn srcs transparentDefNames = do
       srcs
 
   unless (null unresolved) do
-    throwError $ GenericException $ "Couldn't find definitions " ++ show unresolved
+    throwError $ GenericException $ "Couldn't find definitions " ++ show (flip prettyQName "" <$> unresolved)
 
   pure transparentDefNames
 
