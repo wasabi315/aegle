@@ -10,7 +10,7 @@ import TypeSearch.Prelude
 
 class Feature a where
   compatible :: "query" :! a -> "db" :! a -> Bool
-  compatible queryFeat = matchesCompat (toCompat queryFeat)
+  compatible = matchesCompat . toCompat
 
   -- | Reified compatibility condition produced from a query feature.
   -- Backend code can compile this e.g. to SQL.
@@ -22,7 +22,7 @@ class Feature a where
 --------------------------------------------------------------------------------
 -- Features
 
-data ReturnTypeHead n
+data ResultHead n
   = RHU
   | RHVar
   | RHTop n
@@ -34,19 +34,19 @@ data ReturnTypeHead n
   deriving anyclass (ToJSON, FromJSON)
 
 -- | The input type must be closed. Doesn't perform any reduction.
-returnTypeHead :: Type -> ReturnTypeHead QName
-returnTypeHead t = case headTerm (returnType t) of
+resultHead :: Type -> ResultHead QName
+resultHead t = case headTerm (returnType t) of
   U -> RHU
   Var {} -> RHVar
   Top x -> RHTop x
   Sigma {} -> RHSigma
   Proj1 {} -> RHProj1
   Proj2 {} -> RHProj2
-  _ -> impossible
+  (Meta {}; Pi {}; Lam {}; App {}; AppPruning {}; Pair {}) -> impossible
 
 -- | The input type must be closed.
-returnTypeHeadQ :: S.Set QName -> Q.Type -> Maybe (ReturnTypeHead PQName)
-returnTypeHeadQ transparentDefNames (Q.teleView -> TeleView tele cod) =
+resultHeadQ :: S.Set QName -> Q.Type -> Maybe (ResultHead PQName)
+resultHeadQ transparentDefNames (Q.teleView -> TeleView tele cod) =
   case Q.headTerm cod of
     Q.U -> Just RHU
     Q.Var (Unqual x)
@@ -56,24 +56,24 @@ returnTypeHeadQ transparentDefNames (Q.teleView -> TeleView tele cod) =
     Q.Sigma {} -> Just RHSigma
     Q.Proj1 {} -> Just RHProj1
     Q.Proj2 {} -> Just RHProj2
-    _ -> Nothing
+    (Q.Pi {}; Q.Lam {}; Q.App {}; Q.Pair {}) -> Nothing
   where
     maybeTransparentDef = \case
       Unqual x -> any (\y -> x == y.name) transparentDefNames
       Qual m x -> S.member (QName m x) transparentDefNames
 
-data ReturnTypeHeadCompat n
+data ResultHeadCompat n
   = IsVar
   | IsVarOrU
   | IsVarOrTop n
   | IsVarOrSigma
   | IsVarOrProj1
   | IsVarOrProj2
-  | AnyReturnType
-  deriving stock (Show, Generic, Functor, Foldable, Traversable)
+  | AnyResult
+  deriving stock (Eq, Ord, Show, Generic, Functor, Foldable, Traversable)
 
-instance (Eq n) => Feature (ReturnTypeHead n) where
-  type Compat (ReturnTypeHead n) = ReturnTypeHeadCompat n
+instance (Eq n) => Feature (ResultHead n) where
+  type Compat (ResultHead n) = ResultHeadCompat n
 
   toCompat = \case
     Arg RHU -> IsVarOrU
@@ -82,22 +82,22 @@ instance (Eq n) => Feature (ReturnTypeHead n) where
     Arg RHSigma -> IsVarOrSigma
     Arg RHProj1 -> IsVarOrProj1
     Arg RHProj2 -> IsVarOrProj2
-    Arg RHUnknown -> AnyReturnType
+    Arg RHUnknown -> AnyResult
 
   matchesCompat = \cases
-    _ (Arg RHVar) -> True
-    IsVarOrU (Arg RHU) -> True
-    (IsVarOrTop x) (Arg (RHTop y)) -> x == y
-    IsVarOrSigma (Arg RHSigma) -> True
-    IsVarOrProj1 (Arg RHProj1) -> True
-    IsVarOrProj2 (Arg RHProj2) -> True
-    _ _ -> False
+    AnyResult _ -> True
+    IsVar (Arg rh) -> rh == RHVar
+    IsVarOrU (Arg rh) -> rh `elem` [RHVar, RHU]
+    (IsVarOrTop n) (Arg rh) -> rh `elem` [RHVar, RHTop n]
+    IsVarOrSigma (Arg rh) -> rh `elem` [RHVar, RHSigma]
+    IsVarOrProj1 (Arg rh) -> rh `elem` [RHVar, RHProj1]
+    IsVarOrProj2 (Arg rh) -> rh `elem` [RHVar, RHProj2]
 
 --------------------------------------------------------------------------------
 
 -- | Polymorphic feature.
 data Polymorphic = Monomorphic | Polymorphic
-  deriving stock (Eq, Ord, Show, Read, Enum)
+  deriving stock (Eq, Ord, Show, Enum, Bounded, Generic)
 
 -- | The input type must be closed. Doesn't perform any reduction.
 polymorphic :: Type -> Polymorphic
@@ -116,18 +116,17 @@ polymorphicQ = \case
 data PolymorphicCompat
   = IsPoly
   | AnyPoly
-  deriving stock (Show, Generic)
+  deriving stock (Eq, Ord, Show, Enum, Bounded, Generic)
 
 instance Feature Polymorphic where
   type Compat Polymorphic = PolymorphicCompat
 
   toCompat = \case
-    (Arg Polymorphic) -> IsPoly
-    (Arg Monomorphic) -> AnyPoly
+    Arg Polymorphic -> IsPoly
+    Arg Monomorphic -> AnyPoly
 
   matchesCompat = \cases
-    IsPoly (Arg Polymorphic) -> True
-    IsPoly (Arg Monomorphic) -> False
+    IsPoly (Arg poly) -> poly == Polymorphic
     AnyPoly _ -> True
 
 --------------------------------------------------------------------------------
@@ -137,7 +136,7 @@ data Arity = Arity
   { hasVar :: Bool,
     arity :: Int
   }
-  deriving stock (Eq, Show, Ord, Generic)
+  deriving stock (Eq, Ord, Show, Generic)
   deriving anyclass (ToJSON, FromJSON)
 
 -- | The input type must be closed. Doesn't perform any reduction.
@@ -170,7 +169,7 @@ arityQ = go [] False 0
 data ArityCompat
   = HasVar
   | HasVarOrGe Int
-  deriving stock (Show, Generic)
+  deriving stock (Eq, Ord, Show, Generic)
 
 instance Feature Arity where
   type Compat Arity = ArityCompat
@@ -178,55 +177,55 @@ instance Feature Arity where
   toCompat (Arg Arity {..}) =
     if hasVar then HasVar else HasVarOrGe arity
 
-  matchesCompat comp (Arg Arity {..}) = case comp of
+  matchesCompat compat (Arg Arity {..}) = case compat of
     HasVar -> hasVar
     HasVarOrGe arity' -> hasVar || arity >= arity'
 
 --------------------------------------------------------------------------------
 
 data AllFeature n = AllFeature
-  { returnTypeHead :: ReturnTypeHead n,
+  { resultHead :: ResultHead n,
     polymorphic :: Polymorphic,
     arity :: Arity
   }
-  deriving stock (Show, Generic)
+  deriving stock (Eq, Ord, Show, Generic)
 
 allFeature :: Type -> AllFeature QName
 allFeature typ =
   AllFeature
-    { returnTypeHead = returnTypeHead typ,
+    { resultHead = resultHead typ,
       polymorphic = polymorphic typ,
       arity = arity typ
     }
 
 -- featureQ :: S.Set QName -> Q.Type -> Maybe (Feature PQName)
 -- featureQ transparentDefNames typ = do
---   returnTypeHead <- returnTypeHeadQ transparentDefNames typ
+--   resultHead <- resultHeadQ transparentDefNames typ
 --   pure
 --     Feature
---       { returnTypeHead,
+--       { resultHead,
 --         polymorphic = polymorphicQ typ,
 --         arity = arityQ typ
 --       }
 
 data AllFeatureCompat n = AllFeatureCompat
-  { returnTypeHead :: ReturnTypeHeadCompat n,
+  { resultHead :: ResultHeadCompat n,
     polymorphic :: PolymorphicCompat,
     arity :: ArityCompat
   }
-  deriving stock (Show, Generic, Functor, Foldable, Traversable)
+  deriving stock (Eq, Ord, Show, Generic, Functor, Foldable, Traversable)
 
 instance (Eq n) => Feature (AllFeature n) where
   type Compat (AllFeature n) = AllFeatureCompat n
 
   toCompat (Arg AllFeature {..}) =
     AllFeatureCompat
-      { returnTypeHead = toCompat (Arg returnTypeHead),
+      { resultHead = toCompat (Arg resultHead),
         polymorphic = toCompat (Arg polymorphic),
         arity = toCompat (Arg arity)
       }
 
-  matchesCompat conds (Arg feats) =
-    matchesCompat conds.returnTypeHead (Arg feats.returnTypeHead)
-      && matchesCompat conds.polymorphic (Arg feats.polymorphic)
-      && matchesCompat conds.arity (Arg feats.arity)
+  matchesCompat compat (Arg feat) =
+    matchesCompat compat.resultHead (Arg feat.resultHead)
+      && matchesCompat compat.polymorphic (Arg feat.polymorphic)
+      && matchesCompat compat.arity (Arg feat.arity)

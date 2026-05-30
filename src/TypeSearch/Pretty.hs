@@ -27,12 +27,12 @@ par p q = showParen (p > q)
 {-# INLINE par #-}
 
 -- Operator precedence
-projP, appP, sigmaP, piP, absP, pairP :: Int
+projP, appP, sigmaP, piP, lamP, pairP :: Int
 projP = 5
 appP = 4
 sigmaP = 3
 piP = 2
-absP = 1
+lamP = 1
 pairP = 0
 
 prettyName :: Name -> ShowS
@@ -63,11 +63,11 @@ prettyQuery qm = go
       Q.U -> showString "U"
       Q.Pi "_" a b -> par p piP $ go sigmaP a . showString " → " . go piP b
       Q.Pi n a b -> par p piP $ piBind n a . goPi b
-      Q.Lam n b -> par p absP $ showString "λ " . prettyName n . goAbs b
+      Q.Lam n b -> par p lamP $ showString "λ " . prettyName n . goLam b
       Q.App a b -> par p appP $ go appP a . showChar ' ' . go projP b
       Q.Sigma "_" a b -> par p piP $ go appP a . showString " × " . go sigmaP b
       Q.Sigma n a b -> par p sigmaP $ piBind n a . showString " × " . go sigmaP b
-      Q.Pair a b -> par p pairP $ go absP a . showString " , " . go absP b
+      Q.Pair a b -> par p pairP $ go lamP a . showString " , " . go lamP b
       Q.Proj1 a -> par p projP $ go projP a . showString ".1"
       Q.Proj2 a -> par p projP $ go projP a . showString ".2"
 
@@ -85,9 +85,9 @@ prettyQuery qm = go
         showChar ' ' . piBind n a . goPi b
       b -> showString " → " . go piP b
 
-    goAbs = \case
-      Q.Lam n t -> showChar ' ' . prettyName n . goAbs t
-      t -> showString " → " . go absP t
+    goLam = \case
+      Q.Lam n t -> showChar ' ' . prettyName n . goLam t
+      t -> showString " → " . go lamP t
 
 data QualifyMode = Qualify | Unqualify
 
@@ -103,16 +103,16 @@ prettyTerm qm = go
       Top n -> case qm of
         Qualify -> prettyQName n
         Unqualify -> prettyName n.name
-      U -> showString "U"
+      U -> showChar 'U'
       Pi "_" a b ->
         par p piP $ go ns sigmaP a . showString " → " . go ("_" : ns) piP b
       Pi (freshen ns -> n) a b ->
         par p piP $ piBind n ns a . goPi (n : ns) b
       Lam (freshen ns -> n) t ->
-        par p absP
+        par p lamP
           $ showString "λ "
           . prettyName n
-          . goAbs (n : ns) t
+          . goLam (n : ns) t
       App t u -> par p appP $ go ns appP t . showChar ' ' . go ns projP u
       AppPruning t pr -> goPruning (go ns appP t) ns pr
       Sigma "_" a b ->
@@ -121,10 +121,10 @@ prettyTerm qm = go
         par p sigmaP $ piBind n ns a . showString " × " . go (n : ns) sigmaP b
       Proj1 t -> par p projP $ go ns projP t . showString ".1"
       Proj2 t -> par p projP $ go ns projP t . showString ".2"
-      Pair t u -> par p pairP $ go ns absP t . showString " , " . go ns pairP u
+      Pair t u -> par p pairP $ go ns lamP t . showString " , " . go ns pairP u
 
     piBind n ns a =
-      showString "("
+      showChar '('
         . prettyName n
         . showString " : "
         . go ns pairP a
@@ -136,10 +136,10 @@ prettyTerm qm = go
         showChar ' ' . piBind n ns a . goPi (n : ns) b
       b -> showString " → " . go ns piP b
 
-    goAbs ns = \case
+    goLam ns = \case
       Lam (freshen ns -> n) t ->
-        showChar ' ' . prettyName n . goAbs (n : ns) t
-      t -> showString ". " . go ns absP t
+        showChar ' ' . prettyName n . goLam (n : ns) t
+      t -> showString ". " . go ns lamP t
 
     goPruning t = \cases
       [] [] -> t

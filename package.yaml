@@ -79,6 +79,7 @@ default-extensions:
   - MultiWayIf
   - NoFieldSelectors
   - NoImplicitPrelude
+  - OrPatterns
   - OverloadedLabels
   - OverloadedStrings
   - OverloadedRecordDot

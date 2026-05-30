@@ -1,4 +1,4 @@
-CREATE TYPE return_type_head AS ENUM (
+CREATE TYPE result_head AS ENUM (
     'U',
     'Var',
     'Top',
@@ -24,12 +24,12 @@ CREATE TABLE library_items (
     arity                int               NOT NULL,
     arity_has_var        boolean           NOT NULL,
     polymorphic          polymorphic       NOT NULL,
-    return_type_head     return_type_head  NOT NULL,
-    return_type_head_top text                        -- NULL unless return_type_head = 'Top'
+    result_head          result_head       NOT NULL,
+    result_head_top      text                        -- NULL unless result_head = 'Top'
 
-    CONSTRAINT return_type_head_top_check CHECK (
-        (return_type_head = 'Top'  AND return_type_head_top IS NOT NULL) OR
-        (return_type_head <> 'Top' AND return_type_head_top IS NULL)
+    CONSTRAINT result_head_top_check CHECK (
+        (result_head = 'Top'  AND result_head_top IS NOT NULL) OR
+        (result_head <> 'Top' AND result_head_top IS NULL)
     )
 );
 
@@ -47,3 +47,7 @@ FROM exports;
 CREATE MATERIALIZED VIEW exports_qual AS
 SELECT DISTINCT export_as_qual, canonical_name
 FROM exports;
+
+CREATE INDEX ON exports_qual   (export_as_qual, canonical_name);
+CREATE INDEX ON exports_unqual (export_as_unqual, canonical_name);
+CREATE INDEX ON library_items  (result_head, result_head_top);

@@ -28,7 +28,6 @@ source-repository head
 library
   exposed-modules:
       Data.ImmatureStream
-      Data.Monoid.Do
       TypeSearch.AgdaUtils
       TypeSearch.Cli
       TypeSearch.Core.Evaluation
@@ -78,6 +77,7 @@ library
       MultiWayIf
       NoFieldSelectors
       NoImplicitPrelude
+      OrPatterns
       OverloadedLabels
       OverloadedStrings
       OverloadedRecordDot
@@ -164,6 +164,7 @@ executable dependent-type-search
       MultiWayIf
       NoFieldSelectors
       NoImplicitPrelude
+      OrPatterns
       OverloadedLabels
       OverloadedStrings
       OverloadedRecordDot
@@ -252,6 +253,7 @@ test-suite dependent-type-search-test
       MultiWayIf
       NoFieldSelectors
       NoImplicitPrelude
+      OrPatterns
       OverloadedLabels
       OverloadedStrings
       OverloadedRecordDot

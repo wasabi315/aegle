@@ -13,7 +13,6 @@ import Data.ByteString qualified as BS
 import Data.Int
 import Data.List.NonEmpty qualified as NE
 import Data.Map.Strict qualified as M
-import Data.Monoid.Do qualified as Monoid
 import Data.Text qualified as T
 import Data.Vector qualified as V
 import Flat
@@ -57,8 +56,8 @@ data DbLibraryItemRow = DbLibraryItemRow
     arity :: Int16,
     arityHasVar :: Bool,
     polymorphic :: T.Text,
-    returnTypeHead :: T.Text,
-    returnTypeHeadTop :: Maybe T.Text
+    resultHead :: T.Text,
+    resultHeadTop :: Maybe T.Text
   }
 
 data DbExportRow = DbExportRow
@@ -90,7 +89,9 @@ encodeTerm :: Term -> BS.ByteString
 encodeTerm = flat
 
 decodeTerm :: BS.ByteString -> Either T.Text Term
-decodeTerm bin = unflat bin ??% const "Bad flat binary"
+decodeTerm bin =
+  unflat bin ??% \exn ->
+    "Bad flat binary: " <> T.pack (displayException exn)
 
 nonNullTermDec :: Decoders.NullableOrNot Decoders.Value Term
 nonNullTermDec = Decoders.nonNullable $ Decoders.refine decodeTerm Decoders.bytea
@@ -103,8 +104,8 @@ encodePolymorphic = \case
 nonNullPolymorphicEnc :: Encoders.NullableOrNot Encoders.Value Polymorphic
 nonNullPolymorphicEnc = Encoders.nonNullable $ encodePolymorphic >$< Encoders.text
 
-encodeReturnTypeHeadTag :: ReturnTypeHead n -> T.Text
-encodeReturnTypeHeadTag = \case
+encodeResultHeadTag :: ResultHead n -> T.Text
+encodeResultHeadTag = \case
   RHTop {} -> "Top"
   RHU -> "U"
   RHVar -> "Var"
@@ -113,13 +114,13 @@ encodeReturnTypeHeadTag = \case
   RHProj2 -> "Proj2"
   RHUnknown -> "Unknown"
 
-encodeReturnTypeHeadTop :: ReturnTypeHead QName -> Maybe T.Text
-encodeReturnTypeHeadTop = \case
+encodeResultHeadTop :: ResultHead QName -> Maybe T.Text
+encodeResultHeadTop = \case
   RHTop name -> Just $ encodeQName name
   _ -> Nothing
 
-nonNullReturnTypeHeadTagEnc :: Encoders.NullableOrNot Encoders.Value (ReturnTypeHead n)
-nonNullReturnTypeHeadTagEnc = Encoders.nonNullable $ encodeReturnTypeHeadTag >$< Encoders.text
+nonNullResultHeadTagEnc :: Encoders.NullableOrNot Encoders.Value (ResultHead n)
+nonNullResultHeadTagEnc = Encoders.nonNullable $ encodeResultHeadTag >$< Encoders.text
 
 --------------------------------------------------------------------------------
 -- Build operation
@@ -151,8 +152,8 @@ insertManyDefinitions = lmap encodeDefinitions do
       , arity
       , arity_has_var
       , polymorphic
-      , return_type_head
-      , return_type_head_top )
+      , result_head
+      , result_head_top )
     SELECT * FROM UNNEST
       ( $1 :: text[]
       , $2 :: bytea[]
@@ -160,7 +161,7 @@ insertManyDefinitions = lmap encodeDefinitions do
       , $4 :: int2[]
       , $5 :: boolean[]
       , $6 :: text[] :: polymorphic[]
-      , $7 :: text[] :: return_type_head[]
+      , $7 :: text[] :: result_head[]
       , $8 :: text?[] )
   |]
   where
@@ -172,8 +173,8 @@ insertManyDefinitions = lmap encodeDefinitions do
         arity,
         arityHasVar,
         polymorphic,
-        returnTypeHead,
-        returnTypeHeadTop
+        resultHead,
+        resultHeadTop
       )
 
 insertManyExports :: Statement [Export] ()
@@ -205,8 +206,8 @@ encodeDefinition def = DbLibraryItemRow {..}
     arity = fromIntegral def.feature.arity.arity
     arityHasVar = def.feature.arity.hasVar
     polymorphic = encodePolymorphic def.feature.polymorphic
-    returnTypeHead = encodeReturnTypeHeadTag def.feature.returnTypeHead
-    returnTypeHeadTop = encodeReturnTypeHeadTop def.feature.returnTypeHead
+    resultHead = encodeResultHeadTag def.feature.resultHead
+    resultHeadTop = encodeResultHeadTop def.feature.resultHead
 
 encodeExport :: Export -> DbExportRow
 encodeExport export = DbExportRow {..}
@@ -319,16 +320,19 @@ loadByAnyFeatureNE conn compats = orThrow $ flip run conn do
         aritySnippet arity
           NE.:| catMaybes
             [ polymorphicSnippet polymorphic,
-              returnTypeHeadSnippet returnTypeHead
+              resultHeadSnippet resultHead
             ]
 
     polymorphicSnippet = \case
       AnyPoly -> Nothing
-      IsPoly -> Just Monoid.do
-        "polymorphic = "
-        parS Monoid.do
-          Snippet.encoderAndParam nonNullPolymorphicEnc Polymorphic
-          " :: polymorphic"
+      IsPoly ->
+        Just $
+          "polymorphic = "
+            <> parS
+              ( do
+                  Snippet.encoderAndParam nonNullPolymorphicEnc Polymorphic
+                    <> " :: polymorphic"
+              )
 
     aritySnippet = \case
       HasVar -> "arity_has_var"
@@ -338,8 +342,8 @@ loadByAnyFeatureNE conn compats = orThrow $ flip run conn do
             "arity >= " <> Snippet.param @Int16 (fromIntegral arity)
           ]
 
-    returnTypeHeadSnippet = \case
-      AnyReturnType -> Nothing
+    resultHeadSnippet = \case
+      AnyResult -> Nothing
       IsVar -> Just isVar
       IsVarOrU -> Just $ isVarOr RHU
       IsVarOrSigma -> Just $ isVarOr RHSigma
@@ -347,32 +351,35 @@ loadByAnyFeatureNE conn compats = orThrow $ flip run conn do
       IsVarOrProj2 -> Just $ isVarOr RHProj2
       IsVarOrTop n -> Just $ orS [isVar, isTop n]
       where
-        enc rh = parS Monoid.do
-          Snippet.encoderAndParam nonNullReturnTypeHeadTagEnc rh
-          " :: return_type_head"
+        enc rh =
+          parS $
+            Snippet.encoderAndParam nonNullResultHeadTagEnc rh
+              <> " :: result_head"
 
         var = enc RHVar
-        isVar = "return_type_head = " <> var
-        isVarOr rh = "return_type_head IN " <> listS [var, enc rh]
+        isVar = "result_head = " <> var
+        isVarOr rh = "result_head IN " <> listS [var, enc rh]
         isTop n =
           andS
-            [ "return_type_head = " <> enc (RHTop ()),
-              "return_type_head_top IN " <> topSnippet n
+            [ "result_head = " <> enc (RHTop ()),
+              "result_head_top IN " <> topSnippet n
             ]
 
     topSnippet = \case
-      Qual m x -> parS Monoid.do
-        """
-        SELECT canonical_name FROM exports_qual
-        WHERE export_as_qual =
-        """
-        Snippet.encoderAndParam nonNullQNameEnc (QName m x)
-      Unqual x -> parS Monoid.do
-        """
-        SELECT canonical_name FROM exports_unqual
-        WHERE export_as_unqual =
-        """
-        Snippet.param @T.Text (coerce x)
+      Qual m x ->
+        parS $
+          """
+          SELECT canonical_name FROM exports_qual
+          WHERE export_as_qual =
+          """
+            <> Snippet.encoderAndParam nonNullQNameEnc (QName m x)
+      Unqual x ->
+        parS $
+          """
+          SELECT canonical_name FROM exports_unqual
+          WHERE export_as_unqual =
+          """
+            <> Snippet.param @T.Text (coerce x)
 
     decoder = Decoders.rowList do
       canonicalName <- Decoders.column nonNullQNameDec
