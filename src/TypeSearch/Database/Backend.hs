@@ -18,48 +18,12 @@ import TypeSearch.Database.Feature
 import TypeSearch.Prelude
 
 --------------------------------------------------------------------------------
--- Read operation
-
-data Referent = Referent
-  { canonicalName :: QName,
-    body :: Maybe Term
-  }
-  deriving stock (Show, Generic)
-
-data LibraryItem = LibraryItem
-  { canonicalName :: QName,
-    reexportedAs :: [QName],
-    signature :: Type
-  }
-  deriving stock (Show, Generic)
-
-data DbReader m = DbReader
-  { -- | Resolve possibly-qualified names.
-    resolveNames ::
-      forall t.
-      (Traversable t) => t PQName -> m (t [Referent]),
-    -- | Load library items that match at least one of the given compatibilities.
-    loadByAnyFeature ::
-      forall t.
-      (Foldable t) => t (Compat AllFeature) -> m [LibraryItem]
-  }
-
--- These accessor functions are provided because the record dot syntax does not work
--- for polymorphic fields
-
-resolveNames :: (Traversable t) => DbReader m -> t PQName -> m (t [Referent])
-resolveNames DbReader {..} = resolveNames
-
-loadByAnyFeature :: (Foldable t) => DbReader m -> t (Compat AllFeature) -> m [LibraryItem]
-loadByAnyFeature DbReader {..} = loadByAnyFeature
-
---------------------------------------------------------------------------------
 -- Build operation
 
 data Definition = Definition
   { name :: QName,
     signature :: Type,
-    feature :: AllFeature,
+    feature :: AllFeature QName,
     body :: Maybe Term
   }
   deriving stock (Show, Generic)
@@ -80,3 +44,40 @@ data LibraryFragment = LibraryFragment
 -- | Build database by consuming library fragments.
 -- Note that exports in earlier fragments may refer to canonical names defined in later ones.
 type DbBuilder m = Foldl.FoldM m LibraryFragment
+
+--------------------------------------------------------------------------------
+-- Read operation
+
+data Referent = Referent
+  { canonicalName :: QName,
+    body :: Maybe Term
+  }
+  deriving stock (Show, Generic)
+
+data LibraryItem = LibraryItem
+  { canonicalName :: QName,
+    reexportedAs :: [QName],
+    signature :: Type
+  }
+  deriving stock (Show, Generic)
+
+data DbReader m = DbReader
+  { resolveNames ::
+      forall t.
+      (Traversable t) => t PQName -> m (t [Referent]),
+    loadByAnyFeature ::
+      forall t.
+      (Foldable t) => t (Compat (AllFeature PQName)) -> m [LibraryItem]
+  }
+
+-- These accessors are provided because the record dot syntax does not work
+-- for polymorphic fields.
+
+-- | Resolve possibly-qualified names.
+resolveNames :: (Traversable t) => DbReader m -> t PQName -> m (t [Referent])
+resolveNames DbReader {..} = resolveNames
+
+-- | Load library items that match at least one of the given compatibilities.
+-- Note that the compatibilities may contain unresolved names.
+loadByAnyFeature :: (Foldable t) => DbReader m -> t (Compat (AllFeature PQName)) -> m [LibraryItem]
+loadByAnyFeature DbReader {..} = loadByAnyFeature

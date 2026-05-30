@@ -280,12 +280,12 @@ decodeReferent (canonicalName, body) = do
   body <- traverse decodeTerm body
   pure $! Referent {..}
 
-loadByAnyFeature :: (Foldable t) => Connection -> t (Compat AllFeature) -> IO [LibraryItem]
+loadByAnyFeature :: (Foldable t) => Connection -> t (Compat (AllFeature PQName)) -> IO [LibraryItem]
 loadByAnyFeature conn feats = case NE.nonEmpty (toList feats) of
   Nothing -> pure []
   Just feats -> loadByAnyFeatureNE conn feats
 
-loadByAnyFeatureNE :: Connection -> NE.NonEmpty (Compat AllFeature) -> IO [LibraryItem]
+loadByAnyFeatureNE :: Connection -> NE.NonEmpty (Compat (AllFeature PQName)) -> IO [LibraryItem]
 loadByAnyFeatureNE conn compats = orThrow $ flip run conn do
   statement () $ dynamicallyParameterized snippet decoder False
   where
@@ -312,64 +312,73 @@ loadByAnyFeatureNE conn compats = orThrow $ flip run conn do
       """
         <> featuresSnippet compats
 
+    featuresSnippet = orS . fmap featureSnippet
+
+    featureSnippet AllFeatureCompat {..} =
+      andS $
+        aritySnippet arity
+          NE.:| catMaybes
+            [ polymorphicSnippet polymorphic,
+              returnTypeHeadSnippet returnTypeHead
+            ]
+
+    polymorphicSnippet = \case
+      AnyPoly -> Nothing
+      IsPoly -> Just Monoid.do
+        "polymorphic = "
+        parS Monoid.do
+          Snippet.encoderAndParam nonNullPolymorphicEnc Polymorphic
+          " :: polymorphic"
+
+    aritySnippet = \case
+      HasVar -> "arity_has_var"
+      HasVarOrGe arity ->
+        orS
+          [ "arity_has_var",
+            "arity >= " <> Snippet.param @Int16 (fromIntegral arity)
+          ]
+
+    returnTypeHeadSnippet = \case
+      AnyReturnType -> Nothing
+      IsVar -> Just isVar
+      IsVarOrU -> Just $ isVarOr RHU
+      IsVarOrSigma -> Just $ isVarOr RHSigma
+      IsVarOrProj1 -> Just $ isVarOr RHProj1
+      IsVarOrProj2 -> Just $ isVarOr RHProj2
+      IsVarOrTop n -> Just $ orS [isVar, isTop n]
+      where
+        enc rh = parS Monoid.do
+          Snippet.encoderAndParam nonNullReturnTypeHeadTagEnc rh
+          " :: return_type_head"
+
+        var = enc RHVar
+        isVar = "return_type_head = " <> var
+        isVarOr rh = "return_type_head IN " <> listS [var, enc rh]
+        isTop n =
+          andS
+            [ "return_type_head = " <> enc (RHTop ()),
+              "return_type_head_top IN " <> topSnippet n
+            ]
+
+    topSnippet = \case
+      Qual m x -> parS Monoid.do
+        """
+        SELECT canonical_name FROM exports_qual
+        WHERE export_as_qual =
+        """
+        Snippet.encoderAndParam nonNullQNameEnc (QName m x)
+      Unqual x -> parS Monoid.do
+        """
+        SELECT canonical_name FROM exports_unqual
+        WHERE export_as_unqual =
+        """
+        Snippet.param @T.Text (coerce x)
+
     decoder = Decoders.rowList do
       canonicalName <- Decoders.column nonNullQNameDec
       signature <- Decoders.column nonNullTermDec
       reexportedAs <- Decoders.column $ Decoders.nonNullable $ Decoders.listArray nonNullQNameDec
       pure $! LibraryItem {..}
-
-featuresSnippet :: NE.NonEmpty (Compat AllFeature) -> Snippet.Snippet
-featuresSnippet = orS . fmap featureSnippet
-
-featureSnippet :: Compat AllFeature -> Snippet.Snippet
-featureSnippet AllFeatureCompat {..} =
-  andS $
-    aritySnippet arity
-      NE.:| catMaybes
-        [ polymorphicSnippet polymorphic,
-          returnTypeHeadSnippet returnTypeHead
-        ]
-
-polymorphicSnippet :: Compat Polymorphic -> Maybe Snippet.Snippet
-polymorphicSnippet = \case
-  AnyPoly -> Nothing
-  IsPoly -> Just Monoid.do
-    "polymorphic = "
-    parS Monoid.do
-      Snippet.encoderAndParam nonNullPolymorphicEnc Polymorphic
-      " :: polymorphic"
-
-aritySnippet :: Compat Arity -> Snippet.Snippet
-aritySnippet = \case
-  HasVar -> "arity_has_var"
-  HasVarOrGe arity ->
-    orS
-      [ "arity_has_var",
-        "arity >= " <> Snippet.param @Int16 (fromIntegral arity)
-      ]
-
-returnTypeHeadSnippet :: Compat (ReturnTypeHead QName) -> Maybe Snippet.Snippet
-returnTypeHeadSnippet = \case
-  AnyReturnType -> Nothing
-  IsVar -> Just isVar
-  IsVarOrU -> Just $ isVarOr RHU
-  IsVarOrSigma -> Just $ isVarOr RHSigma
-  IsVarOrProj1 -> Just $ isVarOr RHProj1
-  IsVarOrProj2 -> Just $ isVarOr RHProj2
-  IsVarOrTop n -> Just $ orS [isVar, isTop n]
-  where
-    enc rh = parS Monoid.do
-      Snippet.encoderAndParam nonNullReturnTypeHeadTagEnc rh
-      " :: return_type_head"
-
-    var = enc RHVar
-    isVar = "return_type_head = " <> var
-    isVarOr rh = "return_type_head IN " <> listS [var, enc rh]
-    isTop n =
-      andS
-        [ "return_type_head = " <> enc (RHTop ()),
-          "return_type_head_top = " <> Snippet.encoderAndParam nonNullQNameEnc n
-        ]
 
 parS :: Snippet.Snippet -> Snippet.Snippet
 parS s = "(" <> s <> ")"

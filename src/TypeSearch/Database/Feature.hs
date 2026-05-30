@@ -14,7 +14,7 @@ class Feature a where
 
   -- | Reified compatibility condition produced from a query feature.
   -- Backend code can compile this e.g. to SQL.
-  data Compat a
+  type Compat a
 
   toCompat :: "query" :! a -> Compat a
   matchesCompat :: Compat a -> "db" :! a -> Bool
@@ -62,16 +62,18 @@ returnTypeHeadQ transparentDefNames (Q.teleView -> TeleView tele cod) =
       Unqual x -> any (\y -> x == y.name) transparentDefNames
       Qual m x -> S.member (QName m x) transparentDefNames
 
-instance Feature (ReturnTypeHead QName) where
-  data Compat (ReturnTypeHead QName)
-    = IsVar
-    | IsVarOrU
-    | IsVarOrTop QName
-    | IsVarOrSigma
-    | IsVarOrProj1
-    | IsVarOrProj2
-    | AnyReturnType
-    deriving stock (Show, Generic)
+data ReturnTypeHeadCompat n
+  = IsVar
+  | IsVarOrU
+  | IsVarOrTop n
+  | IsVarOrSigma
+  | IsVarOrProj1
+  | IsVarOrProj2
+  | AnyReturnType
+  deriving stock (Show, Generic, Functor, Foldable, Traversable)
+
+instance (Eq n) => Feature (ReturnTypeHead n) where
+  type Compat (ReturnTypeHead n) = ReturnTypeHeadCompat n
 
   toCompat = \case
     Arg RHU -> IsVarOrU
@@ -111,11 +113,13 @@ polymorphicQ = \case
   Q.Pi _ _ b -> polymorphicQ b
   _ -> Monomorphic
 
+data PolymorphicCompat
+  = IsPoly
+  | AnyPoly
+  deriving stock (Show, Generic)
+
 instance Feature Polymorphic where
-  data Compat Polymorphic
-    = IsPoly
-    | AnyPoly
-    deriving stock (Show, Generic)
+  type Compat Polymorphic = PolymorphicCompat
 
   toCompat = \case
     (Arg Polymorphic) -> IsPoly
@@ -163,11 +167,13 @@ arityQ = go [] False 0
           go ((x, a) : ctx) hasVar (arity + 1) b
       _ -> Arity {..}
 
+data ArityCompat
+  = HasVar
+  | HasVarOrGe Int
+  deriving stock (Show, Generic)
+
 instance Feature Arity where
-  data Compat Arity
-    = HasVar
-    | HasVarOrGe Int
-    deriving stock (Show, Generic)
+  type Compat Arity = ArityCompat
 
   toCompat (Arg Arity {..}) =
     if hasVar then HasVar else HasVarOrGe arity
@@ -178,14 +184,14 @@ instance Feature Arity where
 
 --------------------------------------------------------------------------------
 
-data AllFeature = AllFeature
-  { returnTypeHead :: ReturnTypeHead QName,
+data AllFeature n = AllFeature
+  { returnTypeHead :: ReturnTypeHead n,
     polymorphic :: Polymorphic,
     arity :: Arity
   }
   deriving stock (Show, Generic)
 
-allFeature :: Type -> AllFeature
+allFeature :: Type -> AllFeature QName
 allFeature typ =
   AllFeature
     { returnTypeHead = returnTypeHead typ,
@@ -203,12 +209,15 @@ allFeature typ =
 --         arity = arityQ typ
 --       }
 
-instance Feature AllFeature where
-  data Compat AllFeature = AllFeatureCompat
-    { returnTypeHead :: Compat (ReturnTypeHead QName),
-      polymorphic :: Compat Polymorphic,
-      arity :: Compat Arity
-    }
+data AllFeatureCompat n = AllFeatureCompat
+  { returnTypeHead :: ReturnTypeHeadCompat n,
+    polymorphic :: PolymorphicCompat,
+    arity :: ArityCompat
+  }
+  deriving stock (Show, Generic, Functor, Foldable, Traversable)
+
+instance (Eq n) => Feature (AllFeature n) where
+  type Compat (AllFeature n) = AllFeatureCompat n
 
   toCompat (Arg AllFeature {..}) =
     AllFeatureCompat
