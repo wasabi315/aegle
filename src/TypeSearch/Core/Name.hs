@@ -54,7 +54,7 @@ data PQName
   = Unqual Name
   | Qual ModuleName Name
   deriving stock (Eq, Ord, Show, Generic)
-  deriving anyclass (ToJSON, FromJSON)
+  deriving anyclass (ToJSON, FromJSON, Flat)
 
 instance IsString PQName where
   fromString = Unqual . Name . fromString

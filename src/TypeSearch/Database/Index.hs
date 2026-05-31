@@ -221,5 +221,5 @@ translateFunDef def = do
 constructDefinition :: TS.QName -> TS.Type -> Maybe TS.Term -> TS.Definition
 constructDefinition name signature body = TS.Definition {..}
   where
-    (signature', _) = TS.normalise0 TS.emptyMetaCtx mempty signature
+    (signature', _) = TS.normalise0 (TS.emptyMetaCtx mempty) mempty signature
     feature = TS.allFeature signature'

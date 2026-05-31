@@ -30,6 +30,7 @@ data Term
   = Var Index -- x
   | Meta MetaVar -- ?m
   | Top {-# UNPACK #-} QName -- M.f
+  | TopAmb PQName
   | U -- U
   | Pi Name Type Type -- (x : A) → B
   | Lam Name Term -- λ x → t
@@ -58,6 +59,7 @@ freeVars = \case
   Var i -> S.singleton i
   Meta {} -> S.empty
   Top {} -> S.empty
+  TopAmb {} -> S.empty
   U -> S.empty
   Pi _ a b -> freeVars a <> freeVarBind b
   Lam _ t -> freeVarBind t
@@ -75,6 +77,7 @@ subst s = \case
   Var i -> s i
   t@Meta {} -> t
   t@Top {} -> t
+  t@TopAmb {} -> t
   U -> U
   Pi x a b -> Pi x (subst s a) (substBind s b)
   Lam x t -> Lam x (substBind s t)
@@ -139,6 +142,7 @@ termSize = \case
   U -> 1
   Meta {} -> 1
   Top {} -> 1
+  TopAmb {} -> 1
   Pi _ a b -> 1 + termSize a + termSize b
   Lam _ t -> 1 + termSize t
   App t u -> 1 + termSize t + termSize u

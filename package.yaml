@@ -43,6 +43,7 @@ dependencies:
   - megaparsec
   - mtl
   - named
+  - nonempty-containers
   - optparse-applicative
   - parser-combinators
   - profunctors

@@ -121,6 +121,7 @@ library
     , megaparsec
     , mtl
     , named
+    , nonempty-containers
     , optparse-applicative
     , parser-combinators
     , profunctors
@@ -209,6 +210,7 @@ executable dependent-type-search
     , megaparsec
     , mtl
     , named
+    , nonempty-containers
     , optparse-applicative
     , parser-combinators
     , profunctors
@@ -298,6 +300,7 @@ test-suite dependent-type-search-test
     , megaparsec
     , mtl
     , named
+    , nonempty-containers
     , optparse-applicative
     , parser-combinators
     , profunctors

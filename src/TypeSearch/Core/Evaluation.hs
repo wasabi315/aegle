@@ -1,98 +1,12 @@
 module TypeSearch.Core.Evaluation where
 
-import Data.HashMap.Lazy qualified as HML
+import Data.IntMap.Strict qualified as IM
+import Data.Map.Lazy qualified as ML
+import Data.Map.Strict qualified as M
+import Data.Set.NonEmpty qualified as S1
 import TypeSearch.Core.Name
 import TypeSearch.Core.Term
 import TypeSearch.Prelude
-
-infixr 6 -->
-
-infixr 7 ***
-
---------------------------------------------------------------------------------
-
-(-->) :: Value -> Value -> Value
-a --> b = VPi "_" a \ ~_ -> b
-
-(***) :: Value -> Value -> Value
-a *** b = VSigma "_" a \ ~_ -> b
-
-exMetaCtx :: MetaCtx
-exMetaCtx =
-  MetaCtx 5
-    $ HML.fromList
-      [ (0, Unsolved VU),
-        (1, Unsolved VU),
-        (2, Unsolved VU),
-        (3, Unsolved VU),
-        (4, Unsolved ((vlist $$ vgamma) --> VU))
-      ]
-
-valpha :: Value
-valpha = VMeta 0
-
-vbeta :: Value
-vbeta = VMeta 1
-
-vgamma :: Value
-vgamma = VMeta 2
-
-veps :: Value
-veps = VMeta 3
-
-vdelta :: Value
-vdelta = VMeta 4
-
-vlist :: Value
-vlist = VTop (QName "Agda.Builtin.List" "List") SNil Nothing
-
-tFoldr :: Type
-tFoldr =
-  quote exMetaCtx 0
-    $ VPi "A" VU \a -> VPi "B" VU \b ->
-      (a --> b --> b) --> b --> (vlist $$ a) --> b
-
-tFoldl :: Type
-tFoldl =
-  quote exMetaCtx 0
-    $ VPi "A" VU \a -> VPi "B" VU \b ->
-      (b --> a --> b) --> b --> (vlist $$ a) --> b
-
-tMap :: Type
-tMap =
-  quote exMetaCtx 0
-    $ VPi "A" VU \a -> VPi "B" VU \b ->
-      (a --> b) --> (vlist $$ a) --> (vlist $$ b)
-
-tFoldr1 :: Type
-tFoldr1 =
-  quote exMetaCtx 0
-    $ (valpha --> vbeta --> vbeta)
-    --> vbeta
-    --> (vlist $$ valpha)
-    --> vbeta
-
-tFoldr2 :: Type
-tFoldr2 =
-  quote exMetaCtx 0
-    $ (vlist $$ vgamma)
-    --> (veps *** vgamma --> veps)
-    --> veps
-    --> veps
-
-tFoldr3 :: Type
-tFoldr3 =
-  quote exMetaCtx 0
-    $ VPi "xs" (vlist $$ vgamma) \xs -> ((vdelta $$ xs) *** (vdelta $$ xs) --> (vdelta $$ xs)) *** (vdelta $$ xs) --> (vdelta $$ xs)
-
--- printResults :: (Foldable t) => t (Iso, MetaCtx) -> IO ()
--- printResults res = for_ res \(i, mctx) -> do
---   putStrLn "----------"
---   putStrLn $ "iso: " ++ prettyIso 0 i ""
---   putStrLn "subst: "
---   for_ (HML.toList mctx.metaCtx) \(v, t) -> case (v, t) of
---     (Src _, Solved sol ty) -> putStrLn $ "  " ++ show v ++ " : " ++ prettyTerm0 Unqualify (quote mctx 0 ty) "" ++ " = " ++ prettyTerm0 Unqualify (quote mctx 0 sol) ""
---     _ -> pure ()
 
 --------------------------------------------------------------------------------
 -- Values
@@ -101,7 +15,8 @@ tFoldr3 =
 data Value
   = VRigid Level Spine
   | VFlex MetaVar Spine
-  | VTop {-# UNPACK #-} QName Spine (Maybe Value) -- Nothing for axioms
+  | VTop {-# UNPACK #-} QName Spine
+  | VTopAmb PQName Spine
   | VU
   | VPi Name VType (Value -> VType)
   | VLam Name (Value -> Value)
@@ -129,19 +44,20 @@ data Quant = Quant Name Value (Value -> Value)
 type Env = [Value]
 
 -- | Environment keyed by top-level names
-type TopEnv = HML.HashMap QName Value
+type TopEnv = ML.Map QName Value
 
 -- | Meta-context
 data MetaCtx = MetaCtx
   { nextMeta :: MetaVar,
-    metaCtx :: HML.HashMap MetaVar MetaEntry
+    metaCtx :: IM.IntMap MetaEntry,
+    resolCtx :: M.Map PQName (S1.NESet QName)
   }
 
 data MetaEntry
   = Unsolved ~Value
   | Solved Value ~Value
 
-emptyMetaCtx :: MetaCtx
+emptyMetaCtx :: M.Map PQName (S1.NESet QName) -> MetaCtx
 emptyMetaCtx = MetaCtx 0 mempty
 
 allMetaSolved :: MetaCtx -> Bool
@@ -156,7 +72,8 @@ eval :: MetaCtx -> TopEnv -> Env -> Term -> Value
 eval mctx tenv env = \case
   Var (Index x) -> env !! x
   Meta m -> vMeta mctx m
-  Top x -> VTop x SNil (HML.lookup x tenv)
+  Top x -> fromMaybe (VTop x SNil) $ tenv ML.!? x
+  TopAmb x -> vTopAmb mctx x
   U -> VU
   Pi x a b -> VPi x (eval mctx tenv env a) (evalBind mctx tenv env b)
   Lam x t -> VLam x (evalBind' mctx tenv env t)
@@ -174,9 +91,16 @@ evalBind' :: MetaCtx -> TopEnv -> Env -> Term -> (Value -> Value)
 evalBind' mctx tenv env t u = eval mctx tenv (u : env) t
 
 vMeta :: MetaCtx -> MetaVar -> Value
-vMeta mctx x = case mctx.metaCtx HML.! x of
-  Unsolved {} -> VMeta x
+vMeta mctx m = case mctx.metaCtx IM.! coerce m of
+  Unsolved {} -> VMeta m
   Solved v _ -> v
+
+-- TODO: canonicity? ambiguous names does not reduce
+vTopAmb :: MetaCtx -> PQName -> Value
+vTopAmb mctx n = case mctx.resolCtx M.! n of
+  ns
+    | S1.size ns == 1 -> VTop (S1.findMin ns) SNil
+    | otherwise -> VTopAmb n SNil
 
 vAppPruning :: Env -> Value -> Pruning -> Value
 vAppPruning env ~v pr = case (env, pr) of
@@ -190,7 +114,8 @@ t $$ u = case t of
   VLam _ t -> t u
   VRigid x sp -> VRigid x (SApp sp u)
   VFlex m sp -> VFlex m (SApp sp u)
-  VTop x sp t -> VTop x (SApp sp u) (fmap ($$ u) t)
+  VTop x sp -> VTop x (SApp sp u)
+  VTopAmb x sp -> VTopAmb x (SApp sp u)
   VBrave b sp -> VBrave b (SApp sp u)
   t -> VBrave t (SApp SNil u)
 
@@ -199,7 +124,8 @@ vProj1 = \case
   VPair t _ -> t
   VRigid x sp -> VRigid x (SProj1 sp)
   VFlex m sp -> VFlex m (SProj1 sp)
-  VTop x sp t -> VTop x (SProj1 sp) (vProj1 <$> t)
+  VTop x sp -> VTop x (SProj1 sp)
+  VTopAmb x sp -> VTopAmb x (SProj1 sp)
   VBrave b sp -> VBrave b (SProj1 sp)
   t -> VBrave t (SProj1 SNil)
 
@@ -208,7 +134,8 @@ vProj2 = \case
   VPair _ t -> t
   VRigid x sp -> VRigid x (SProj2 sp)
   VFlex m sp -> VFlex m (SProj2 sp)
-  VTop x sp t -> VTop x (SProj2 sp) (vProj2 <$> t)
+  VTop x sp -> VTop x (SProj2 sp)
+  VTopAmb x sp -> VTopAmb x (SProj2 sp)
   VBrave b sp -> VBrave b (SProj2 sp)
   t -> VBrave t (SProj2 SNil)
 
@@ -222,14 +149,12 @@ vAppSpine t = \case
 force :: MetaCtx -> Value -> Value
 force mctx = \case
   VFlex m sp
-    | Solved t _ <- mctx.metaCtx HML.! m -> force mctx (vAppSpine t sp)
-  t -> t
-
-forceAll :: MetaCtx -> Value -> Value
-forceAll mctx = \case
-  VFlex m sp
-    | Solved t _ <- mctx.metaCtx HML.! m -> forceAll mctx (vAppSpine t sp)
-  VTop _ _ (Just t) -> forceAll mctx t
+    | Solved t _ <- mctx.metaCtx IM.! coerce m -> force mctx (vAppSpine t sp)
+  VTopAmb n sp
+    -- TODO: canonicity? ambiguous names does not reduce
+    | ns <- mctx.resolCtx M.! n,
+      S1.size ns == 1 ->
+        VTop (S1.findMin ns) sp
   t -> t
 
 --------------------------------------------------------------------------------
@@ -242,7 +167,8 @@ quote :: MetaCtx -> Level -> Value -> Term
 quote mctx l t = case force mctx t of
   VRigid x sp -> quoteSpine mctx l (Var (levelToIndex l x)) sp
   VFlex m sp -> quoteSpine mctx l (Meta m) sp
-  VTop x sp _ -> quoteSpine mctx l (Top x) sp
+  VTop x sp -> quoteSpine mctx l (Top x) sp
+  VTopAmb x sp -> quoteSpine mctx l (TopAmb x) sp
   VU -> U
   VPi x a b -> Pi x (quote mctx l a) (quoteBind mctx l b)
   VLam x t -> Lam x (quoteBind mctx l t)

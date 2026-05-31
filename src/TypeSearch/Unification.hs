@@ -1,9 +1,10 @@
 module TypeSearch.Unification where
 
-import Data.HashMap.Strict qualified as HM
 import Data.ImmatureStream qualified as ImS
 import Data.IntMap.Strict qualified as IM
 import Data.IntSet qualified as IS
+import Data.Map.Strict qualified as M
+import Data.Set.NonEmpty qualified as S1
 import TypeSearch.Core.Evaluation
 import TypeSearch.Core.Isomorphism
 import TypeSearch.Core.Name
@@ -11,6 +12,19 @@ import TypeSearch.Core.Term hiding (rename)
 import TypeSearch.Prelude
 
 --------------------------------------------------------------------------------
+-- Unification context
+
+data Ctx = Ctx
+  { topEnv :: TopEnv,
+    level :: Level,
+    env :: Env,
+    locals :: Locals,
+    idRen :: PartialRenaming
+  }
+
+data Locals
+  = Here
+  | Bind Locals Name ~Term
 
 -- | Partial renaming from @Γ@ to @Δ@.
 data PartialRenaming = PRen
@@ -23,6 +37,28 @@ data PartialRenaming = PRen
     -- | mapping from @Δ@ vars to @Γ@ vars.
     ren :: IM.IntMap Level
   }
+
+initCtx :: TopEnv -> Ctx
+initCtx topEnv =
+  Ctx
+    { level = 0,
+      env = [],
+      locals = Here,
+      idRen = emptyPRen,
+      ..
+    }
+
+bind :: MetaCtx -> Ctx -> Name -> VType -> Ctx
+bind mctx ctx@Ctx {..} x ~a =
+  ctx
+    { level = level + 1,
+      env = VVar level : env,
+      locals = Bind locals x (quote mctx level a),
+      idRen = liftPren idRen
+    }
+
+--------------------------------------------------------------------------------
+-- Metavar solving
 
 emptyPRen :: PartialRenaming
 emptyPRen = PRen Nothing 0 0 mempty
@@ -68,7 +104,7 @@ newMeta mctx ~mty = do
       mctx' =
         mctx
           { nextMeta = mctx.nextMeta + 1,
-            metaCtx = HM.insert m' (Unsolved mty) mctx.metaCtx
+            metaCtx = IM.insert (coerce m') (Unsolved mty) mctx.metaCtx
           }
   (m', mctx')
 
@@ -82,13 +118,13 @@ evalP :: TopEnv -> Env -> Term -> P Value
 evalP tenv env t = gets \mctx -> eval mctx tenv env t
 
 lookupUnsolved :: MetaVar -> P Value
-lookupUnsolved m = gets \mctx -> case mctx.metaCtx HM.! m of
+lookupUnsolved m = gets \mctx -> case mctx.metaCtx IM.! coerce m of
   Unsolved a -> a
   Solved {} -> error "lookupUnsolved"
 
 writeMeta :: MetaVar -> Value -> Value -> P ()
 writeMeta m t ~a = modify' \mctx ->
-  mctx {metaCtx = HM.insert m (Solved t a) mctx.metaCtx}
+  mctx {metaCtx = IM.insert (coerce m) (Solved t a) mctx.metaCtx}
 
 -- | Remove some arguments from a closed iterated Pi type.
 pruneType :: TopEnv -> RevPruning -> Value -> P Term
@@ -167,8 +203,8 @@ renameP tenv pren t =
     VRigid (Level x) sp -> case IM.lookup x pren.ren of
       Nothing -> empty -- scope error ("escaping variable" error)
       Just x' -> renameSpine tenv pren (Var $ levelToIndex pren.dom x') sp
-    VTop x sp Nothing -> renameSpine tenv pren (Top x) sp
-    VTop _ _ (Just t) -> renameP tenv pren t
+    VTop x sp -> renameSpine tenv pren (Top x) sp
+    VTopAmb x sp -> renameSpine tenv pren (TopAmb x) sp
     VU -> pure U
     VPi x a b ->
       Pi x
@@ -246,153 +282,97 @@ flexFlex mctx tenv gamma m sp m' sp' = do
     then go m' sp' m sp
     else go m sp m' sp'
 
+lookupResol :: MetaCtx -> PQName -> S1.NESet QName
+lookupResol mctx n = mctx.resolCtx M.! n
+
+resolve :: MetaCtx -> PQName -> QName -> MetaCtx
+resolve mctx m n = mctx {resolCtx = M.insert m (S1.singleton n) mctx.resolCtx}
+
 --------------------------------------------------------------------------------
-
-data ConvState
-  = Rigid
-  | Flex
-  | Full
-  deriving stock (Show, Eq, Ord)
-
-forceCS :: MetaCtx -> ConvState -> Value -> Value
-forceCS mctx cs v = case cs of
-  Full -> forceAll mctx v
-  _ -> force mctx v
 
 unify0 :: MetaCtx -> TopEnv -> Term -> Term -> Maybe MetaCtx
 unify0 mctx tenv t t' = do
   let v = eval mctx tenv [] t
       v' = eval mctx tenv [] t'
-  unify mctx tenv Rigid 0 v v'
+  unify mctx tenv 0 v v'
 
-unify :: MetaCtx -> TopEnv -> ConvState -> Level -> Value -> Value -> Maybe MetaCtx
-unify mctx tenv cs l t t' = case (forceCS mctx cs t, forceCS mctx cs t') of
+unify :: MetaCtx -> TopEnv -> Level -> Value -> Value -> Maybe MetaCtx
+unify mctx tenv l t t' = case (force mctx t, force mctx t') of
   (VBrave {}, _) -> Nothing
   (_, VBrave {}) -> Nothing
   (VPi _ a b, VPi _ a' b') -> do
-    mctx <- unify mctx tenv cs l a a'
-    unify mctx tenv cs (l + 1) (b $ VVar l) (b' $ VVar l)
+    mctx <- unify mctx tenv l a a'
+    unify mctx tenv (l + 1) (b $ VVar l) (b' $ VVar l)
   (VU, VU) -> pure mctx
   (VLam _ t, VLam _ t') ->
-    unify mctx tenv cs (l + 1) (t $ VVar l) (t' $ VVar l)
+    unify mctx tenv (l + 1) (t $ VVar l) (t' $ VVar l)
   (t, VLam _ t') ->
-    unify mctx tenv cs (l + 1) (t $$ VVar l) (t' $ VVar l)
+    unify mctx tenv (l + 1) (t $$ VVar l) (t' $ VVar l)
   (VLam _ t, t') ->
-    unify mctx tenv cs (l + 1) (t $ VVar l) (t' $$ VVar l)
+    unify mctx tenv (l + 1) (t $ VVar l) (t' $$ VVar l)
   (VSigma _ a b, VSigma _ a' b') -> do
-    mctx <- unify mctx tenv cs l a a'
-    unify mctx tenv cs (l + 1) (b $ VVar l) (b' $ VVar l)
+    mctx <- unify mctx tenv l a a'
+    unify mctx tenv (l + 1) (b $ VVar l) (b' $ VVar l)
   (VPair t u, VPair t' u') -> do
-    mctx <- unify mctx tenv cs l t t'
-    unify mctx tenv cs l u u'
+    mctx <- unify mctx tenv l t t'
+    unify mctx tenv l u u'
   (VPair t u, t') -> do
-    mctx <- unify mctx tenv cs l t (vProj1 t')
-    unify mctx tenv cs l u (vProj2 t')
+    mctx <- unify mctx tenv l t (vProj1 t')
+    unify mctx tenv l u (vProj2 t')
   (t, VPair t' u') -> do
-    mctx <- unify mctx tenv cs l (vProj1 t) t'
-    unify mctx tenv cs l (vProj2 t) u'
+    mctx <- unify mctx tenv l (vProj1 t) t'
+    unify mctx tenv l (vProj2 t) u'
   (VRigid x sp, VRigid x' sp')
-    | x == x' -> unifySpine mctx tenv cs l sp sp'
+    | x == x' -> unifySpine mctx tenv l sp sp'
   (VFlex m sp, VFlex m' sp')
-    | m == m' -> unifySpine mctx tenv cs l sp sp'
-    | otherwise -> do
-        guard $ cs /= Flex
-        flexFlex mctx tenv l m sp m' sp'
-  (VTop x sp Nothing, VTop x' sp' Nothing)
-    | x == x' -> unifySpine mctx tenv cs l sp sp'
-  (VTop x sp (Just t), VTop x' sp' (Just t')) -> case cs of
-    Rigid
-      | x == x' ->
-          unifySpine mctx tenv Flex l sp sp'
-            <|> unify mctx tenv Full l t t'
-      | otherwise -> unify mctx tenv Rigid l t t'
-    Flex
-      | x == x' -> unifySpine mctx tenv Flex l sp sp'
-      | otherwise -> Nothing
-    Full -> impossible
-  (VFlex m sp, t') -> do
-    guard $ cs /= Flex
-    solve mctx tenv l m sp t'
-  (t, VFlex m' sp') -> do
-    guard $ cs /= Flex
-    solve mctx tenv l m' sp' t
-  (VTop _ _ (Just t), t') -> case cs of
-    Rigid -> unify mctx tenv cs l t t'
-    Flex -> Nothing
-    Full -> impossible
-  (t, VTop _ _ (Just t')) -> case cs of
-    Rigid -> unify mctx tenv cs l t t'
-    Flex -> Nothing
-    Full -> impossible
+    | m == m' -> unifySpine mctx tenv l sp sp'
+    | otherwise -> flexFlex mctx tenv l m sp m' sp'
+  (VTop x sp, VTop x' sp')
+    | x == x' -> unifySpine mctx tenv l sp sp'
+  (VTopAmb x sp, VTopAmb x' sp')
+    | x == x' -> unifySpine mctx tenv l sp sp'
+  (VFlex m sp, t') -> solve mctx tenv l m sp t'
+  (t, VFlex m' sp') -> solve mctx tenv l m' sp' t
+  (VTop x sp, VTopAmb x' sp')
+    | x `S1.member` lookupResol mctx x' ->
+        unifySpine (resolve mctx x' x) tenv l sp sp'
+  (VTopAmb x sp, VTop x' sp')
+    | x' `S1.member` lookupResol mctx x ->
+        unifySpine (resolve mctx x x') tenv l sp sp'
   _ -> Nothing
 
-unifySpine :: MetaCtx -> TopEnv -> ConvState -> Level -> Spine -> Spine -> Maybe MetaCtx
-unifySpine mctx tenv cs l = \cases
+unifySpine :: MetaCtx -> TopEnv -> Level -> Spine -> Spine -> Maybe MetaCtx
+unifySpine mctx tenv l = \cases
   SNil SNil -> pure mctx
   (SApp sp t) (SApp sp' t') -> do
-    mctx <- unifySpine mctx tenv cs l sp sp'
-    unify mctx tenv cs l t t'
-  (SProj1 sp) (SProj1 sp') -> unifySpine mctx tenv cs l sp sp'
-  (SProj2 sp) (SProj2 sp') -> unifySpine mctx tenv cs l sp sp'
+    mctx <- unifySpine mctx tenv l sp sp'
+    unify mctx tenv l t t'
+  (SProj1 sp) (SProj1 sp') -> unifySpine mctx tenv l sp sp'
+  (SProj2 sp) (SProj2 sp') -> unifySpine mctx tenv l sp sp'
   _ _ -> Nothing
-
---------------------------------------------------------------------------------
-
-data Ctx = Ctx
-  { topEnv :: TopEnv,
-    level :: Level,
-    env :: Env,
-    idRen :: PartialRenaming,
-    convState :: ConvState
-  }
-
-initCtx :: TopEnv -> Ctx
-initCtx tenv = Ctx tenv 0 empty emptyPRen Rigid
-
-bind :: Ctx -> Ctx
-bind (Ctx tenv l env idRen cs) =
-  Ctx tenv (l + 1) (VVar l : env) (liftPren idRen) cs
 
 --------------------------------------------------------------------------------
 -- Rewriting types
 
--- | Curry until the first domain becomes non-sigma.
-curryCS :: MetaCtx -> ConvState -> Quant -> (Quant, Iso)
-curryCS mctx cs = go Refl
-  where
-    go i (Quant x a b) = case forceCS mctx cs a of
-      VSigma y a1 a2 ->
-        go (i <> Curry) $ Quant y a1 \ ~u -> VPi x (a2 u) \ ~v -> b (VPair u v)
-      a -> (Quant x a b, i)
-
--- | Right-nest until the first projection becomes non-sigma.
-assocCS :: MetaCtx -> ConvState -> Quant -> (Quant, Iso)
-assocCS mctx cs = go Refl
-  where
-    go i (Quant x a b) = case forceCS mctx cs a of
-      VSigma y a1 a2 ->
-        go (i <> Assoc) $ Quant y a1 \ ~u -> VSigma x (a2 u) \ ~v -> b (VPair u v)
-      a -> (Quant x a b, i)
-
 -- | Pick up a domain without breaking dependencies.
 pickUpDomain :: MetaCtx -> Ctx -> Quant -> [(Quant, Iso, MetaCtx)]
-pickUpDomain mctx (Ctx tenv l env idRen cs) (Quant x a b) = (Quant x a b, Refl, mctx) : go l b
+pickUpDomain mctx ctx (Quant x a b) = (Quant x a b, Refl, mctx) : go ctx.level b
   where
-    go l' c = case forceCS mctx cs $ c (VVar l') of
+    go l c = case force mctx $ c (VVar l) of
       VPi y c1 c2 ->
         ( do
-            let i = l' - l
+            let i = l - ctx.level
             -- Strengthen c1. This may involve pruning.
-            (c1, mctx) <- maybeToList $ rename mctx tenv (skipPrenN (i + 1) idRen) c1
-            let c1' = eval mctx tenv env c1
+            (c1, mctx) <- maybeToList $ rename mctx ctx.topEnv (skipPrenN (i + 1) ctx.idRen) c1
+            let c1' = eval mctx ctx.topEnv ctx.env c1
                 rest ~vc1 = VPi x a (instPiAt i vc1 . b)
                 s = swaps i
             pure (Quant y c1' rest, s, mctx)
         )
-          ++ go (l' + 1) c2
+          ++ go (l + 1) c2
       _ -> []
 
-    instPiAt i ~v t = case (i, forceCS mctx cs t) of
+    instPiAt i ~v t = case (i, force mctx t) of
       (0, VPi _ _ b) -> b v
       (i, VPi x a b) -> VPi x a (instPiAt (i - 1) v . b)
       _ -> impossible
@@ -403,34 +383,34 @@ pickUpDomain mctx (Ctx tenv l env idRen cs) (Quant x a b) = (Quant x a b, Refl, 
 
 -- | Pick up a projection without breaking dependencies.
 pickUpProjection :: MetaCtx -> Ctx -> Quant -> [(Quant, Iso, MetaCtx)]
-pickUpProjection mctx (Ctx tenv l env idRen cs) (Quant x a b) = (Quant x a b, Refl, mctx) : go l b
+pickUpProjection mctx ctx (Quant x a b) = (Quant x a b, Refl, mctx) : go ctx.level b
   where
-    go l' c = case forceCS mctx cs $ c (VVar l') of
+    go l c = case force mctx $ c (VVar l) of
       VSigma y c1 c2 ->
         ( do
-            let i = l' - l
+            let i = l - ctx.level
             -- Strengthen c1. This may involve pruning.
-            (c1, mctx) <- maybeToList $ rename mctx tenv (skipPrenN (i + 1) idRen) c1
-            let c1' = eval mctx tenv env c1
+            (c1, mctx) <- maybeToList $ rename mctx ctx.topEnv (skipPrenN (i + 1) ctx.idRen) c1
+            let c1' = eval mctx ctx.topEnv ctx.env c1
                 rest ~vc1 = VSigma x a (instSigmaAt i vc1 . b)
                 s = swaps SigmaSwap i
             pure (Quant y c1' rest, s, mctx)
         )
-          ++ go (l' + 1) c2
+          ++ go (l + 1) c2
       c -> do
-        let i = l' - l
-        (c, mctx) <- maybeToList $ rename mctx tenv (skipPrenN (i + 1) idRen) c
-        let c' = eval mctx tenv env c
+        let i = l - l
+        (c, mctx) <- maybeToList $ rename mctx ctx.topEnv (skipPrenN (i + 1) ctx.idRen) c
+        let c' = eval mctx ctx.topEnv ctx.env c
             rest ~_ = dropLastProj (l + 1) (VSigma x a b)
             s = swaps Comm i
         pure (Quant "_" c' rest, s, mctx)
 
-    instSigmaAt i ~v t = case (i, forceCS mctx cs t) of
+    instSigmaAt i ~v t = case (i, force mctx t) of
       (0, VSigma _ _ b) -> b v
       (i, VSigma x a b) -> VSigma x a (instSigmaAt (i - 1) v . b)
       _ -> impossible
 
-    dropLastProj l t = case forceCS mctx cs t of
+    dropLastProj l t = case force mctx t of
       VSigma x a b -> case b (VVar l) of
         VSigma {} -> VSigma x a (dropLastProj (l + 1) . b)
         _ -> a
@@ -489,77 +469,47 @@ unifyIso0 mctx tenv t t' = do
   pure (j, mctx)
 
 unifyIso :: MetaCtx -> Ctx -> Value -> Value -> [(Iso, Iso, MetaCtx)]
-unifyIso mctx ctx t u = case (forceCS mctx ctx.convState t, forceCS mctx ctx.convState u) of
+unifyIso mctx ctx t u = case (force mctx t, force mctx u) of
   (VBrave {}, _) -> []
   (_, VBrave {}) -> []
-  (VPi x a b, VPi x' a' b') -> case ctx.convState of
-    Rigid ->
-      unifyPi mctx (ctx {convState = Flex}) (Quant x a b) (Quant x' a' b')
-        <|> unifyPi mctx (ctx {convState = Full}) (Quant x a b) (Quant x' a' b')
-    _ -> unifyPi mctx ctx (Quant x a b) (Quant x' a' b')
-  (VSigma x a b, VSigma x' a' b') -> case ctx.convState of
-    Rigid ->
-      unifySigma mctx (ctx {convState = Flex}) (Quant x a b) (Quant x' a' b')
-        <|> unifySigma mctx (ctx {convState = Full}) (Quant x a b) (Quant x' a' b')
-    _ -> unifySigma mctx ctx (Quant x a b) (Quant x' a' b')
-  (VTop x sp Nothing, VTop x' sp' Nothing)
-    | x == x' -> unifySpineRefl mctx ctx sp sp'
-  (VTop x sp (Just t), VTop x' sp' (Just t')) -> case ctx.convState of
-    Rigid
-      | x == x' ->
-          unifySpineRefl mctx (ctx {convState = Flex}) sp sp'
-            <|> unifyIso mctx (ctx {convState = Full}) t t'
-      | otherwise -> unifyIso mctx ctx t t'
-    Flex
-      | x == x' -> unifySpineRefl mctx ctx sp sp'
-      | otherwise -> []
-    Full -> impossible
-  (VTop _ _ (Just t), t') -> case ctx.convState of
-    Rigid -> unifyIso mctx ctx t t'
-    Flex -> []
-    _ -> impossible
-  (t, VTop _ _ (Just t')) -> case ctx.convState of
-    Rigid -> unifyIso mctx ctx t t'
-    Flex -> []
-    _ -> impossible
+  (VPi x a b, VPi x' a' b') ->
+    unifyPi mctx ctx (Quant x a b) (Quant x' a' b')
+  (VSigma x a b, VSigma x' a' b') ->
+    unifySigma mctx ctx (Quant x a b) (Quant x' a' b')
   (t, u) -> do
-    mctx <- maybeToList $ unify mctx ctx.topEnv ctx.convState ctx.level t u
+    mctx <- maybeToList $ unify mctx ctx.topEnv ctx.level t u
     pure (Refl, Refl, mctx)
 
 unifySpineRefl :: MetaCtx -> Ctx -> Spine -> Spine -> [(Iso, Iso, MetaCtx)]
 unifySpineRefl mctx ctx sp sp' = do
-  mctx <- maybeToList $ unifySpine mctx ctx.topEnv ctx.convState ctx.level sp sp'
+  mctx <- maybeToList $ unifySpine mctx ctx.topEnv ctx.level sp sp'
   pure (Refl, Refl, mctx)
 
 unifyPi :: MetaCtx -> Ctx -> Quant -> Quant -> [(Iso, Iso, MetaCtx)]
 unifyPi mctx ctx q q' = do
-  let (Quant _ a b, i) = curryCS mctx ctx.convState q
+  let (Quant x a b, i) = curry mctx q
   flip foldMapA (currySwap mctx ctx q') \(Quant _ a' b', i', mctx) -> do
     (ia, ia', mctx) <- unifyIso mctx ctx a a'
     let v = transportInv ia (VVar ctx.level)
         v' = transportInv ia' (VVar ctx.level)
-    (ib, ib', mctx) <- unifyIso mctx (bind ctx) (b v) (b' v')
+    (ib, ib', mctx) <- unifyIso mctx (bind mctx ctx x VU) (b v) (b' v')
     let j = i <> piCongL ia <> piCongR ib
         j' = i' <> piCongL ia' <> piCongR ib'
     pure (j, j', mctx)
 
 unifySigma :: MetaCtx -> Ctx -> Quant -> Quant -> [(Iso, Iso, MetaCtx)]
 unifySigma mctx ctx q q' = do
-  let (Quant _ a b, i) = assocCS mctx ctx.convState q
+  let (Quant x a b, i) = assoc mctx q
   flip foldMapA (assocSwap mctx ctx q') \(Quant _ a' b', i', mctx) -> do
     (ia, ia', mctx) <- unifyIso mctx ctx a a'
     let v = transportInv ia (VVar ctx.level)
         v' = transportInv ia' (VVar ctx.level)
-    (ib, ib', mctx) <- unifyIso mctx (bind ctx) (b v) (b' v')
+    (ib, ib', mctx) <- unifyIso mctx (bind mctx ctx x VU) (b v) (b' v')
     let j = i <> sigmaCongL ia <> sigmaCongR ib
         j' = i' <> sigmaCongL ia' <> sigmaCongR ib'
     pure (j, j', mctx)
 
 --------------------------------------------------------------------------------
-
-data Locals
-  = Here
-  | Bind Locals Name ~Term
 
 closeTy :: Locals -> Term -> Term
 closeTy = \cases
@@ -571,35 +521,37 @@ closeTm = \cases
   Here t -> t
   (Bind locs x _) b -> closeTm locs (Lam x b)
 
-check :: QName -> (Ctx, Locals) -> Value -> Value -> ImS.Stream (Iso, Term)
-check h (ctx, locs) query item =
+-- FIXME: currently not considering pi permutation
+check :: QName -> Ctx -> M.Map PQName (S1.NESet QName) -> Value -> Value -> ImS.Stream (Iso, Term)
+check h ctx resol query item =
   ( do
-      (item, inst, mctx) <- possibleInstantiation emptyMetaCtx (ctx, locs) item (VTop h SNil Nothing)
+      (item, inst, mctx) <- possibleInstantiation (emptyMetaCtx resol) ctx item (VTop h SNil)
       (i, i', mctx) <- ImS.maybeToStream $ listToMaybe $ unifyIso mctx ctx query item
       guard $ allMetaSolved mctx
       let j = i <> sym i'
-          ~sol = closeTm locs $ quote mctx ctx.level $ transportInv j inst
+          ~sol = closeTm ctx.locals $ quote mctx ctx.level $ transportInv j inst
       pure (j, sol)
   )
-    <|> ImS.Later case forceAll emptyMetaCtx query of
+    <|> ImS.Later case force (emptyMetaCtx resol) query of
       VPi "_" _ _ -> empty
       VPi x a b -> do
-        check h (bind ctx, Bind locs x (quote emptyMetaCtx ctx.level a)) (b $ VVar ctx.level) item
+        check h (bind (emptyMetaCtx resol) ctx x a) resol (b $ VVar ctx.level) item
       _ -> empty
 
-freshMeta :: MetaCtx -> Ctx -> Locals -> Value -> (Term, MetaCtx)
-freshMeta mctx ctx locs a = do
-  let ~closed = eval mctx ctx.topEnv [] $ closeTy locs (quote mctx ctx.level a)
+freshMeta :: MetaCtx -> Ctx -> Value -> (Term, MetaCtx)
+freshMeta mctx ctx a = do
+  let ~closed = eval mctx ctx.topEnv [] $ closeTy ctx.locals (quote mctx ctx.level a)
       (m, mctx') = newMeta mctx closed
   (AppPruning (Meta m) (replicate (coerce ctx.level) True), mctx')
 
-possibleInstantiation :: MetaCtx -> (Ctx, Locals) -> Value -> Value -> ImS.Stream (Value, Value, MetaCtx)
-possibleInstantiation mctx (ctx, locs) a ~inst =
+-- FIXME: currently not considering pi permutation
+possibleInstantiation :: MetaCtx -> Ctx -> Value -> Value -> ImS.Stream (Value, Value, MetaCtx)
+possibleInstantiation mctx ctx a ~inst =
   pure (a, inst, mctx)
-    <|> ImS.Later case forceAll mctx a of
+    <|> ImS.Later case force mctx a of
       VPi "_" _ _ -> empty
       VPi _ a b -> do
-        (m, mctx) <- pure $ freshMeta mctx ctx locs a
+        (m, mctx) <- pure $ freshMeta mctx ctx a
         let mv = eval mctx ctx.topEnv ctx.env m
-        possibleInstantiation mctx (ctx, locs) (b mv) (inst $$ mv)
+        possibleInstantiation mctx ctx (b mv) (inst $$ mv)
       _ -> empty
