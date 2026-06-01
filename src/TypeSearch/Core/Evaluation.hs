@@ -67,6 +67,12 @@ allMetaSolved mctx = flip all mctx.metaCtx \case
   Unsolved {} -> False
   Solved {} -> True
 
+lookupResol :: MetaCtx -> PQName -> S1.NESet QName
+lookupResol mctx n = mctx.resolCtx M.! n
+
+resolve :: MetaCtx -> PQName -> QName -> MetaCtx
+resolve mctx m n = mctx {resolCtx = M.insert m (S1.singleton n) mctx.resolCtx}
+
 --------------------------------------------------------------------------------
 -- Evaluation
 
@@ -160,6 +166,17 @@ force mctx tenv = \case
         force mctx tenv (vAppSpine (vTop tenv n') sp)
   t -> t
 
+forceAmb :: MetaCtx -> TopEnv -> Value -> [(Value, MetaCtx)]
+forceAmb mctx tenv = \case
+  VFlex m sp
+    | Solved t _ <- mctx.metaCtx IM.! coerce m ->
+        forceAmb mctx tenv (vAppSpine t sp)
+  VTopAmb n sp -> do
+    n' <- toList $ mctx.resolCtx M.! n
+    let mctx' = resolve mctx n n'
+    forceAmb mctx' tenv (vAppSpine (vTop tenv n') sp)
+  t -> pure (t, mctx)
+
 --------------------------------------------------------------------------------
 -- Quotation
 
@@ -188,3 +205,44 @@ quoteSpine mctx tenv l h = \case
   SApp sp u -> quoteSpine mctx tenv l h sp `App` quote mctx tenv l u
   SProj1 sp -> Proj1 $ quoteSpine mctx tenv l h sp
   SProj2 sp -> Proj2 $ quoteSpine mctx tenv l h sp
+
+quoteAmb :: MetaCtx -> TopEnv -> Level -> Value -> [Term]
+quoteAmb mctx tenv l t = do
+  (t, mctx) <- forceAmb mctx tenv t
+  case t of
+    VRigid x sp -> quoteSpineAmb mctx tenv l (Var (levelToIndex l x)) sp
+    VFlex m sp -> quoteSpineAmb mctx tenv l (Meta m) sp
+    VTop x sp -> quoteSpineAmb mctx tenv l (Top x) sp
+    VTopAmb x sp -> quoteSpineAmb mctx tenv l (TopAmb x) sp
+    VU -> pure U
+    VPi x a b ->
+      Pi x
+        <$> quoteAmb mctx tenv l a
+        <*> quoteBindAmb mctx tenv l b
+    VLam x t ->
+      Lam x
+        <$> quoteBindAmb mctx tenv l t
+    VSigma x a b ->
+      Sigma x
+        <$> quoteAmb mctx tenv l a
+        <*> quoteBindAmb mctx tenv l b
+    VPair t u ->
+      Pair
+        <$> quoteAmb mctx tenv l t
+        <*> quoteAmb mctx tenv l u
+    VBrave t sp -> do
+      t <- quoteAmb mctx tenv l t
+      quoteSpineAmb mctx tenv l t sp
+
+quoteBindAmb :: MetaCtx -> TopEnv -> Level -> (Value -> Value) -> [Term]
+quoteBindAmb mctx tenv l b = quoteAmb mctx tenv (l + 1) (b $ VVar l)
+
+quoteSpineAmb :: MetaCtx -> TopEnv -> Level -> Term -> Spine -> [Term]
+quoteSpineAmb mctx tenv l h = \case
+  SNil -> pure h
+  SApp sp u ->
+    App
+      <$> quoteSpineAmb mctx tenv l h sp
+      <*> quoteAmb mctx tenv l u
+  SProj1 sp -> Proj1 <$> quoteSpineAmb mctx tenv l h sp
+  SProj2 sp -> Proj2 <$> quoteSpineAmb mctx tenv l h sp

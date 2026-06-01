@@ -263,12 +263,6 @@ solveWithPren mctx tenv m (pren, pruneNonLinear) rhs = flip execStateT mctx do
   solution <- evalP tenv [] =<< lams tenv pren.dom mty rhs
   writeMeta m solution mty
 
-lookupResol :: MetaCtx -> PQName -> S1.NESet QName
-lookupResol mctx n = mctx.resolCtx M.! n
-
-resolve :: MetaCtx -> PQName -> QName -> MetaCtx
-resolve mctx m n = mctx {resolCtx = M.insert m (S1.singleton n) mctx.resolCtx}
-
 --------------------------------------------------------------------------------
 
 unify0 :: MetaCtx -> TopEnv -> Term -> Term -> [MetaCtx]

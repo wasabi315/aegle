@@ -42,7 +42,7 @@ resultHead t = case headTerm (returnType t) of
   Sigma {} -> RHSigma
   Proj1 {} -> RHProj1
   Proj2 {} -> RHProj2
-  (Meta {}; Pi {}; Lam {}; App {}; AppPruning {}; Pair {}) -> impossible
+  (Meta {}; Pi {}; Lam {}; App {}; AppPruning {}; Pair {}; TopAmb {}) -> impossible
 
 -- | The input type must be closed.
 resultHeadQ :: S.Set QName -> Q.Type -> Maybe (ResultHead PQName)

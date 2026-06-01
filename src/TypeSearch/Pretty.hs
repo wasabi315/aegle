@@ -103,6 +103,10 @@ prettyTerm qm = go
       Top n -> case qm of
         Qualify -> prettyQName n
         Unqualify -> prettyName n.name
+      TopAmb (Unqual n) -> prettyName n
+      TopAmb (Qual m x) -> case qm of
+        Qualify -> prettyQName (QName m x)
+        Unqualify -> prettyName x
       U -> showChar 'U'
       Pi "_" a b ->
         par p piP $ go ns sigmaP a . showString " → " . go ("_" : ns) piP b
