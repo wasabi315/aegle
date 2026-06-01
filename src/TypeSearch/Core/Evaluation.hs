@@ -4,6 +4,7 @@ import Data.IntMap.Strict qualified as IM
 import Data.Map.Lazy qualified as ML
 import Data.Map.Strict qualified as M
 import Data.Set.NonEmpty qualified as S1
+import Data.Set.NonEmpty.Extra qualified as S1
 import TypeSearch.Core.Name
 import TypeSearch.Core.Term
 import TypeSearch.Prelude
@@ -50,6 +51,7 @@ type TopEnv = ML.Map QName Value
 data MetaCtx = MetaCtx
   { nextMeta :: MetaVar,
     metaCtx :: IM.IntMap MetaEntry,
+    -- unresolved name → set of resolved names
     resolCtx :: M.Map PQName (S1.NESet QName)
   }
 
@@ -72,8 +74,8 @@ eval :: MetaCtx -> TopEnv -> Env -> Term -> Value
 eval mctx tenv env = \case
   Var (Index x) -> env !! x
   Meta m -> vMeta mctx m
-  Top x -> fromMaybe (VTop x SNil) $ tenv ML.!? x
-  TopAmb x -> vTopAmb mctx x
+  Top x -> vTop tenv x
+  TopAmb x -> vTopAmb mctx tenv x
   U -> VU
   Pi x a b -> VPi x (eval mctx tenv env a) (evalBind mctx tenv env b)
   Lam x t -> VLam x (evalBind' mctx tenv env t)
@@ -95,12 +97,14 @@ vMeta mctx m = case mctx.metaCtx IM.! coerce m of
   Unsolved {} -> VMeta m
   Solved v _ -> v
 
--- TODO: canonicity? ambiguous names does not reduce
-vTopAmb :: MetaCtx -> PQName -> Value
-vTopAmb mctx n = case mctx.resolCtx M.! n of
-  ns
-    | S1.size ns == 1 -> VTop (S1.findMin ns) SNil
-    | otherwise -> VTopAmb n SNil
+vTop :: TopEnv -> QName -> Value
+vTop tenv n = ML.findWithDefault (VTop n SNil) n tenv
+
+-- Reduce only when the name has been resolved
+vTopAmb :: MetaCtx -> TopEnv -> PQName -> Value
+vTopAmb mctx tenv n = case mctx.resolCtx M.! n of
+  S1.Singleton n' -> vTop tenv n'
+  _ -> VTopAmb n SNil
 
 vAppPruning :: Env -> Value -> Pruning -> Value
 vAppPruning env ~v pr = case (env, pr) of
@@ -146,15 +150,14 @@ vAppSpine t = \case
   SProj1 sp -> vProj1 $ vAppSpine t sp
   SProj2 sp -> vProj2 $ vAppSpine t sp
 
-force :: MetaCtx -> Value -> Value
-force mctx = \case
+force :: MetaCtx -> TopEnv -> Value -> Value
+force mctx tenv = \case
   VFlex m sp
-    | Solved t _ <- mctx.metaCtx IM.! coerce m -> force mctx (vAppSpine t sp)
+    | Solved t _ <- mctx.metaCtx IM.! coerce m ->
+        force mctx tenv (vAppSpine t sp)
   VTopAmb n sp
-    -- TODO: canonicity? ambiguous names does not reduce
-    | ns <- mctx.resolCtx M.! n,
-      S1.size ns == 1 ->
-        VTop (S1.findMin ns) sp
+    | S1.Singleton n' <- mctx.resolCtx M.! n ->
+        force mctx tenv (vAppSpine (vTop tenv n') sp)
   t -> t
 
 --------------------------------------------------------------------------------
@@ -163,25 +166,25 @@ force mctx = \case
 levelToIndex :: Level -> Level -> Index
 levelToIndex (Level l) (Level x) = Index (l - x - 1)
 
-quote :: MetaCtx -> Level -> Value -> Term
-quote mctx l t = case force mctx t of
-  VRigid x sp -> quoteSpine mctx l (Var (levelToIndex l x)) sp
-  VFlex m sp -> quoteSpine mctx l (Meta m) sp
-  VTop x sp -> quoteSpine mctx l (Top x) sp
-  VTopAmb x sp -> quoteSpine mctx l (TopAmb x) sp
+quote :: MetaCtx -> TopEnv -> Level -> Value -> Term
+quote mctx tenv l t = case force mctx tenv t of
+  VRigid x sp -> quoteSpine mctx tenv l (Var (levelToIndex l x)) sp
+  VFlex m sp -> quoteSpine mctx tenv l (Meta m) sp
+  VTop x sp -> quoteSpine mctx tenv l (Top x) sp
+  VTopAmb x sp -> quoteSpine mctx tenv l (TopAmb x) sp
   VU -> U
-  VPi x a b -> Pi x (quote mctx l a) (quoteBind mctx l b)
-  VLam x t -> Lam x (quoteBind mctx l t)
-  VSigma x a b -> Sigma x (quote mctx l a) (quoteBind mctx l b)
-  VPair t u -> Pair (quote mctx l t) (quote mctx l u)
-  VBrave t sp -> quoteSpine mctx l (quote mctx l t) sp
+  VPi x a b -> Pi x (quote mctx tenv l a) (quoteBind mctx tenv l b)
+  VLam x t -> Lam x (quoteBind mctx tenv l t)
+  VSigma x a b -> Sigma x (quote mctx tenv l a) (quoteBind mctx tenv l b)
+  VPair t u -> Pair (quote mctx tenv l t) (quote mctx tenv l u)
+  VBrave t sp -> quoteSpine mctx tenv l (quote mctx tenv l t) sp
 
-quoteBind :: MetaCtx -> Level -> (Value -> Value) -> Term
-quoteBind mctx l b = quote mctx (l + 1) (b $ VVar l)
+quoteBind :: MetaCtx -> TopEnv -> Level -> (Value -> Value) -> Term
+quoteBind mctx tenv l b = quote mctx tenv (l + 1) (b $ VVar l)
 
-quoteSpine :: MetaCtx -> Level -> Term -> Spine -> Term
-quoteSpine mctx l h = \case
+quoteSpine :: MetaCtx -> TopEnv -> Level -> Term -> Spine -> Term
+quoteSpine mctx tenv l h = \case
   SNil -> h
-  SApp sp u -> quoteSpine mctx l h sp `App` quote mctx l u
-  SProj1 sp -> Proj1 $ quoteSpine mctx l h sp
-  SProj2 sp -> Proj2 $ quoteSpine mctx l h sp
+  SApp sp u -> quoteSpine mctx tenv l h sp `App` quote mctx tenv l u
+  SProj1 sp -> Proj1 $ quoteSpine mctx tenv l h sp
+  SProj2 sp -> Proj2 $ quoteSpine mctx tenv l h sp

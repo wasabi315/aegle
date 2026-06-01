@@ -28,6 +28,8 @@ module TypeSearch.Prelude
     module Data.Traversable,
     module Data.Void,
     module Witherable,
+    (***),
+    (&&&),
     Generic,
     Generically (..),
     Typeable,
@@ -61,6 +63,7 @@ module TypeSearch.Prelude
 where
 
 import Control.Applicative
+import Control.Arrow ((&&&), (***))
 import Control.Exception (Exception (..), throwIO)
 import Control.Monad
 import Control.Monad.Except
