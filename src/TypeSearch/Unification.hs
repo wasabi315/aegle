@@ -316,8 +316,8 @@ unify mctx tenv l t t' = case (force mctx tenv t, force mctx tenv t') of
             guard $ x' `S1.member` lookupResol mctx x
             unifySpine (resolve mctx x x') tenv l sp sp'
         )
-      : [ unify mctx' tenv l t (VTop x' sp)
-        | (mctx', t) <- expandTopAmb mctx tenv x sp'
+      : [ unify mctx' tenv l t (VTop x' sp')
+        | (mctx', t) <- expandTopAmb mctx tenv x sp
         ]
   (VTopAmb x sp, VTopAmb x' sp')
     | x == x' -> unifySpine mctx tenv l sp sp'

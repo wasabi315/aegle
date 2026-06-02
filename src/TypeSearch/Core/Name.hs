@@ -24,7 +24,7 @@ newtype Index = Index Int
 -- | De Bruijn levels
 newtype Level = Level Int
   deriving stock (Generic)
-  deriving newtype (Eq, Ord, Num, Show, Hashable, Flat)
+  deriving newtype (Eq, Ord, Num, Show, Hashable, Enum, Flat)
 
 -- | Metavariables
 newtype MetaVar = MetaVar Int
@@ -57,4 +57,4 @@ data PQName
   deriving anyclass (ToJSON, FromJSON, Flat)
 
 instance IsString PQName where
-  fromString = Unqual . Name . fromString
+  fromString = Unqual . fromString
