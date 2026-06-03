@@ -8,6 +8,7 @@ module TypeSearch.Core.Term
     subst,
     rename,
     weakenBy,
+    isLam,
     TeleView (..),
     teleView,
     returnType,
@@ -41,7 +42,7 @@ data Term
   | Proj1 Term -- t.1
   | Proj2 Term -- t.2
   deriving stock (Show, Generic)
-  deriving anyclass (Flat)
+  deriving anyclass (Flat, NFData)
 
 type Type = Term
 
@@ -97,6 +98,11 @@ rename r = subst (Var . r)
 
 weakenBy :: Int -> Term -> Term
 weakenBy n = rename (coerce n +)
+
+isLam :: Term -> Bool
+isLam = \case
+  Lam {} -> True
+  _ -> False
 
 data TeleView a = TeleView
   { tele :: [(Name, a)],

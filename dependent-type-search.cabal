@@ -107,11 +107,13 @@ library
     , base >=4.7 && <5
     , bytestring
     , containers
+    , deepseq
     , directory
     , filemanip
     , filepath
     , flat
     , foldl
+    , formatting
     , hashable
     , haskeline
     , hasql
@@ -195,12 +197,14 @@ executable dependent-type-search
     , base >=4.7 && <5
     , bytestring
     , containers
+    , deepseq
     , dependent-type-search
     , directory
     , filemanip
     , filepath
     , flat
     , foldl
+    , formatting
     , hashable
     , haskeline
     , hasql
@@ -285,12 +289,14 @@ test-suite dependent-type-search-test
     , base >=4.7 && <5
     , bytestring
     , containers
+    , deepseq
     , dependent-type-search
     , directory
     , filemanip
     , filepath
     , flat
     , foldl
+    , formatting
     , hashable
     , haskeline
     , hasql

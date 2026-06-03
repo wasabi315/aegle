@@ -5,12 +5,13 @@ module TypeSearch.Database.Search
 where
 
 import Data.ImmatureStream qualified as ImS
-import Data.List (intercalate, intersperse)
+import Data.List.NonEmpty qualified as NE
+import Data.Map.Lazy qualified as ML
 import Data.Map.Strict qualified as M
-import Data.Set qualified as S
+import Data.Set.NonEmpty qualified as S1
 import Data.Text qualified as T
 import Data.Time.Clock
-import Hasql.Connection
+import Formatting
 import Streamly.Data.Stream.Prelude qualified as Streamly
 import System.Console.Repline
 import TypeSearch.Core.Evaluation
@@ -27,42 +28,49 @@ import TypeSearch.Unification
 
 --------------------------------------------------------------------------------
 
-search :: DbReader IO -> S.Set QName -> T.Text -> IO ()
-search dbReader _transparentDefNames typ =
+search :: DbReader IO -> T.Text -> IO ()
+search dbReader typ =
   either putStrLn pure =<< runExceptT do
-    typ <- parseQuery "interactive" typ ??% displayException
-    let names = Q.freeVars typ
-    -- resol <- liftIO $ fetchResolution conn names
-    -- feats <- featureQ transparentDefNames typ ??: "Ill-formed type"
-    -- cands <- liftIO $ filterByFeatures conn feats
-    -- tenv <- liftIO $ fetchTopEnv conn $ map (.nameQual) cands
-    -- (result, time) <- liftIO $ timed $ typeSearch tenv resol typ cands
-    -- let sorted = sortOn (termSize . (.solution)) result
-    -- liftIO $ displayTypeSearchResults cands sorted time
-    resols <- liftIO $ resolveNames dbReader $ M.fromSet id names
-    liftIO $ for_ (M.toList resols) \(name, refs) -> do
-      putStrLn $ prettyPQName name ":"
-      for_ refs \Referent {..} -> do
-        putStr $ "  " ++ prettyQName (coerce canonicalName) ""
-        case body of
-          Nothing -> pure ()
-          Just body -> putStr $ " = " ++ prettyTerm0 Unqualify body ""
-        putStrLn ""
-      putStrLn ""
-    cands <- liftIO $ loadByAnyFeature dbReader []
-    liftIO $ print $ length cands
-    liftIO $ for_ cands \LibraryItem {..} -> do
-      appendFile "cands.txt" $ prettyQName (coerce canonicalName) $ showString " : " $ prettyTerm0 Unqualify signature "\n"
-      unless (null reexportedAs) do
-        appendFile "cands.txt" $ "  re-exported as: " ++ intercalate ", " (flip prettyQName "" <$> reexportedAs)
-      appendFile "cands.txt" "\n\n"
+    ((cands, result), time) <- timed do
+      -- 1. parse query type
+      typ <- parseQuery "interactive" typ ??% displayException
+
+      -- 2. resolve free variables and obtain resolution table + top env
+      let names = Q.freeVars typ
+      refMap <- liftIO $ resolveNames dbReader $ M.fromSet id names
+      resol <- flip M.traverseWithKey refMap \x refs ->
+        fmap (S1.fromList . fmap (.canonicalName)) (NE.nonEmpty refs)
+          ??: ("Not found: " ++ prettyPQName x "")
+      let mctx = emptyMetaCtx resol
+          tenv = flip foldMap (Compose refMap) \Referent {..} ->
+            maybe
+              mempty
+              (ML.singleton canonicalName . eval mctx mempty [])
+              body
+
+      -- 3. Speculatively normalise the query type and compute possible features
+      let typ' = Q.toTerm typ
+          typs = filter (not . isLam) $ quoteAmb mctx tenv 0 (eval mctx mempty [] typ')
+          feats = nubOrd $ map allFeatureQ typs
+          compats = feats <&> \feat -> toCompat ! #query feat
+
+      -- 4. Load candidates based on compats
+      cands <- liftIO $ loadByAnyFeature dbReader compats
+
+      -- 4. Try matching
+      result <- liftIO $ match tenv resol typ' cands
+      pure (cands, result)
+
+    -- 5. Show result
+    let sorted = sortOn (termSize . (.solution)) result
+    liftIO $ displaySearchResults cands sorted time
 
 -- Interactive search shell
-interactive :: DbReader IO -> S.Set QName -> IO ()
-interactive dbReader transparentDefNames = evalReplOpts ReplOpts {..}
+interactive :: DbReader IO -> IO ()
+interactive dbReader = evalReplOpts ReplOpts {..}
   where
     banner _ = pure ">> "
-    command = liftIO . search dbReader transparentDefNames . T.pack
+    command = liftIO . search dbReader . T.pack
     prefix = Just ':'
     multilineCommand = Nothing
     tabComplete = Word0 (listWordCompleter [])
@@ -82,45 +90,56 @@ interactive dbReader transparentDefNames = evalReplOpts ReplOpts {..}
 
 --------------------------------------------------------------------------------
 
--- data TypeSearchResult = TypeSearchResult
---   { name :: QName,
---     sig :: Type,
---     iso :: Iso,
---     solution :: Term
---   }
+data Match = Match
+  { item :: {-# UNPACK #-} LibraryItem,
+    iso :: Iso,
+    solution :: Term
+  }
+  deriving stock (Show, Generic)
+  deriving anyclass (NFData)
 
--- typeSearch :: TopEnv -> M.Map Name [QName] -> Q.Type -> [Item] -> IO [TypeSearchResult]
--- typeSearch tenv resol query items = do
---   let queries = Q.possibleResolutions resol query
---   Streamly.toList
---     $ Streamly.parConcatMap
---       id
---       ( \item ->
---           case ImS.streamToMaybe $ foldMapA (\query -> typeSearchOne tenv query item) queries of
---             Nothing -> Streamly.nil
---             Just res -> Streamly.cons res Streamly.nil
---       )
---     $ Streamly.fromList items
+match :: TopEnv -> M.Map PQName (S1.NESet QName) -> Type -> [LibraryItem] -> IO [Match]
+match tenv resol query items =
+  Streamly.fromList items
+    & Streamly.parConcatMap
+      id
+      ( maybe Streamly.nil Streamly.fromPure
+          . ImS.streamToMaybe
+          . match' tenv resol query
+      )
+    & Streamly.toList
 
--- typeSearchOne :: TopEnv -> Term -> Item -> ImS.Stream TypeSearchResult
--- typeSearchOne tenv query Item {sig, nameQual = name} = do
---   (i, inst) <- check name (initCtx tenv, Here) (eval emptyMetaCtx tenv [] query) (eval emptyMetaCtx tenv [] sig)
---   pure (TypeSearchResult name sig i inst)
+match' :: TopEnv -> M.Map PQName (S1.NESet QName) -> Term -> LibraryItem -> ImS.Stream Match
+match' tenv resol query item@LibraryItem {..} = do
+  let mctx = emptyMetaCtx resol
+  (iso, solution) <- check canonicalName (initCtx tenv) resol (eval mctx tenv [] query) (eval mctx tenv [] signature)
+  pure $ Match {..}
 
--- displayTypeSearchResults :: [Item] -> [TypeSearchResult] -> NominalDiffTime -> IO ()
--- displayTypeSearchResults cands matches time = do
---   putStrLn $ shows (length matches) $ showString " item(s) matched in " $ shows (length cands) " candidate(s)"
---   putStrLn $ showString "Took " $ shows time "\n"
---   for_ matches \TypeSearchResult {name = QName {..}, ..} -> do
---     putStrLn
---       $ unlines
---       $ concat
---         [ [ showString "- " $ shows name $ showString " : " $ prettyTerm0 Unqualify sig "",
---             showString "  - module        : " $ shows moduleName ""
---           ],
---           case iso of
---             Refl -> []
---             i -> [showString "  - isomorphism   : " $ prettyIso 0 i ""],
---           [ showString "  - solution      : " $ prettyTerm0 Unqualify solution ""
---           ]
---         ]
+displaySearchResults :: [a] -> [Match] -> NominalDiffTime -> IO ()
+displaySearchResults cands matches time = do
+  fprintLn
+    (int % " item(s) matched in " % int % " candidate(s)")
+    (length matches)
+    (length cands)
+  fprintLn ("Took " % build % "\n") time
+
+  -- TODO: migrate to formatting
+  for_ matches \Match {item = LibraryItem {canonicalName = QName {..}, ..}, ..} -> do
+    putStrLn
+      $ unlines
+      $ concat
+        [ [ showString "- " $ prettyName name $ showString " : " $ prettyTerm0 Unqualify signature "",
+            showString "  - module         : " $ prettyModuleName moduleName ""
+          ],
+          case NE.nonEmpty reexportedAs of
+            Nothing -> []
+            Just re -> [showString "  - re-exported as : " $ fold $ NE.intersperse ", " $ fmap (`prettyQName` "") re],
+          case iso of
+            Refl -> []
+            i -> [showString "  - isomorphism    : " $ prettyIso 0 i ""],
+          case solution of
+            Top {} -> []
+            _ ->
+              [ showString "  - solution       : " $ prettyTerm0 Unqualify solution ""
+              ]
+        ]

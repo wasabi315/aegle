@@ -7,6 +7,7 @@ module TypeSearch.Database.Query
     headTerm,
     returnType,
     freeVars,
+    toTerm,
     possibleResolutions,
   )
 where
@@ -76,6 +77,22 @@ freeVars = \case
   Pair t u -> freeVars t <> freeVars u
   Proj1 t -> freeVars t
   Proj2 t -> freeVars t
+
+toTerm :: Term -> C.Term
+toTerm = go []
+  where
+    go ns = \case
+      Var (Unqual x)
+        | Just i <- x `elemIndex` ns -> C.Var (Index i)
+      Var x -> C.TopAmb x
+      U -> C.U
+      Pi x a b -> C.Pi x (go ns a) (go (x : ns) b)
+      Lam x t -> C.Lam x (go (x : ns) t)
+      App t u -> C.App (go ns t) (go ns u)
+      Sigma x a b -> C.Sigma x (go ns a) (go (x : ns) b)
+      Pair t u -> C.Pair (go ns t) (go ns u)
+      Proj1 t -> C.Proj1 (go ns t)
+      Proj2 t -> C.Proj2 (go ns t)
 
 possibleResolutions :: M.Map Name [QName] -> Term -> [C.Term]
 possibleResolutions tbl = flip evalStateT mempty . go []

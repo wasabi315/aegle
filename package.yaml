@@ -28,11 +28,13 @@ dependencies:
   - Agda
   - bytestring
   - containers
+  - deepseq
   - directory
   - filepath
   - filemanip
   - flat
   - foldl
+  - formatting
   - hashable
   - haskeline
   - hasql

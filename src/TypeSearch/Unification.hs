@@ -382,7 +382,7 @@ pickUpDomain mctx ctx (Quant x a b) = (Quant x a b, Refl, mctx) : go ctx.level b
     instPiAt i ~v t = case (i, force mctx ctx.topEnv t) of
       (0, VPi _ _ b) -> b v
       (i, VPi x a b) -> VPi x a (instPiAt (i - 1) v . b)
-      _ -> impossible
+      _ -> impossible "instPiAt"
 
     swaps = \case
       0 -> PiSwap
@@ -415,13 +415,13 @@ pickUpProjection mctx ctx (Quant x a b) = (Quant x a b, Refl, mctx) : go ctx.lev
     instSigmaAt i ~v t = case (i, force mctx ctx.topEnv t) of
       (0, VSigma _ _ b) -> b v
       (i, VSigma x a b) -> VSigma x a (instSigmaAt (i - 1) v . b)
-      _ -> impossible
+      _ -> impossible "instSigmaAt"
 
     dropLastProj l t = case force mctx ctx.topEnv t of
       VSigma x a b -> case b (VVar l) of
         VSigma {} -> VSigma x a (dropLastProj (l + 1) . b)
         _ -> a
-      _ -> impossible
+      _ -> impossible "dropLastProj"
 
     swaps i = \case
       0 -> i

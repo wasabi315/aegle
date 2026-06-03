@@ -39,14 +39,11 @@ data IndexCommand = IndexCommand
     transparentDefsFile :: FilePath
   }
 
-data SearchCommand = SearchCommand
-  { transparentDefsFile :: FilePath,
-    query :: T.Text
+newtype SearchCommand = SearchCommand
+  { query :: T.Text
   }
 
-newtype InteractiveSearchCommand = InteractiveSearchCommand
-  { transparentDefsFile :: FilePath
-  }
+data InteractiveSearchCommand = InteractiveSearchCommand
 
 optIndexCommand :: Parser IndexCommand
 optIndexCommand =
@@ -58,12 +55,10 @@ optSearchCommand :: Parser SearchCommand
 optSearchCommand =
   SearchCommand
     <$> strArgument (metavar "TRANSPARENT_DEFS_FILE")
-    <*> strArgument (metavar "QUERY")
 
 optInteractiveSearchCommand :: Parser InteractiveSearchCommand
 optInteractiveSearchCommand =
-  InteractiveSearchCommand
-    <$> strArgument (metavar "TRANSPARENT_DEFS_FILE")
+  pure InteractiveSearchCommand
 
 commandDesc :: String -> String -> Parser a -> Mod CommandFields a
 commandDesc cmd desc p = command cmd $ info p (progDesc desc)
@@ -111,14 +106,12 @@ index IndexCommand {..} connInfo = do
 
 search :: SearchCommand -> ConnSetting.Connection -> IO ()
 search SearchCommand {..} connInfo = do
-  transparentDefNames <- orDie $ eitherDecodeFileStrict transparentDefsFile
   withConnect connInfo \conn -> do
     let dbReader = newDbReader conn
-    Search.search dbReader transparentDefNames query
+    Search.search dbReader query
 
 interactive :: InteractiveSearchCommand -> ConnSetting.Connection -> IO ()
-interactive InteractiveSearchCommand {..} connInfo = do
-  transparentDefNames <- orDie $ eitherDecodeFileStrict transparentDefsFile
+interactive InteractiveSearchCommand connInfo = do
   withConnect connInfo \conn -> do
     let dbReader = newDbReader conn
-    Search.interactive dbReader transparentDefNames
+    Search.interactive dbReader

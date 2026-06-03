@@ -60,6 +60,7 @@ data LibraryItem = LibraryItem
     signature :: Type
   }
   deriving stock (Show, Generic)
+  deriving anyclass (NFData)
 
 data DbReader m = DbReader
   { resolveNames ::

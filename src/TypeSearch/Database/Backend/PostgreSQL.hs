@@ -236,8 +236,8 @@ resolveNames conn names = do
       do Pipeline.statement qualNames loadReferentQual
       do Pipeline.statement unqualNames loadReferentUnqual
   pure $! flip fmapDefault names \case
-    Qual m x -> resolQual M.! QName m x
-    Unqual x -> resolUnqual M.! x
+    Qual m x -> M.findWithDefault [] (QName m x) resolQual
+    Unqual x -> M.findWithDefault [] x resolUnqual
 
 loadReferentQual :: Statement [QName] (M.Map QName [Referent])
 loadReferentQual = lmap encodeQNames $ refineResult decodeReferents do
@@ -253,7 +253,7 @@ loadReferentQual = lmap encodeQNames $ refineResult decodeReferents do
     encodeQNames = V.map encodeQName . V.fromList
     decodeReferents =
       traverse (traverse decodeReferent)
-        . M.mapKeysMonotonic (fromRight impossible . decodeQName)
+        . M.mapKeysMonotonic (fromRight (impossible "decodeReferents") . decodeQName)
     groupReferents =
       lmap (\(exportAs, canonName, body) -> (exportAs, (canonName, body))) do
         Foldl.foldByKeyMap Foldl.list

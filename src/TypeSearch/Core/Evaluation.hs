@@ -117,7 +117,7 @@ vAppPruning env ~v pr = case (env, pr) of
   ([], []) -> v
   (t : env, True : pr) -> vAppPruning env v pr $$ t
   (_ : env, False : pr) -> vAppPruning env v pr
-  _ -> impossible
+  _ -> impossible "vAppPruning"
 
 ($$) :: Value -> Value -> Value
 t $$ u = case t of
@@ -230,9 +230,7 @@ quoteAmb mctx tenv l t = do
       Pair
         <$> quoteAmb mctx tenv l t
         <*> quoteAmb mctx tenv l u
-    VBrave t sp -> do
-      t <- quoteAmb mctx tenv l t
-      quoteSpineAmb mctx tenv l t sp
+    VBrave {} -> []
 
 quoteBindAmb :: MetaCtx -> TopEnv -> Level -> (Value -> Value) -> [Term]
 quoteBindAmb mctx tenv l b = quoteAmb mctx tenv (l + 1) (b $ VVar l)

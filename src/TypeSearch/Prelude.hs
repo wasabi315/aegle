@@ -13,6 +13,7 @@ module TypeSearch.Prelude
     module Data.Bifunctor,
     module Data.Bitraversable,
     module Data.Coerce,
+    module Data.Containers.ListUtils,
     module Data.Either,
     module Data.Foldable,
     module Data.Foldable1,
@@ -33,12 +34,15 @@ module TypeSearch.Prelude
     Generic,
     Generically (..),
     Typeable,
+    NFData,
+    ($!!),
     Hashable,
     FromJSON,
     ToJSON,
     Flat,
     HasCallStack,
     elemIndex,
+    intersperse,
     partition,
     sort,
     sortOn,
@@ -64,6 +68,7 @@ where
 
 import Control.Applicative
 import Control.Arrow ((&&&), (***))
+import Control.DeepSeq
 import Control.Exception (Exception (..), throwIO)
 import Control.Monad
 import Control.Monad.Except
@@ -76,6 +81,7 @@ import Data.Bifoldable1
 import Data.Bifunctor
 import Data.Bitraversable
 import Data.Coerce
+import Data.Containers.ListUtils
 import Data.Either
 import Data.Foldable hiding (foldl1, foldr1, maximum, maximumBy, minimum, minimumBy)
 import Data.Foldable1
@@ -85,7 +91,7 @@ import Data.Functor.Compose
 import Data.Functor.Contravariant
 import Data.Functor.Identity
 import Data.Hashable
-import Data.List (elemIndex, partition, sort, sortOn)
+import Data.List (elemIndex, intersperse, partition, sort, sortOn)
 import Data.List.NonEmpty qualified as NE
 import Data.Maybe (fromJust, fromMaybe, isJust, isNothing, listToMaybe, maybe, maybeToList)
 import Data.Monoid hiding (First (..), Last (..))
@@ -105,8 +111,8 @@ import Prelude hiding (curry, filter, foldl1, foldr1, head, last, maximum, minim
 
 --------------------------------------------------------------------------------
 
-impossible :: (HasCallStack) => a
-impossible = error "impossible"
+impossible :: (HasCallStack) => String -> a
+impossible msg = error $ "impossible: " ++ msg
 
 -- | @[x, pred x, ..., y]@
 down :: (Enum a) => a -> a -> [a]
@@ -133,15 +139,15 @@ infix 2 //
 (//) :: a -> b -> (a, b)
 a // b = (a, b)
 
-timed :: IO a -> IO (a, NominalDiffTime)
+timed :: (MonadIO m) => m a -> m (a, NominalDiffTime)
 timed a = do
-  t1 <- getCurrentTime
+  t1 <- liftIO getCurrentTime
   res <- a
-  t2 <- getCurrentTime
+  t2 <- liftIO getCurrentTime
   let diff = diffUTCTime t2 t1
   pure (res, diff)
 
-infixr 0 ??:, ??%
+infix 0 ??:, ??%
 
 (??:) :: (MonadError e m) => Maybe a -> e -> m a
 (??:) x e = maybe (throwError e) pure x
