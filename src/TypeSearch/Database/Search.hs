@@ -32,7 +32,7 @@ import TypeSearch.Unification
 search :: DbReader IO -> T.Text -> IO ()
 search dbReader typ =
   either putStrLn pure =<< runExceptT do
-    ((candidates, matches), time) <- timed do
+    ((numCands, matches), time) <- timed do
       -- 1. parse query type
       typ <- parseQuery "interactive" typ ??% displayException
 
@@ -60,7 +60,7 @@ search dbReader typ =
 
       -- 4. Try matching
       matches <- liftIO $ match tenv resol typ' cands
-      pure (cands, matches)
+      pure (length cands, matches)
 
     -- 5. Show result
     liftIO $ displaySearchResult SearchResult {..}
@@ -91,7 +91,7 @@ interactive dbReader = evalReplOpts ReplOpts {..}
 --------------------------------------------------------------------------------
 
 data SearchResult = SearchResult
-  { candidates :: [LibraryItem],
+  { numCands :: Int,
     matches :: [Match],
     time :: NominalDiffTime
   }
@@ -119,14 +119,13 @@ match' :: TopEnv -> M.Map PQName (S1.NESet QName) -> Term -> LibraryItem -> IStr
 match' tenv resol query item@LibraryItem {..} = do
   let mctx = emptyMetaCtx resol
   (iso, solution) <- check canonicalName (initCtx tenv) resol (eval mctx tenv [] query) (eval mctx tenv [] signature)
-  pure $ Match {..}
+  pure Match {..}
 
 displaySearchResult :: SearchResult -> IO ()
 displaySearchResult SearchResult {..} =
   putDoc (doc <> line)
   where
-    nCand = length candidates
-    nMatch = length matches
+    numMatches = length matches
 
     doc =
       vsep
@@ -139,11 +138,11 @@ displaySearchResult SearchResult {..} =
 
     numDoc =
       hsep
-        [ pretty nMatch,
-          plural "item" "items" nMatch,
+        [ pretty numMatches,
+          plural "item" "items" numMatches,
           reflow "matched in",
-          pretty nCand,
-          plural "candidate" "candidates" nCand
+          pretty numCands,
+          plural "candidate" "candidates" numCands
         ]
 
     timeDoc = "Took" <+> viaShow time

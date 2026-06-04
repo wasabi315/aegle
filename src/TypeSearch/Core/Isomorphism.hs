@@ -87,6 +87,9 @@ sym :: Iso -> Iso
 sym = \case
   Refl -> Refl
   Sym i -> i
+  Comm -> Comm
+  SigmaSwap -> SigmaSwap
+  PiSwap -> PiSwap
   i -> Sym i
 
 piCongL :: Iso -> Iso
