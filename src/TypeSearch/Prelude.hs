@@ -39,13 +39,13 @@ module TypeSearch.Prelude
     Hashable,
     FromJSON,
     ToJSON,
-    Flat,
     HasCallStack,
     elemIndex,
     intersperse,
     partition,
     sort,
     sortOn,
+    (!?),
     Profunctor (..),
     (:!),
     (!),
@@ -62,7 +62,6 @@ module TypeSearch.Prelude
     (??:),
     (??%),
     orThrow,
-    sepBy,
   )
 where
 
@@ -91,8 +90,7 @@ import Data.Functor.Compose
 import Data.Functor.Contravariant
 import Data.Functor.Identity
 import Data.Hashable
-import Data.List (elemIndex, intersperse, partition, sort, sortOn)
-import Data.List.NonEmpty qualified as NE
+import Data.List (elemIndex, intersperse, partition, sort, sortOn, (!?))
 import Data.Maybe (fromJust, fromMaybe, isJust, isNothing, listToMaybe, maybe, maybeToList)
 import Data.Monoid hiding (First (..), Last (..))
 import Data.Profunctor
@@ -102,7 +100,6 @@ import Data.Time.Clock
 import Data.Traversable
 import Data.Typeable (Typeable)
 import Data.Void
-import Flat (Flat)
 import GHC.Generics
 import GHC.Stack
 import Named
@@ -158,8 +155,3 @@ infix 0 ??:, ??%
 -- TODO: Better exception handling
 orThrow :: (Exception a) => IO (Either a b) -> IO b
 orThrow m = either throwIO pure =<< m
-
-infix 3 `sepBy`
-
-sepBy :: (Semigroup m) => NE.NonEmpty m -> m -> m
-sepBy xs sep = sconcat (NE.intersperse sep xs)

@@ -9,11 +9,13 @@ module TypeSearch.Database.Query
     freeVars,
     toTerm,
     possibleResolutions,
+    Unqualified (..),
   )
 where
 
 import Data.Map.Strict qualified as M
 import Data.Set qualified as S
+import Prettyprinter
 import TypeSearch.Core.Name
 import TypeSearch.Core.Term (AppView (..), TeleView (..))
 import TypeSearch.Core.Term qualified as C
@@ -126,3 +128,63 @@ possibleResolutions tbl = flip evalStateT mempty . go []
       Pair t u -> C.Pair <$> go ns t <*> go ns u
       Proj1 t -> C.Proj1 <$> go ns t
       Proj2 t -> C.Proj2 <$> go ns t
+
+--------------------------------------------------------------------------------
+-- Prettyprinting
+
+instance Pretty Term where
+  pretty = pretty' True
+
+newtype Unqualified = Unqualified Term
+
+instance Pretty Unqualified where
+  pretty = pretty' False . coerce
+
+pretty' :: Bool -> Term -> Doc ann
+pretty' qual = goPair
+  where
+    goPair = \case
+      Pair t u -> goLam t <+> comma <+> goPair u
+      t -> goLam t
+
+    goLam = \case
+      Lam n t -> do
+        let go = \case
+              Lam n t -> " " <> pretty n <> go t
+              t -> "." <+> goLam t
+        "λ" <+> pretty n <> go t
+      t -> goPi t
+
+    goPi = \case
+      Pi "_" a b -> goSigma a <+> "→" <+> goPi b
+      Pi n a b -> do
+        let go = \case
+              Pi "_" a b -> " →" <+> goSigma a <+> "→" <+> goPi b
+              Pi n a b -> " " <> piBind n a <> go b
+              b -> " →" <+> goPi b
+        piBind n a <> go b
+      t -> goSigma t
+
+    goSigma = \case
+      Sigma "_" a b -> goApp a <+> "×" <+> goSigma b
+      Sigma n a b -> piBind n a <+> "×" <+> goSigma b
+      t -> goApp t
+
+    goApp = \case
+      App t u -> goApp t <+> goProj u
+      t -> goProj t
+
+    goProj = \case
+      Proj1 t -> goProj t <> ".1"
+      Proj2 t -> goProj t <> ".2"
+      t -> goAtom t
+
+    goAtom = \case
+      Var (Unqual n) -> pretty n
+      Var (Qual m n)
+        | qual -> pretty (Qual m n)
+        | otherwise -> pretty n
+      U -> "U"
+      t -> parens (goPair t)
+
+    piBind n a = parens $ pretty n <+> colon <+> goPair a

@@ -34,7 +34,6 @@ dependencies:
   - filemanip
   - flat
   - foldl
-  - formatting
   - hashable
   - haskeline
   - hasql
@@ -48,6 +47,8 @@ dependencies:
   - nonempty-containers
   - optparse-applicative
   - parser-combinators
+  - prettyprinter
+  - prettyprinter-ansi-terminal
   - profunctors
   - repline
   - streamly

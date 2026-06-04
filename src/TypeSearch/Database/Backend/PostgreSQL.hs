@@ -253,7 +253,7 @@ loadReferentQual = lmap encodeQNames $ refineResult decodeReferents do
     encodeQNames = V.map encodeQName . V.fromList
     decodeReferents =
       traverse (traverse decodeReferent)
-        . M.mapKeysMonotonic (fromRight (impossible "decodeReferents") . decodeQName)
+        . M.mapKeysMonotonic (fromRight (impossible "loadReferentQual.decodeReferents") . decodeQName)
     groupReferents =
       lmap (\(exportAs, canonName, body) -> (exportAs, (canonName, body))) do
         Foldl.foldByKeyMap Foldl.list
@@ -398,6 +398,11 @@ andS ss = fmap parS ss `sepBy` " AND "
 
 listS :: NE.NonEmpty Snippet.Snippet -> Snippet.Snippet
 listS ss = parS $ ss `sepBy` ", "
+
+infix 3 `sepBy`
+
+sepBy :: (Semigroup m) => NE.NonEmpty m -> m -> m
+sepBy xs sep = sconcat (NE.intersperse sep xs)
 
 --------------------------------------------------------------------------------
 -- Utils

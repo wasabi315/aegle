@@ -43,7 +43,6 @@ library
       TypeSearch.Database.Query
       TypeSearch.Database.Search
       TypeSearch.Prelude
-      TypeSearch.Pretty
       TypeSearch.Translate.Monad
       TypeSearch.Translate.Name
       TypeSearch.Translate.Term
@@ -113,7 +112,6 @@ library
     , filepath
     , flat
     , foldl
-    , formatting
     , hashable
     , haskeline
     , hasql
@@ -127,6 +125,8 @@ library
     , nonempty-containers
     , optparse-applicative
     , parser-combinators
+    , prettyprinter
+    , prettyprinter-ansi-terminal
     , profunctors
     , repline
     , streamly
@@ -204,7 +204,6 @@ executable dependent-type-search
     , filepath
     , flat
     , foldl
-    , formatting
     , hashable
     , haskeline
     , hasql
@@ -218,6 +217,8 @@ executable dependent-type-search
     , nonempty-containers
     , optparse-applicative
     , parser-combinators
+    , prettyprinter
+    , prettyprinter-ansi-terminal
     , profunctors
     , repline
     , streamly
@@ -296,7 +297,6 @@ test-suite dependent-type-search-test
     , filepath
     , flat
     , foldl
-    , formatting
     , hashable
     , haskeline
     , hasql
@@ -310,6 +310,8 @@ test-suite dependent-type-search-test
     , nonempty-containers
     , optparse-applicative
     , parser-combinators
+    , prettyprinter
+    , prettyprinter-ansi-terminal
     , profunctors
     , repline
     , streamly

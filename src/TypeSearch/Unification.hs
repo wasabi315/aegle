@@ -1,6 +1,6 @@
 module TypeSearch.Unification where
 
-import Data.ImmatureStream qualified as ImS
+import Data.ImmatureStream qualified as IStr
 import Data.IntMap.Strict qualified as IM
 import Data.IntSet qualified as IS
 import Data.Map.Lazy qualified as ML
@@ -382,7 +382,7 @@ pickUpDomain mctx ctx (Quant x a b) = (Quant x a b, Refl, mctx) : go ctx.level b
     instPiAt i ~v t = case (i, force mctx ctx.topEnv t) of
       (0, VPi _ _ b) -> b v
       (i, VPi x a b) -> VPi x a (instPiAt (i - 1) v . b)
-      _ -> impossible "instPiAt"
+      _ -> impossible "pickUpDomain.instPiAt"
 
     swaps = \case
       0 -> PiSwap
@@ -415,13 +415,13 @@ pickUpProjection mctx ctx (Quant x a b) = (Quant x a b, Refl, mctx) : go ctx.lev
     instSigmaAt i ~v t = case (i, force mctx ctx.topEnv t) of
       (0, VSigma _ _ b) -> b v
       (i, VSigma x a b) -> VSigma x a (instSigmaAt (i - 1) v . b)
-      _ -> impossible "instSigmaAt"
+      _ -> impossible "pickUpProjection.instSigmaAt"
 
     dropLastProj l t = case force mctx ctx.topEnv t of
       VSigma x a b -> case b (VVar l) of
         VSigma {} -> VSigma x a (dropLastProj (l + 1) . b)
         _ -> a
-      _ -> impossible "dropLastProj"
+      _ -> impossible "pickUpProjection.dropLastProj"
 
     swaps i = \case
       0 -> i
@@ -529,17 +529,17 @@ closeTm = \cases
   (Bind locs x _) b -> closeTm locs (Lam x b)
 
 -- FIXME: currently not considering pi permutation
-check :: QName -> Ctx -> M.Map PQName (S1.NESet QName) -> Value -> Value -> ImS.Stream (Iso, Term)
+check :: QName -> Ctx -> M.Map PQName (S1.NESet QName) -> Value -> Value -> IStr.Stream (Iso, Term)
 check h ctx resol query item =
   ( do
       (item, inst, mctx) <- possibleInstantiation (emptyMetaCtx resol) ctx item (VTop h SNil)
-      (i, i', mctx) <- ImS.maybeToStream $ listToMaybe $ unifyIso mctx ctx query item
+      (i, i', mctx) <- IStr.maybeToStream $ listToMaybe $ unifyIso mctx ctx query item
       guard $ allMetaSolved mctx
       let j = i <> sym i'
           ~sol = closeTm ctx.locals $ quote mctx ctx.topEnv ctx.level $ transportInv j inst
       pure (j, sol)
   )
-    <|> ImS.Later case force (emptyMetaCtx resol) ctx.topEnv query of
+    <|> IStr.Later case force (emptyMetaCtx resol) ctx.topEnv query of
       VPi "_" _ _ -> empty
       VPi x a b -> do
         check h (bind (emptyMetaCtx resol) ctx x a) resol (b $ VVar ctx.level) item
@@ -552,10 +552,10 @@ freshMeta mctx ctx a = do
   (AppPruning (Meta m) (replicate (coerce ctx.level) True), mctx')
 
 -- FIXME: currently not considering pi permutation
-possibleInstantiation :: MetaCtx -> Ctx -> Value -> Value -> ImS.Stream (Value, Value, MetaCtx)
+possibleInstantiation :: MetaCtx -> Ctx -> Value -> Value -> IStr.Stream (Value, Value, MetaCtx)
 possibleInstantiation mctx ctx a ~inst =
   pure (a, inst, mctx)
-    <|> ImS.Later case force mctx ctx.topEnv a of
+    <|> IStr.Later case force mctx ctx.topEnv a of
       VPi "_" _ _ -> empty
       VPi _ a b -> do
         (m, mctx) <- pure $ freshMeta mctx ctx a

@@ -4,14 +4,16 @@ module TypeSearch.Database.Search
   )
 where
 
-import Data.ImmatureStream qualified as ImS
+import Data.ImmatureStream qualified as IStr
 import Data.List.NonEmpty qualified as NE
 import Data.Map.Lazy qualified as ML
 import Data.Map.Strict qualified as M
 import Data.Set.NonEmpty qualified as S1
 import Data.Text qualified as T
 import Data.Time.Clock
-import Formatting
+import Prettyprinter
+import Prettyprinter.Render.Terminal
+import Prettyprinter.Util
 import Streamly.Data.Stream.Prelude qualified as Streamly
 import System.Console.Repline
 import TypeSearch.Core.Evaluation
@@ -23,7 +25,6 @@ import TypeSearch.Database.Feature
 import TypeSearch.Database.Parser
 import TypeSearch.Database.Query qualified as Q
 import TypeSearch.Prelude
-import TypeSearch.Pretty
 import TypeSearch.Unification
 
 --------------------------------------------------------------------------------
@@ -31,7 +32,7 @@ import TypeSearch.Unification
 search :: DbReader IO -> T.Text -> IO ()
 search dbReader typ =
   either putStrLn pure =<< runExceptT do
-    ((cands, result), time) <- timed do
+    ((candidates, matches), time) <- timed do
       -- 1. parse query type
       typ <- parseQuery "interactive" typ ??% displayException
 
@@ -40,7 +41,7 @@ search dbReader typ =
       refMap <- liftIO $ resolveNames dbReader $ M.fromSet id names
       resol <- flip M.traverseWithKey refMap \x refs ->
         fmap (S1.fromList . fmap (.canonicalName)) (NE.nonEmpty refs)
-          ??: ("Not found: " ++ prettyPQName x "")
+          ??: ("Not found: " ++ show (pretty x))
       let mctx = emptyMetaCtx resol
           tenv = flip foldMap (Compose refMap) \Referent {..} ->
             maybe
@@ -58,12 +59,11 @@ search dbReader typ =
       cands <- liftIO $ loadByAnyFeature dbReader compats
 
       -- 4. Try matching
-      result <- liftIO $ match tenv resol typ' cands
-      pure (cands, result)
+      matches <- liftIO $ match tenv resol typ' cands
+      pure (cands, matches)
 
     -- 5. Show result
-    let sorted = sortOn (termSize . (.solution)) result
-    liftIO $ displaySearchResults cands sorted time
+    liftIO $ displaySearchResult SearchResult {..}
 
 -- Interactive search shell
 interactive :: DbReader IO -> IO ()
@@ -90,6 +90,12 @@ interactive dbReader = evalReplOpts ReplOpts {..}
 
 --------------------------------------------------------------------------------
 
+data SearchResult = SearchResult
+  { candidates :: [LibraryItem],
+    matches :: [Match],
+    time :: NominalDiffTime
+  }
+
 data Match = Match
   { item :: {-# UNPACK #-} LibraryItem,
     iso :: Iso,
@@ -104,42 +110,65 @@ match tenv resol query items =
     & Streamly.parConcatMap
       id
       ( maybe Streamly.nil Streamly.fromPure
-          . ImS.streamToMaybe
+          . IStr.streamToMaybe
           . match' tenv resol query
       )
     & Streamly.toList
 
-match' :: TopEnv -> M.Map PQName (S1.NESet QName) -> Term -> LibraryItem -> ImS.Stream Match
+match' :: TopEnv -> M.Map PQName (S1.NESet QName) -> Term -> LibraryItem -> IStr.Stream Match
 match' tenv resol query item@LibraryItem {..} = do
   let mctx = emptyMetaCtx resol
   (iso, solution) <- check canonicalName (initCtx tenv) resol (eval mctx tenv [] query) (eval mctx tenv [] signature)
   pure $ Match {..}
 
-displaySearchResults :: [a] -> [Match] -> NominalDiffTime -> IO ()
-displaySearchResults cands matches time = do
-  fprintLn
-    (int % " item(s) matched in " % int % " candidate(s)")
-    (length matches)
-    (length cands)
-  fprintLn ("Took " % build % "\n") time
+displaySearchResult :: SearchResult -> IO ()
+displaySearchResult SearchResult {..} =
+  putDoc (doc <> line)
+  where
+    nCand = length candidates
+    nMatch = length matches
 
-  -- TODO: migrate to formatting
-  for_ matches \Match {item = LibraryItem {canonicalName = QName {..}, ..}, ..} -> do
-    putStrLn
-      $ unlines
-      $ concat
-        [ [ showString "- " $ prettyName name $ showString " : " $ prettyTerm0 Unqualify signature "",
-            showString "  - module         : " $ prettyModuleName moduleName ""
-          ],
-          case NE.nonEmpty reexportedAs of
-            Nothing -> []
-            Just re -> [showString "  - re-exported as : " $ fold $ NE.intersperse ", " $ fmap (`prettyQName` "") re],
-          case iso of
-            Refl -> []
-            i -> [showString "  - isomorphism    : " $ prettyIso 0 i ""],
-          case solution of
-            Top {} -> []
-            _ ->
-              [ showString "  - solution       : " $ prettyTerm0 Unqualify solution ""
+    doc =
+      vsep
+        [ numDoc,
+          timeDoc,
+          case matches of
+            [] -> emptyDoc
+            _ -> enclose line line matchesDoc
+        ]
+
+    numDoc =
+      hsep
+        [ pretty nMatch,
+          plural "item" "items" nMatch,
+          reflow "matched in",
+          pretty nCand,
+          plural "candidate" "candidates" nCand
+        ]
+
+    timeDoc = "Took" <+> viaShow time
+
+    matchesDoc =
+      concatWith (surround $ line <> line) do
+        -- rank by solution size
+        matchDoc <$> sortOn (termSize . (.solution)) matches
+
+    matchDoc Match {item = LibraryItem {canonicalName = QName {..}, ..}, ..} =
+      vsep
+        [ annotate (bold <> color Green) do
+            "∙" <+> pretty name <+> colon <+> pretty (Unqualified signature),
+          indent 2
+            $ vsep
+            $ catMaybes
+              [ Just $ "◦ module         :" <+> pretty moduleName,
+                case reexportedAs of
+                  [] -> Nothing
+                  _ -> Just $ "◦ re-exported as :" <+> hsep (punctuate comma $ pretty <$> reexportedAs),
+                case iso of
+                  Refl -> Nothing
+                  _ -> Just $ "◦ isomorphism    :" <+> pretty iso,
+                case solution of
+                  Top {} -> Nothing
+                  _ -> Just $ "◦ solution       :" <+> pretty (Unqualified solution)
               ]
         ]

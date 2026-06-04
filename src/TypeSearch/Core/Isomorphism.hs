@@ -14,6 +14,7 @@ module TypeSearch.Core.Isomorphism
   )
 where
 
+import Prettyprinter
 import TypeSearch.Core.Evaluation
 import TypeSearch.Core.Name
 import TypeSearch.Core.Term
@@ -185,3 +186,33 @@ normaliseSigma mctx tenv l q = do
       (ta, ia) = normalise mctx tenv l a
       (tb, ib) = normalise mctx tenv (l + 1) $ b (transportInv ia (VVar l))
   Sigma x ta tb // i <> sigmaCongL ia <> sigmaCongR ib
+
+--------------------------------------------------------------------------------
+-- Prettyprinting
+
+instance Pretty Iso where
+  pretty = goTrans
+    where
+      goTrans = \case
+        Trans i j -> goTrans i <+> "·" <+> goTrans j
+        i -> goCong i
+
+      goCong = \case
+        PiCongL i -> "ΠL" <+> goSym i
+        PiCongR i -> "ΠR" <+> goSym i
+        SigmaCongL i -> "ΣL" <+> goSym i
+        SigmaCongR i -> "ΣR" <+> goSym i
+        i -> goSym i
+
+      goSym = \case
+        Sym i -> goAtom i <+> "⁻¹"
+        i -> goAtom i
+
+      goAtom = \case
+        Refl -> "refl"
+        Assoc -> "Assoc"
+        Comm -> "Comm"
+        SigmaSwap -> "ΣSwap"
+        Curry -> "Curry"
+        PiSwap -> "ΠSwap"
+        i -> parens (goTrans i)

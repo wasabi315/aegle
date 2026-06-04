@@ -24,6 +24,7 @@ import Control.Foldl qualified as Foldl
 import Data.List.NonEmpty qualified as NE
 import Data.Map qualified as M
 import Data.Set qualified as S
+import Prettyprinter
 import System.Directory
 import System.FilePath.Find qualified as Find
 import System.IO
@@ -35,7 +36,6 @@ import TypeSearch.Core.Term qualified as TS
 import TypeSearch.Database.Backend qualified as TS
 import TypeSearch.Database.Feature qualified as TS
 import TypeSearch.Prelude
-import TypeSearch.Pretty
 import TypeSearch.Translate.Monad
 import TypeSearch.Translate.Name
 import TypeSearch.Translate.Term
@@ -104,10 +104,10 @@ resolveQNamesIn srcs transparentDefNames = do
               setInterface mi.miInterface
               withScope_ mi.miInterface.iInsideScope do
                 let mname = prettyShow mi.miInterface.iTopLevelModuleName
-                    (toResolve, unresolved') = partition ((mname ==) . flip prettyModuleName "" . (.moduleName)) unresolved
+                    (toResolve, unresolved') = partition ((mname ==) . show . pretty . (.moduleName)) unresolved
                 resolved' <- forM toResolve \x ->
-                  resolveDefinedName (prettyName x.name "") >>= \case
-                    Nothing -> throwError $ GenericException $ "Couldn't find definition " ++ prettyQName x ""
+                  resolveDefinedName (show $ pretty x.name) >>= \case
+                    Nothing -> throwError $ GenericException $ "Couldn't find definition " ++ show (pretty x)
                     Just x -> pure x
                 pure (foldr S.insert resolved resolved', unresolved')
       )
@@ -115,7 +115,7 @@ resolveQNamesIn srcs transparentDefNames = do
       srcs
 
   unless (null unresolved) do
-    throwError $ GenericException $ "Couldn't find definitions " ++ show (flip prettyQName "" <$> unresolved)
+    throwError $ GenericException $ "Couldn't find definitions " ++ show (prettyList unresolved)
 
   pure transparentDefNames
 

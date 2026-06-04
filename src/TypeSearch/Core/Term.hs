@@ -17,10 +17,14 @@ module TypeSearch.Core.Term
     appView,
     headTerm,
     termSize,
+    Unqualified (..),
   )
 where
 
 import Data.Set qualified as S
+import Data.Text qualified as T
+import Flat
+import Prettyprinter
 import TypeSearch.Core.Name
 import TypeSearch.Prelude
 
@@ -157,3 +161,103 @@ termSize = \case
   Pair t u -> 1 + termSize t + termSize u
   Proj1 t -> 1 + termSize t
   Proj2 t -> 1 + termSize t
+
+--------------------------------------------------------------------------------
+-- Prettyprinting
+
+instance Pretty Term where
+  pretty = pretty' True
+
+newtype Unqualified = Unqualified Term
+
+instance Pretty Unqualified where
+  pretty = pretty' False . coerce
+
+pretty' :: Bool -> Term -> Doc ann
+pretty' qual = goPair []
+  where
+    goPair ns = \case
+      Pair t u -> goLam ns t <+> comma <+> goPair ns u
+      t -> goLam ns t
+
+    goLam ns = \case
+      Lam (freshen ns -> n) t -> do
+        let go ns = \case
+              Lam (freshen ns -> n) t -> " " <> pretty n <> go (n : ns) t
+              t -> "." <+> goLam ns t
+        "λ" <+> pretty n <> go (n : ns) t
+      t -> goPi ns t
+
+    goPi ns = \case
+      Pi "_" a b -> goSigma ns a <+> "→" <+> goPi ("_" : ns) b
+      Pi (freshen ns -> n) a b -> do
+        let go ns = \case
+              Pi "_" a b -> " →" <+> goSigma ns a <+> "→" <+> goPi ("_" : ns) b
+              Pi (freshen ns -> n) a b -> " " <> piBind n ns a <> go (n : ns) b
+              b -> " →" <+> goPi ns b
+        piBind n ns a <> go (n : ns) b
+      t -> goSigma ns t
+
+    goSigma ns = \case
+      Sigma "_" a b -> goApp ns a <+> "×" <+> goSigma ("_" : ns) b
+      Sigma (freshen ns -> n) a b -> piBind n ns a <+> "×" <+> goSigma (n : ns) b
+      t -> goApp ns t
+
+    goApp ns = \case
+      App t u -> goApp ns t <+> goProj ns u
+      AppPruning t pr -> do
+        let go t i = \cases
+              _ [] -> t
+              (n : ns) (True : pr) -> go t i ns pr <+> pretty n
+              (_ : ns) (False : pr) -> go t i ns pr
+              [] (True : pr) -> go t (i + 1) [] pr <+> pretty @Index i
+              [] (False : pr) -> go t (i + 1) [] pr
+        go (goApp ns t) 0 ns pr
+      t -> goProj ns t
+
+    goProj ns = \case
+      Proj1 t -> goProj ns t <> ".1"
+      Proj2 t -> goProj ns t <> ".2"
+      t -> goAtom ns t
+
+    goAtom ns = \case
+      Var i -> case ns !? coerce i of
+        Nothing -> pretty i
+        Just n -> pretty n
+      Meta m -> pretty m
+      Top x
+        | qual -> pretty x
+        | otherwise -> pretty x.name
+      TopAmb (Unqual x) -> pretty x
+      TopAmb (Qual m x)
+        | qual -> pretty (Qual m x)
+        | otherwise -> pretty x
+      U -> "U"
+      t -> parens (goPair ns t)
+
+    piBind n ns a = parens $ pretty n <+> colon <+> goPair ns a
+
+freshen :: [Name] -> Name -> Name
+freshen ns n
+  | n `elem` ns = go 0
+  | otherwise = n
+  where
+    go (i :: Int)
+      | n' `notElem` ns = n'
+      | otherwise = go (i + 1)
+      where
+        n' = Name $ coerce n <> T.map subscript (T.show i)
+
+subscript :: Char -> Char
+subscript = \case
+  '0' -> '₀'
+  '1' -> '₁'
+  '2' -> '₂'
+  '3' -> '₃'
+  '4' -> '₄'
+  '5' -> '₅'
+  '6' -> '₆'
+  '7' -> '₇'
+  '8' -> '₈'
+  '9' -> '₉'
+  c -> c
