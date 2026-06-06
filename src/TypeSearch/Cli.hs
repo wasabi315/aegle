@@ -10,6 +10,7 @@ import Paths_dependent_type_search
 import TypeSearch.Cli.Index qualified as Index
 import TypeSearch.Cli.Interactive qualified as Interactive
 import TypeSearch.Cli.Search qualified as Search
+import TypeSearch.Cli.Serve qualified as Serve
 import TypeSearch.Prelude hiding (reader)
 
 --------------------------------------------------------------------------------
@@ -19,13 +20,15 @@ data Command
   = Index Index.Command
   | Search Search.Command
   | Interactive Interactive.Command
+  | Serve Serve.Command
 
 instance HasParser Command where
   settingsParser =
     commands
       [ index,
         search,
-        interactive
+        interactive,
+        serve
       ]
     where
       index = command "index" "Index an Agda library" do
@@ -60,6 +63,17 @@ instance HasParser Command where
       interactive = command "interactive" "Interactive search shell" do
         connSetting <- connectSetting
         pure $ Interactive Interactive.Command {..}
+
+      serve = command "serve" "Run web server" do
+        connSetting <- connectSetting
+        port <-
+          setting
+            [ env "PORT",
+              metavar "PORT",
+              reader auto,
+              help "HTTP port to listen on"
+            ]
+        pure $ Serve Serve.Command {..}
 
       connectSetting = do
         host <-
@@ -113,3 +127,4 @@ main = do
     Index cmd -> Index.index cmd
     Search cmd -> Search.search cmd
     Interactive cmd -> Interactive.interactive cmd
+    Serve cmd -> Serve.serve cmd

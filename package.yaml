@@ -51,11 +51,15 @@ dependencies:
   - prettyprinter-ansi-terminal
   - profunctors
   - repline
+  - servant
+  - servant-server
   - streamly
   - text
   - time
   - unordered-containers
   - vector
+  - wai
+  - warp
   - witherable
 
 language: GHC2021

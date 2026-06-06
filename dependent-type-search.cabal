@@ -33,6 +33,7 @@ library
       TypeSearch.Cli.Index
       TypeSearch.Cli.Interactive
       TypeSearch.Cli.Search
+      TypeSearch.Cli.Serve
       TypeSearch.Core.Evaluation
       TypeSearch.Core.Isomorphism
       TypeSearch.Core.Name
@@ -53,6 +54,7 @@ library
       TypeSearch.Search.Parser
       TypeSearch.Search.Query
       TypeSearch.Search.Unification
+      TypeSearch.Web
   other-modules:
       Paths_dependent_type_search
   autogen-modules:
@@ -134,11 +136,15 @@ library
     , prettyprinter-ansi-terminal
     , profunctors
     , repline
+    , servant
+    , servant-server
     , streamly
     , text
     , time
     , unordered-containers
     , vector
+    , wai
+    , warp
     , witherable
   default-language: GHC2021
 
@@ -226,11 +232,15 @@ executable dependent-type-search
     , prettyprinter-ansi-terminal
     , profunctors
     , repline
+    , servant
+    , servant-server
     , streamly
     , text
     , time
     , unordered-containers
     , vector
+    , wai
+    , warp
     , witherable
   default-language: GHC2021
 
@@ -319,10 +329,14 @@ test-suite dependent-type-search-test
     , prettyprinter-ansi-terminal
     , profunctors
     , repline
+    , servant
+    , servant-server
     , streamly
     , text
     , time
     , unordered-containers
     , vector
+    , wai
+    , warp
     , witherable
   default-language: GHC2021
