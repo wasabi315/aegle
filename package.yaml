@@ -39,6 +39,7 @@ dependencies:
   - hasql
   - hasql-dynamic-statements
   - hasql-migration
+  - hasql-pool
   - hasql-th
   - hasql-transaction
   - megaparsec

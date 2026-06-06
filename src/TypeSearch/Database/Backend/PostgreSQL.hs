@@ -219,18 +219,18 @@ encodeExport export = DbExportRow {..}
 --------------------------------------------------------------------------------
 -- Read operation
 
-newDbReader :: Connection -> DbReader IO
-newDbReader conn =
+newDbReader :: (forall a. Session a -> IO a) -> DbReader IO
+newDbReader runSession =
   DbReader
-    { resolveNames = resolveNames conn,
-      loadByAnyFeature = loadByAnyFeature conn
+    { resolveNames = resolveNames runSession,
+      loadByAnyFeature = loadByAnyFeature runSession
     }
 
-resolveNames :: (Traversable t) => Connection -> t PQName -> IO (t [Referent])
-resolveNames conn names = do
+resolveNames :: (Traversable t) => (forall a. Session a -> IO a) -> t PQName -> IO (t [Referent])
+resolveNames runSession names = do
   let names' = toList names
       (qualNames, unqualNames) = partitionEithers $ pqNameToEither <$> names'
-  (resolQual, resolUnqual) <- orThrow $ flip run conn $ pipeline do
+  (resolQual, resolUnqual) <- runSession $ pipeline do
     liftA2
       (,)
       do Pipeline.statement qualNames loadReferentQual
@@ -281,13 +281,13 @@ decodeReferent (canonicalName, body) = do
   body <- traverse decodeTerm body
   pure $! Referent {..}
 
-loadByAnyFeature :: (Foldable t) => Connection -> t (Compat (AllFeature PQName)) -> IO [LibraryItem]
-loadByAnyFeature conn feats = case NE.nonEmpty (toList feats) of
+loadByAnyFeature :: (Foldable t) => (forall a. Session a -> IO a) -> t (Compat (AllFeature PQName)) -> IO [LibraryItem]
+loadByAnyFeature runSession feats = case NE.nonEmpty (toList feats) of
   Nothing -> pure []
-  Just feats -> loadByAnyFeatureNE conn feats
+  Just feats -> loadByAnyFeatureNE runSession feats
 
-loadByAnyFeatureNE :: Connection -> NE.NonEmpty (Compat (AllFeature PQName)) -> IO [LibraryItem]
-loadByAnyFeatureNE conn compats = orThrow $ flip run conn do
+loadByAnyFeatureNE :: (forall a. Session a -> IO a) -> NE.NonEmpty (Compat (AllFeature PQName)) -> IO [LibraryItem]
+loadByAnyFeatureNE runSession compats = runSession do
   statement () $ dynamicallyParameterized snippet decoder False
   where
     snippet =

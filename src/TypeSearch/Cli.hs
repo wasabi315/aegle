@@ -3,8 +3,10 @@
 module TypeSearch.Cli (main) where
 
 import Data.Text qualified as T
+import Hasql.Connection.Setting
 import Hasql.Connection.Setting.Connection qualified as ConnSetting
 import Hasql.Connection.Setting.Connection.Param
+import Hasql.Pool.Config qualified as Pool
 import OptEnvConf hiding (Command)
 import Paths_dependent_type_search
 import TypeSearch.Cli.Index qualified as Index
@@ -65,7 +67,7 @@ instance HasParser Command where
         pure $ Interactive Interactive.Command {..}
 
       serve = command "serve" "Run web server" do
-        connSetting <- connectSetting
+        poolConfig <- poolConfig
         port <-
           setting
             [ env "PORT",
@@ -116,7 +118,11 @@ instance HasParser Command where
                 reader str,
                 help "PostgreSQL database name"
               ]
-        pure $ ConnSetting.params [host, port, user, password, database]
+        pure $ connection $ ConnSetting.params [host, port, user, password, database]
+
+      poolConfig = do
+        connSetting <- connectSetting
+        pure $ Pool.settings [Pool.staticConnectionSettings [connSetting]]
 
 --------------------------------------------------------------------------------
 

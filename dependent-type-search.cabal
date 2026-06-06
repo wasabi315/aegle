@@ -124,6 +124,7 @@ library
     , hasql
     , hasql-dynamic-statements
     , hasql-migration
+    , hasql-pool
     , hasql-th
     , hasql-transaction
     , megaparsec
@@ -220,6 +221,7 @@ executable dependent-type-search
     , hasql
     , hasql-dynamic-statements
     , hasql-migration
+    , hasql-pool
     , hasql-th
     , hasql-transaction
     , megaparsec
@@ -317,6 +319,7 @@ test-suite dependent-type-search-test
     , hasql
     , hasql-dynamic-statements
     , hasql-migration
+    , hasql-pool
     , hasql-th
     , hasql-transaction
     , megaparsec

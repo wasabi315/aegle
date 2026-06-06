@@ -1,5 +1,6 @@
 module TypeSearch.Cli.Search
   ( TypeSearch.Cli.Search.search,
+    searchWith,
     Command (..),
   )
 where
@@ -8,7 +9,7 @@ import Control.Exception
 import Data.Text qualified as T
 import Hasql.Connection
 import Hasql.Connection.Setting
-import Hasql.Connection.Setting.Connection qualified as ConnSetting
+import Hasql.Session
 import Prettyprinter
 import Prettyprinter.Render.Terminal
 import Prettyprinter.Util
@@ -25,15 +26,20 @@ import TypeSearch.Search as Search
 --------------------------------------------------------------------------------
 
 data Command = Command
-  { connSetting :: ConnSetting.Connection,
+  { connSetting :: Setting,
     query :: T.Text
   }
 
 --------------------------------------------------------------------------------
 
 search :: Command -> IO ()
-search Command {..} = withConnect connSetting \conn -> do
-  let dbReader = newDbReader conn
+search Command {..} =
+  withConnect connSetting \conn -> do
+    let dbReader = newDbReader (orThrow . flip run conn)
+    searchWith dbReader query
+
+searchWith :: DbReader IO -> T.Text -> IO ()
+searchWith dbReader query = do
   result <- Search.search dbReader query
   either putError putResult result
 
@@ -96,6 +102,6 @@ putError = hPutStrLn stderr . displayException
 orDie :: IO (Either String a) -> IO a
 orDie m = m >>= either die pure
 
-withConnect :: ConnSetting.Connection -> (Connection -> IO r) -> IO r
+withConnect :: Setting -> (Connection -> IO r) -> IO r
 withConnect connSetting =
-  bracket (orDie $ first show <$> acquire [connection connSetting]) release
+  bracket (orDie $ first show <$> acquire [connSetting]) release

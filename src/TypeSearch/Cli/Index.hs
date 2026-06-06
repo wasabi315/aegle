@@ -8,7 +8,6 @@ import Control.Exception
 import Data.Aeson (eitherDecodeFileStrict)
 import Hasql.Connection
 import Hasql.Connection.Setting
-import Hasql.Connection.Setting.Connection qualified as ConnSetting
 import System.Exit
 import System.FilePath
 import TypeSearch.Database.Backend.PostgreSQL
@@ -19,7 +18,7 @@ import TypeSearch.Prelude
 -- Options
 
 data Command = Command
-  { connSetting :: ConnSetting.Connection,
+  { connSetting :: Setting,
     libraryDir :: FilePath,
     transparentDefsFile :: FilePath
   }
@@ -37,6 +36,6 @@ index Command {..} = do
 orDie :: IO (Either String a) -> IO a
 orDie m = m >>= either die pure
 
-withConnect :: ConnSetting.Connection -> (Connection -> IO r) -> IO r
-withConnect connInfo =
-  bracket (orDie $ first show <$> acquire [connection connInfo]) release
+withConnect :: Setting -> (Connection -> IO r) -> IO r
+withConnect connSetting =
+  bracket (orDie $ first show <$> acquire [connSetting]) release
