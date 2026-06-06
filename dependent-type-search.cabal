@@ -20,6 +20,7 @@ extra-source-files:
     CHANGELOG.md
 data-files:
     migration/202603071213_init.sql
+    static/style.css
 
 source-repository head
   type: git
@@ -127,6 +128,7 @@ library
     , hasql-pool
     , hasql-th
     , hasql-transaction
+    , lucid
     , megaparsec
     , mtl
     , named
@@ -138,6 +140,7 @@ library
     , profunctors
     , repline
     , servant
+    , servant-lucid
     , servant-server
     , streamly
     , text
@@ -224,6 +227,7 @@ executable dependent-type-search
     , hasql-pool
     , hasql-th
     , hasql-transaction
+    , lucid
     , megaparsec
     , mtl
     , named
@@ -235,6 +239,7 @@ executable dependent-type-search
     , profunctors
     , repline
     , servant
+    , servant-lucid
     , servant-server
     , streamly
     , text
@@ -322,6 +327,7 @@ test-suite dependent-type-search-test
     , hasql-pool
     , hasql-th
     , hasql-transaction
+    , lucid
     , megaparsec
     , mtl
     , named
@@ -333,6 +339,7 @@ test-suite dependent-type-search-test
     , profunctors
     , repline
     , servant
+    , servant-lucid
     , servant-server
     , streamly
     , text

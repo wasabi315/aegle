@@ -12,6 +12,7 @@ extra-source-files:
 
 data-files:
   - migration/*.sql
+  - static/*.css
 
 # Metadata used when publishing your package
 # synopsis:            Short description of your package
@@ -42,6 +43,7 @@ dependencies:
   - hasql-pool
   - hasql-th
   - hasql-transaction
+  - lucid
   - megaparsec
   - mtl
   - named
@@ -53,6 +55,7 @@ dependencies:
   - profunctors
   - repline
   - servant
+  - servant-lucid
   - servant-server
   - streamly
   - text
