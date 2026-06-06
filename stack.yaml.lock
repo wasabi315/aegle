@@ -3,28 +3,7 @@
 # For more information, please see the documentation at:
 #   https://docs.haskellstack.org/en/stable/topics/lock_files
 
-packages:
-- completed:
-    hackage: Agda-2.8.0@sha256:f85f3b10eb034687b07d073686ab97c947082eecc5ad268cbe20a4c774abcaae,34434
-    pantry-tree:
-      sha256: 01cbe34629f37fa56a411390d4d9fa281bb92b8a66a6757232240f58380678a7
-      size: 43914
-  original:
-    hackage: Agda-2.8.0
-- completed:
-    hackage: postgresql-migration-0.2.1.8@sha256:6d395f6529a2d3a811af7209607e9b26350142574ab757a04c67e61f6fe737b2,4502
-    pantry-tree:
-      sha256: 84938c25482440af01693d0a9502f0507387f08079caf4f23069553d2c305435
-      size: 1146
-  original:
-    hackage: postgresql-migration-0.2.1.8
-- completed:
-    hackage: postgresql-simple-0.7.0.1@sha256:b2dffe014fa8b211feda3661921f2a6aabd63b055a0a00fe415ec2a823f9aaea,4753
-    pantry-tree:
-      sha256: 74c4df162431ca84c7bff3179a05e13251a2034ce896a63a6ad94d9d96e6b76e
-      size: 4255
-  original:
-    hackage: postgresql-simple-0.7.0.1
+packages: []
 snapshots:
 - completed:
     sha256: 02a90de20d42662e0b8b95d81735b0e69bae60cdd819c9e0673e6b523e2aa689
