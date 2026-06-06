@@ -128,7 +128,7 @@ library
     , mtl
     , named
     , nonempty-containers
-    , optparse-applicative
+    , opt-env-conf
     , parser-combinators
     , prettyprinter
     , prettyprinter-ansi-terminal
@@ -220,7 +220,7 @@ executable dependent-type-search
     , mtl
     , named
     , nonempty-containers
-    , optparse-applicative
+    , opt-env-conf
     , parser-combinators
     , prettyprinter
     , prettyprinter-ansi-terminal
@@ -313,7 +313,7 @@ test-suite dependent-type-search-test
     , mtl
     , named
     , nonempty-containers
-    , optparse-applicative
+    , opt-env-conf
     , parser-combinators
     , prettyprinter
     , prettyprinter-ansi-terminal

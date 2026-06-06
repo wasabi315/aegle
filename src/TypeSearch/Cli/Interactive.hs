@@ -6,7 +6,6 @@ where
 
 import Data.Text qualified as T
 import Hasql.Connection.Setting.Connection qualified as ConnSetting
-import Options.Applicative
 import System.Console.Repline hiding (Command)
 import System.IO
 import TypeSearch.Cli.Search qualified as Search

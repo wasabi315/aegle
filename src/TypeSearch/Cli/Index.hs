@@ -9,7 +9,6 @@ import Data.Aeson (eitherDecodeFileStrict)
 import Hasql.Connection
 import Hasql.Connection.Setting
 import Hasql.Connection.Setting.Connection qualified as ConnSetting
-import Options.Applicative
 import System.Exit
 import System.FilePath
 import TypeSearch.Database.Backend.PostgreSQL

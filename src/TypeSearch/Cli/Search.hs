@@ -9,7 +9,6 @@ import Data.Text qualified as T
 import Hasql.Connection
 import Hasql.Connection.Setting
 import Hasql.Connection.Setting.Connection qualified as ConnSetting
-import Options.Applicative
 import Prettyprinter
 import Prettyprinter.Render.Terminal
 import Prettyprinter.Util
