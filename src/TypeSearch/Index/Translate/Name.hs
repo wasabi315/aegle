@@ -1,4 +1,4 @@
-module TypeSearch.Translate.Name
+module TypeSearch.Index.Translate.Name
   ( translateModuleName,
     translateTopLevelModuleName,
     translateQName,
@@ -20,11 +20,11 @@ import TypeSearch.Prelude
 
 translateModuleName :: ModuleName -> TS.ModuleName
 translateModuleName m =
-  TS.ModuleName
-    $ T.intercalate "."
-    $ map (T.pack . C.nameToRawName . nameConcrete)
-    $ filter (not . isNoName)
-    $ mnameToList m
+  TS.ModuleName $
+    T.intercalate "." $
+      map (T.pack . C.nameToRawName . nameConcrete) $
+        filter (not . isNoName) $
+          mnameToList m
 
 translateTopLevelModuleName :: TopLevelModuleName -> TS.ModuleName
 translateTopLevelModuleName =

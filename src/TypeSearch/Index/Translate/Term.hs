@@ -1,6 +1,6 @@
 {-# OPTIONS_GHC -Wno-incomplete-uni-patterns #-}
 
-module TypeSearch.Translate.Term
+module TypeSearch.Index.Translate.Term
   ( translateTerm,
     translateType,
   )
@@ -24,11 +24,11 @@ import Agda.Utils.Function
 import Agda.Utils.Impossible (__IMPOSSIBLE__)
 import Agda.Utils.Monad
 import Data.Set qualified as S
-import TypeSearch.AgdaUtils
 import TypeSearch.Core.Term qualified as TS
+import TypeSearch.Index.Translate
+import TypeSearch.Index.Translate.Name
+import TypeSearch.Index.Utils
 import TypeSearch.Prelude
-import TypeSearch.Translate.Monad
-import TypeSearch.Translate.Name
 
 --------------------------------------------------------------------------------
 -- Agda Internal term/type to our Term
@@ -43,7 +43,7 @@ translateTerm ty v = do
   v <- reduceTransparentDef =<< instantiate v
 
   let bad s t =
-        translateError
+        indexError
           $ vcat
             [ "cannot compile" <+> text (s ++ ":"),
               nest 2 $ prettyTCM t
@@ -106,7 +106,7 @@ translateSigma ty args =
     [a] -> pure $ TS.Lam "B" $ TS.Sigma "x" a (TS.Var 0)
     -- unapplied
     [] -> pure $ TS.Lam "A" $ TS.Lam "B" $ TS.Sigma "x" (TS.Var 1) (TS.Var 0)
-    _ -> translateError "Ill-formed sigma"
+    _ -> indexError "Ill-formed sigma"
 
 translatePair :: Type -> [Term] -> Transl TS.Term
 translatePair ty args =
@@ -117,7 +117,7 @@ translatePair ty args =
     [a] -> pure $ TS.Lam "x" $ TS.Pair a (TS.Var 0)
     -- unapplied
     [] -> pure $ TS.Lam "x" $ TS.Lam "y" $ TS.Pair (TS.Var 1) (TS.Var 0)
-    _ -> translateError "Ill-formed pair construction"
+    _ -> indexError "Ill-formed pair construction"
 
 translateFst :: Type -> [Term] -> Transl TS.Term
 translateFst ty args =
@@ -167,7 +167,7 @@ translateSpined c tm ty = \case
     (_, b) <- mustBePi ty
     translateSpined (c . (x :)) (tm . (e :)) (absApp b x) es
   e@IApply {} : _ ->
-    translateError
+    indexError
       $ vcat ["cannot compile interval application:", nest 2 $ prettyTCM e]
 
 translateProj ::
@@ -223,4 +223,4 @@ translateLit = \case
     zero <- translateQName <$> getBuiltinName_ BuiltinZero
     suc <- translateQName <$> getBuiltinName_ BuiltinSuc
     pure $ iterate' n (TS.Top suc `TS.App`) (TS.Top zero)
-  x -> translateError $ vcat ["cannot compile literal:", nest 2 $ prettyTCM x]
+  x -> indexError $ vcat ["cannot compile literal:", nest 2 $ prettyTCM x]

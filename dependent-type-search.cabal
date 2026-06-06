@@ -29,7 +29,6 @@ library
   exposed-modules:
       Data.ImmatureStream
       Data.Set.NonEmpty.Extra
-      TypeSearch.AgdaUtils
       TypeSearch.Cli
       TypeSearch.Core.Evaluation
       TypeSearch.Core.Isomorphism
@@ -38,15 +37,18 @@ library
       TypeSearch.Database.Backend
       TypeSearch.Database.Backend.PostgreSQL
       TypeSearch.Database.Feature
-      TypeSearch.Database.Index
       TypeSearch.Database.Parser
       TypeSearch.Database.Query
       TypeSearch.Database.Search
+      TypeSearch.Index
+      TypeSearch.Index.Translate
+      TypeSearch.Index.Translate.Definition
+      TypeSearch.Index.Translate.Name
+      TypeSearch.Index.Translate.Scope
+      TypeSearch.Index.Translate.Term
+      TypeSearch.Index.Translate.TransparentDef
+      TypeSearch.Index.Utils
       TypeSearch.Prelude
-      TypeSearch.Translate.Monad
-      TypeSearch.Translate.Name
-      TypeSearch.Translate.Term
-      TypeSearch.Translate.TransparentDef
       TypeSearch.Unification
   other-modules:
       Paths_dependent_type_search

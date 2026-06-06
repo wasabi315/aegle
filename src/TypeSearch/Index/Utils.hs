@@ -1,11 +1,12 @@
-module TypeSearch.AgdaUtils
-  ( module TypeSearch.AgdaUtils,
+module TypeSearch.Index.Utils
+  ( module TypeSearch.Index.Utils,
   )
 where
 
 import Agda.Compiler.Backend hiding (Args, initEnv)
 import Agda.Interaction.BasicOps
 import Agda.Syntax.Common
+import Agda.Syntax.Common.Pretty
 import Agda.Syntax.Internal hiding (arity, termSize)
 import Agda.Syntax.Position
 import Agda.Syntax.Scope.Base
@@ -19,6 +20,9 @@ import Data.Text qualified as T
 import TypeSearch.Prelude
 
 --------------------------------------------------------------------------------
+
+indexError :: (HasCallStack, MonadTCError m) => m Doc -> m a
+indexError msg = typeError . CustomBackendError "translation" =<< msg
 
 setCurrentRangeQ :: (MonadTrace m) => QName -> m a -> m a
 setCurrentRangeQ = setCurrentRange . nameBindingSite . qnameName

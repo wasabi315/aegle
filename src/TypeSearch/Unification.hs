@@ -336,18 +336,6 @@ expandTopAmb mctx tenv x sp =
         v = vAppSpine t sp
   ]
 
-unifyAmb :: MetaCtx -> TopEnv -> Level -> QName -> Spine -> PQName -> Spine -> [MetaCtx]
-unifyAmb mctx tenv l x sp x' sp' =
-  asum
-    $ ( do
-          guard $ x `S1.member` lookupResol mctx x'
-          unifySpine (resolve mctx x' x) tenv l sp sp'
-      )
-    : [ unify (resolve mctx x' x'') tenv l (VTop x sp) (vAppSpine t sp')
-      | x'' <- toList $ lookupResol mctx x',
-        Just t <- pure $ ML.lookup x'' tenv
-      ]
-
 unifySpine :: MetaCtx -> TopEnv -> Level -> Spine -> Spine -> [MetaCtx]
 unifySpine mctx tenv l = \cases
   SNil SNil -> pure mctx

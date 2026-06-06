@@ -1,6 +1,6 @@
 {-# OPTIONS_GHC -Wno-incomplete-uni-patterns #-}
 
-module TypeSearch.Translate.TransparentDef
+module TypeSearch.Index.Translate.TransparentDef
   ( translateTransparentDefBody,
   )
 where
@@ -14,11 +14,11 @@ import Agda.TypeChecking.Substitute as Agda
 import Agda.TypeChecking.Telescope
 import Agda.Utils.Impossible (__IMPOSSIBLE__)
 import Agda.Utils.Monad
-import TypeSearch.AgdaUtils
 import TypeSearch.Core.Term qualified as TS
+import TypeSearch.Index.Translate
+import TypeSearch.Index.Translate.Term
+import TypeSearch.Index.Utils
 import TypeSearch.Prelude
-import TypeSearch.Translate.Monad
-import TypeSearch.Translate.Term
 
 --------------------------------------------------------------------------------
 -- Translate transparent definitions
@@ -45,7 +45,7 @@ translateTransparentDefBody def = do
   let Function {..} = def.theDef
 
   -- validation
-  let bad x = translateError $ vcat [prettyTCM def.defName, x]
+  let bad x = indexError $ vsep [prettyTCM def.defName, x]
   whenM (hasLocalDefs def) do
     void $ bad "Not supported: transparentDef with where clause"
   whenM (isProjectionLike def) do
@@ -71,4 +71,4 @@ translatePatternArgs = \cases
         addContextAndRenaming ctxElt
           $ TS.Lam (fromString varName)
           <$> translatePatternArgs (absBody cod) ps k
-  _ _ _ -> translateError "Not supported: transparent definition by pattern-matching"
+  _ _ _ -> indexError "Not supported: transparent definition by pattern-matching"

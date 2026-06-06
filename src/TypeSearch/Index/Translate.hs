@@ -1,7 +1,7 @@
-module TypeSearch.Translate.Monad
+module TypeSearch.Index.Translate
   ( Transl,
+    Config (..),
     runTransl,
-    translateError,
     addContextAndRenaming,
     translateDBVar,
     isTransparentDef,
@@ -14,7 +14,6 @@ import Agda.Compiler.Backend hiding (Args, initEnv)
 import Agda.Syntax.Common
 import Agda.Syntax.Internal hiding (arity, termSize)
 import Agda.TypeChecking.Level
-import Agda.TypeChecking.Pretty
 import Agda.TypeChecking.Reduce
 import Agda.TypeChecking.Substitute as Agda
 import Agda.TypeChecking.Telescope
@@ -28,10 +27,10 @@ import TypeSearch.Prelude
 --------------------------------------------------------------------------------
 -- Monad for translation
 
-type Transl = ReaderT TransEnv TCM
+type Transl = ReaderT Env TCM
 
-data TransEnv = TransEnv
-  { -- | Context size after erasure
+data Env = Env
+  { -- | Context size after erasure. See 'isErasable' for what is erased.
     contextSizeAfterErasure :: Int,
     -- | De Bruijn level → De Bruijn level after erasure
     renaming :: IM.IntMap Int,
@@ -39,22 +38,22 @@ data TransEnv = TransEnv
     transparentDefNames :: S.Set QName
   }
 
-runTransl :: Transl a -> S.Set QName -> TCM a
-runTransl m = runReaderT m . initEnv
+newtype Config = Config
+  { -- | Set of transparent definitions (already resolved)
+    transparentDefNames :: S.Set QName
+  }
 
-initEnv :: S.Set QName -> TransEnv
-initEnv transparentDefNames =
-  TransEnv
-    { contextSizeAfterErasure = 0,
-      renaming = mempty,
-      transparentDefNames
-    }
+runTransl :: Config -> Transl a -> TCM a
+runTransl Config {..} m =
+  runReaderT m
+    $ Env
+      { contextSizeAfterErasure = 0,
+        renaming = mempty,
+        ..
+      }
 
 --------------------------------------------------------------------------------
 -- Transl interface
-
-translateError :: (HasCallStack) => Transl Doc -> Transl a
-translateError msg = typeError . CustomBackendError "translation" =<< msg
 
 -- | Extend both Agda's and our context and save the de Bruijn level association.
 addContextAndRenaming :: (AddContext (name, Dom Type)) => (name, Dom Type) -> Transl a -> Transl a

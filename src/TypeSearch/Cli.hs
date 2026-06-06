@@ -13,8 +13,8 @@ import System.Environment (getEnv, lookupEnv)
 import System.Exit
 import System.FilePath
 import TypeSearch.Database.Backend.PostgreSQL
-import TypeSearch.Database.Index qualified as Index
 import TypeSearch.Database.Search qualified as Search
+import TypeSearch.Index qualified as Index
 import TypeSearch.Prelude
 
 --------------------------------------------------------------------------------
