@@ -1,27 +1,23 @@
+{-# LANGUAGE ApplicativeDo #-}
+
 module TypeSearch.Cli (main) where
 
-import Control.Exception
-import Data.Aeson (eitherDecodeFileStrict)
 import Data.Maybe
 import Data.Text qualified as T
-import Hasql.Connection
-import Hasql.Connection.Setting
 import Hasql.Connection.Setting.Connection qualified as ConnSetting
 import Hasql.Connection.Setting.Connection.Param
 import Options.Applicative
 import System.Environment (getEnv, lookupEnv)
-import System.Exit
-import System.FilePath
-import TypeSearch.Database.Backend.PostgreSQL
-import TypeSearch.Database.Search qualified as Search
-import TypeSearch.Index qualified as Index
+import TypeSearch.Cli.Index qualified as Index
+import TypeSearch.Cli.Interactive qualified as Interactive
+import TypeSearch.Cli.Search qualified as Search
 import TypeSearch.Prelude
 
 --------------------------------------------------------------------------------
 -- Options
 
-getConnectInfo :: IO ConnSetting.Connection
-getConnectInfo = do
+getConnectSetting :: IO ConnSetting.Connection
+getConnectSetting = do
   host <- host . T.pack . fromMaybe "127.0.0.1" <$> lookupEnv "DATABASE_HOST"
   port <- port . maybe 5432 read <$> lookupEnv "DATABASE_PORT"
   user <- user . T.pack <$> getEnv "DATABASE_USER"
@@ -30,88 +26,47 @@ getConnectInfo = do
   pure $ ConnSetting.params [host, port, user, password, database]
 
 data Command
-  = Index IndexCommand
-  | Search SearchCommand
-  | InteractiveSearch InteractiveSearchCommand
+  = Index Index.Command
+  | Search Search.Command
+  | Interactive Interactive.Command
 
-data IndexCommand = IndexCommand
-  { libraryDir :: FilePath,
-    transparentDefsFile :: FilePath
-  }
+optIndexCommand :: Parser (ConnSetting.Connection -> Index.Command)
+optIndexCommand = do
+  libraryDir <- strArgument (metavar "LIBRARY_DIR")
+  transparentDefsFile <- strArgument (metavar "TRANSPARENT_DEFS_FILE")
+  pure \connSetting -> Index.Command {..}
 
-newtype SearchCommand = SearchCommand
-  { query :: T.Text
-  }
+optSearchCommand :: Parser (ConnSetting.Connection -> Search.Command)
+optSearchCommand = do
+  query <- strArgument (metavar "QUERY")
+  pure \connSetting -> Search.Command {..}
 
-data InteractiveSearchCommand = InteractiveSearchCommand
-
-optIndexCommand :: Parser IndexCommand
-optIndexCommand =
-  IndexCommand
-    <$> strArgument (metavar "LIBRARY_DIR")
-    <*> strArgument (metavar "TRANSPARENT_DEFS_FILE")
-
-optSearchCommand :: Parser SearchCommand
-optSearchCommand =
-  SearchCommand
-    <$> strArgument (metavar "TRANSPARENT_DEFS_FILE")
-
-optInteractiveSearchCommand :: Parser InteractiveSearchCommand
+optInteractiveSearchCommand :: Parser (ConnSetting.Connection -> Interactive.Command)
 optInteractiveSearchCommand =
-  pure InteractiveSearchCommand
+  pure Interactive.Command
 
 commandDesc :: String -> String -> Parser a -> Mod CommandFields a
 commandDesc cmd desc p = command cmd $ info p (progDesc desc)
 
-optCommand :: Parser Command
+optCommand :: Parser (ConnSetting.Connection -> Command)
 optCommand =
   hsubparser
     $ mconcat
       [ commandDesc "index" "Index an Agda Library" do
-          Index <$> optIndexCommand,
+          (Index .) <$> optIndexCommand,
         commandDesc "search" "Search within indexed library" do
-          Search <$> optSearchCommand,
+          (Search .) <$> optSearchCommand,
         commandDesc "interactive" "Interactive search shell" do
-          InteractiveSearch <$> optInteractiveSearchCommand
+          (Interactive .) <$> optInteractiveSearchCommand
       ]
+
+--------------------------------------------------------------------------------
 
 main :: IO ()
 main = do
   command <- execParser (info (optCommand <**> helper) fullDesc)
-  connInfo <- getConnectInfo
-  dispatchCommand command connInfo
-
---------------------------------------------------------------------------------
-
-orDie :: IO (Either String a) -> IO a
-orDie m = m >>= either die pure
-
-dispatchCommand :: Command -> ConnSetting.Connection -> IO ()
-dispatchCommand = \case
-  Index cmd -> index cmd
-  Search cmd -> search cmd
-  InteractiveSearch cmd -> interactive cmd
-
-withConnect :: ConnSetting.Connection -> (Connection -> IO r) -> IO r
-withConnect connInfo =
-  bracket (orDie $ first show <$> acquire [connection connInfo]) release
-
-index :: IndexCommand -> ConnSetting.Connection -> IO ()
-index IndexCommand {..} connInfo = do
-  transparentDefNames <- orDie $ eitherDecodeFileStrict transparentDefsFile
-  withConnect connInfo \conn -> do
-    migrate conn
-    let dbBuilder = newDbBuilder conn
-    Index.indexLibrary Index.Config {..} dbBuilder
-
-search :: SearchCommand -> ConnSetting.Connection -> IO ()
-search SearchCommand {..} connInfo = do
-  withConnect connInfo \conn -> do
-    let dbReader = newDbReader conn
-    Search.search dbReader query
-
-interactive :: InteractiveSearchCommand -> ConnSetting.Connection -> IO ()
-interactive InteractiveSearchCommand connInfo = do
-  withConnect connInfo \conn -> do
-    let dbReader = newDbReader conn
-    Search.interactive dbReader
+  connSetting <- getConnectSetting
+  case command connSetting of
+    Index cmd -> Index.index cmd
+    Search cmd -> Search.search cmd
+    Interactive cmd -> Interactive.interactive cmd

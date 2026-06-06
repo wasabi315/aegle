@@ -14,8 +14,8 @@ where
 import Control.Foldl qualified as Foldl
 import TypeSearch.Core.Name
 import TypeSearch.Core.Term
-import TypeSearch.Database.Feature
 import TypeSearch.Prelude
+import TypeSearch.Search.Feature
 
 --------------------------------------------------------------------------------
 -- Build operation

@@ -30,16 +30,15 @@ library
       Data.ImmatureStream
       Data.Set.NonEmpty.Extra
       TypeSearch.Cli
+      TypeSearch.Cli.Index
+      TypeSearch.Cli.Interactive
+      TypeSearch.Cli.Search
       TypeSearch.Core.Evaluation
       TypeSearch.Core.Isomorphism
       TypeSearch.Core.Name
       TypeSearch.Core.Term
       TypeSearch.Database.Backend
       TypeSearch.Database.Backend.PostgreSQL
-      TypeSearch.Database.Feature
-      TypeSearch.Database.Parser
-      TypeSearch.Database.Query
-      TypeSearch.Database.Search
       TypeSearch.Index
       TypeSearch.Index.Translate
       TypeSearch.Index.Translate.Definition
@@ -49,7 +48,11 @@ library
       TypeSearch.Index.Translate.TransparentDef
       TypeSearch.Index.Utils
       TypeSearch.Prelude
-      TypeSearch.Unification
+      TypeSearch.Search
+      TypeSearch.Search.Feature
+      TypeSearch.Search.Parser
+      TypeSearch.Search.Query
+      TypeSearch.Search.Unification
   other-modules:
       Paths_dependent_type_search
   autogen-modules:

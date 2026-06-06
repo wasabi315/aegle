@@ -1,4 +1,4 @@
-module TypeSearch.Unification where
+module TypeSearch.Search.Unification where
 
 import Data.ImmatureStream qualified as IStr
 import Data.IntMap.Strict qualified as IM
@@ -302,23 +302,23 @@ unify mctx tenv l t t' = case (force mctx tenv t, force mctx tenv t') of
   (VTop x sp, VTop x' sp')
     | x == x' -> unifySpine mctx tenv l sp sp'
   (VTop x sp, VTopAmb x' sp') ->
-    asum
-      $ ( do
-            guard $ x `S1.member` lookupResol mctx x'
-            unifySpine (resolve mctx x' x) tenv l sp sp'
-        )
-      : [ unify mctx' tenv l (VTop x sp) t
-        | (mctx', t) <- expandTopAmb mctx tenv x' sp'
-        ]
+    asum $
+      ( do
+          guard $ x `S1.member` lookupResol mctx x'
+          unifySpine (resolve mctx x' x) tenv l sp sp'
+      )
+        : [ unify mctx' tenv l (VTop x sp) t
+          | (mctx', t) <- expandTopAmb mctx tenv x' sp'
+          ]
   (VTopAmb x sp, VTop x' sp') ->
-    asum
-      $ ( do
-            guard $ x' `S1.member` lookupResol mctx x
-            unifySpine (resolve mctx x x') tenv l sp sp'
-        )
-      : [ unify mctx' tenv l t (VTop x' sp')
-        | (mctx', t) <- expandTopAmb mctx tenv x sp
-        ]
+    asum $
+      ( do
+          guard $ x' `S1.member` lookupResol mctx x
+          unifySpine (resolve mctx x x') tenv l sp sp'
+      )
+        : [ unify mctx' tenv l t (VTop x' sp')
+          | (mctx', t) <- expandTopAmb mctx tenv x sp
+          ]
   (VTopAmb x sp, VTopAmb x' sp')
     | x == x' -> unifySpine mctx tenv l sp sp'
   (VFlex m sp, VFlex m' sp')

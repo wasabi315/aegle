@@ -1,4 +1,4 @@
-module TypeSearch.Database.Feature where
+module TypeSearch.Search.Feature where
 
 import TypeSearch.Core.Name
 import TypeSearch.Core.Term

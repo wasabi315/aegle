@@ -32,8 +32,8 @@ import System.FilePath
 import TypeSearch.Core.Name
 import TypeSearch.Core.Term
 import TypeSearch.Database.Backend hiding (loadByAnyFeature, resolveNames)
-import TypeSearch.Database.Feature
 import TypeSearch.Prelude
+import TypeSearch.Search.Feature
 
 --------------------------------------------------------------------------------
 -- Migration
@@ -316,23 +316,23 @@ loadByAnyFeatureNE conn compats = orThrow $ flip run conn do
     featuresSnippet = orS . fmap featureSnippet
 
     featureSnippet AllFeatureCompat {..} =
-      andS $
-        aritySnippet arity
-          NE.:| catMaybes
-            [ polymorphicSnippet polymorphic,
-              resultHeadSnippet resultHead
-            ]
+      andS
+        $ aritySnippet arity
+        NE.:| catMaybes
+          [ polymorphicSnippet polymorphic,
+            resultHeadSnippet resultHead
+          ]
 
     polymorphicSnippet = \case
       AnyPoly -> Nothing
       IsPoly ->
-        Just $
-          "polymorphic = "
-            <> parS
-              ( do
-                  Snippet.encoderAndParam nonNullPolymorphicEnc Polymorphic
-                    <> " :: polymorphic"
-              )
+        Just
+          $ "polymorphic = "
+          <> parS
+            ( do
+                Snippet.encoderAndParam nonNullPolymorphicEnc Polymorphic
+                  <> " :: polymorphic"
+            )
 
     aritySnippet = \case
       HasVar -> "arity_has_var"
@@ -352,9 +352,9 @@ loadByAnyFeatureNE conn compats = orThrow $ flip run conn do
       IsVarOrTop n -> Just $ orS [isVar, isTop n]
       where
         enc rh =
-          parS $
-            Snippet.encoderAndParam nonNullResultHeadTagEnc rh
-              <> " :: result_head"
+          parS
+            $ Snippet.encoderAndParam nonNullResultHeadTagEnc rh
+            <> " :: result_head"
 
         var = enc RHVar
         isVar = "result_head = " <> var
@@ -367,19 +367,19 @@ loadByAnyFeatureNE conn compats = orThrow $ flip run conn do
 
     topSnippet = \case
       Qual m x ->
-        parS $
-          """
-          SELECT canonical_name FROM exports_qual
-          WHERE export_as_qual =
-          """
-            <> Snippet.encoderAndParam nonNullQNameEnc (QName m x)
+        parS
+          $ """
+            SELECT canonical_name FROM exports_qual
+            WHERE export_as_qual =
+            """
+          <> Snippet.encoderAndParam nonNullQNameEnc (QName m x)
       Unqual x ->
-        parS $
-          """
-          SELECT canonical_name FROM exports_unqual
-          WHERE export_as_unqual =
-          """
-            <> Snippet.param @T.Text (coerce x)
+        parS
+          $ """
+            SELECT canonical_name FROM exports_unqual
+            WHERE export_as_unqual =
+            """
+          <> Snippet.param @T.Text (coerce x)
 
     decoder = Decoders.rowList do
       canonicalName <- Decoders.column nonNullQNameDec

@@ -1,4 +1,4 @@
-module TypeSearch.Database.Query
+module TypeSearch.Search.Query
   ( Term (..),
     Type,
     teleView,

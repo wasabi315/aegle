@@ -12,13 +12,13 @@ import TypeSearch.Core.Isomorphism qualified as TS
 import TypeSearch.Core.Name qualified as TS
 import TypeSearch.Core.Term qualified as TS
 import TypeSearch.Database.Backend qualified as TS
-import TypeSearch.Database.Feature qualified as TS
 import TypeSearch.Index.Translate
 import TypeSearch.Index.Translate.Name
 import TypeSearch.Index.Translate.Term
 import TypeSearch.Index.Translate.TransparentDef
 import TypeSearch.Index.Utils
 import TypeSearch.Prelude
+import TypeSearch.Search.Feature qualified as TS
 
 --------------------------------------------------------------------------------
 
