@@ -16,6 +16,11 @@ body {
   line-height: 1.5;
 }
 
+h1 a {
+  color: inherit;
+  text-decoration: none;
+}
+
 form {
   display: flex;
   gap: 0.5rem;
@@ -48,7 +53,16 @@ ul {
 }
 
 li {
-  margin: 1rem 0;
+  margin: 1.5rem 0;
+}
+
+.intro {
+  margin-bottom: 1rem;
+  font-size: 1.5em;
+}
+
+.example-query {
+  display: inline-block;
 }
 
 code,
@@ -59,6 +73,10 @@ pre {
 
 .match-details {
   margin-left: 1.75rem;
+}
+
+.match-heading {
+  font-size: 1.1em;
 }
 
 .detail-row {

@@ -40,7 +40,7 @@ search Command {..} =
 
 searchWith :: DbReader IO -> T.Text -> IO ()
 searchWith dbReader query = do
-  result <- Search.search dbReader query
+  result <- Search.search dbReader "<interactive>" query
   either putError putResult result
 
 putResult :: Result -> IO ()

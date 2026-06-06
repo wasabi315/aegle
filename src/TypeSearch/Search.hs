@@ -56,11 +56,11 @@ instance Exception Error where
 
 --------------------------------------------------------------------------------
 
-search :: DbReader IO -> T.Text -> IO (Either Error Result)
-search dbReader typ = runExceptT do
+search :: DbReader IO -> FilePath -> T.Text -> IO (Either Error Result)
+search dbReader src query = runExceptT do
   ((numCands, matches), time) <- timed do
     -- 1. parse query type
-    typ <- parseQuery "interactive" typ ??% ParseError
+    typ <- parseQuery src query ??% ParseError
 
     -- 2. resolve free variables and obtain resolution table + top env
     let names = Q.freeVars typ

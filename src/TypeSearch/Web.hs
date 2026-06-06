@@ -1,5 +1,3 @@
-{-# OPTIONS_GHC -Wno-unused-do-bind #-}
-
 module TypeSearch.Web
   ( runServer,
     Config (..),
@@ -9,6 +7,7 @@ where
 import Data.Text qualified as T
 import Data.Time.Clock
 import Lucid hiding (for_)
+import Lucid.Servant
 import Network.Wai.Handler.Warp qualified as Warp
 import Paths_dependent_type_search
 import Prettyprinter
@@ -87,18 +86,18 @@ search :: DbReader IO -> Server SearchAPI
 search dbReader = \case
   Nothing -> pure Result {numCands = 0, time = 0, matches = []}
   Just query -> do
-    result <- liftIO $ Search.search dbReader query
+    result <- liftIO $ Search.search dbReader "<query param>" query
     case result of
       Right result -> pure $! convert result
-      Left (Search.ParseError e) ->
+      Left e@Search.ParseError {} ->
         throwError
           err400
             { errBody = fromString $ displayException e
             }
-      Left (Search.NotFound n) ->
+      Left e@Search.NotFound {} ->
         throwError
           err404
-            { errBody = "not found: " <> fromString (show $ pretty n)
+            { errBody = fromString $ displayException e
             }
   where
     convert Search.Result {..} =
@@ -119,63 +118,88 @@ search dbReader = \case
 
 webUI :: DbReader IO -> Server WebUI
 webUI dbReader query = do
-  result <- traverse (liftIO . Search.search dbReader) query
+  result <- for query $ liftIO . Search.search dbReader "<query param>"
 
-  pure $ doctypehtml_ do
-    head_ do
-      title_ "Dependent type search"
-      link_ [rel_ "stylesheet", href_ "/static/style.css"]
+  pure $ layoutHtml do
+    h1_ do
+      a_ [link Nothing] "Dependent type search"
 
-    body_ do
-      h1_ "Dependent type search"
+    form_ [method_ "get", action_ "/"] do
+      input_
+        [ type_ "search",
+          name_ "q",
+          placeholder_ "Query type",
+          value_ $ fromMaybe "" query,
+          autofocus_
+        ]
+      button_ [type_ "submit"] "Search"
 
-      form_ [method_ "get", action_ "/"] do
-        input_
-          [ type_ "search",
-            name_ "type",
-            placeholder_ "Query type",
-            value_ $ fromMaybe "" query,
-            autofocus_
-          ]
-        button_ [type_ "submit"] "Search"
-
-      case result of
-        Nothing ->
-          pure ()
-        Just (Right result) -> resultHtml result
-        Just (Left e) ->
-          p_ [class_ "error"] $ toHtml $ displayException e
+    case result of
+      Nothing -> introHtml
+      Just (Right result) -> resultHtml result
+      Just (Left e) ->
+        pre_ $ code_ [class_ "error"] $ toHtml $ displayException e
   where
+    link = safeAbsHref_ api (Proxy @WebUI)
+
+    introHtml :: Html ()
+    introHtml = do
+      p_ [class_ "intro"] "Type-based library search for Agda"
+      section_ do
+        h2_ "Example queries"
+        ul_ do
+          li_ $ exampleHtml "Search by type" "Bool"
+          li_ $ exampleHtml "Isomorphism and instantiation" "(A B : U) → B → (B × A → B) → List A → B"
+          li_ $ exampleHtml "Type alias expansion" "id U Nat"
+      where
+        exampleHtml label query = do
+          toHtml @T.Text label
+          ": "
+          a_ [link (Just query)] do
+            code_ [class_ "example-query"] do
+              toHtml @T.Text query
+
+    resultHtml :: Search.Result -> Html ()
     resultHtml Search.Result {..} = do
       let numMatches = length matches
           sorted = sortOn (termSize . (.solution)) matches
+
       p_ [class_ "meta"] do
         toHtml $ T.show numMatches
         " item(s) matched in "
         toHtml $ T.show numCands
-        " candidate(s)"
-      p_ [class_ "meta"] $ toHtml do
-        "Took "
+        " candidate(s). Took "
         toHtml $ T.show time
+        "."
       case matches of
         [] -> p_ "No matches."
-        _ -> ul_ do
-          for_ sorted \Search.Match {item = LibraryItem {..}, ..} -> do
-            li_ do
-              strong_ $ toHtml $ T.show $ pretty canonicalName
-              span_ " : "
-              code_ $ toHtml $ T.show $ pretty $ Unqualified signature
-              div_ [class_ "match-details"] do
-                case reexportedAs of
-                  [] -> pure ()
-                  _ -> p_ [class_ "detail-row"] do
-                    strong_ "Re-exported as: "
-                    toHtml $ T.intercalate ", " $ fmap (T.show . pretty) reexportedAs
-                details_ do
-                  summary_ "Isomorphism and solution"
-                  p_ [class_ "detail-row"] do
-                    strong_ "Isomorphism: "
-                    code_ $ toHtml $ T.show $ pretty iso
-                  p_ [class_ "detail-row"] do
-                    strong_ "Solution: "
-                    code_ $ toHtml $ T.show $ pretty $ Unqualified solution
+        _ -> ul_ $ for_ sorted \Search.Match {item = LibraryItem {..}, ..} -> li_ do
+          code_ [class_ "match-heading"] do
+            strong_ $ prettyHtml canonicalName
+            " : "
+            prettyHtml $ Unqualified signature
+          div_ [class_ "match-details"] do
+            case reexportedAs of
+              [] -> pure ()
+              _ -> p_ [class_ "detail-row"] do
+                strong_ "Re-exported as: "
+                sequence_ $ intersperse ", " do
+                  code_ . prettyHtml <$> reexportedAs
+            details_ do
+              summary_ "Isomorphism and solution"
+              p_ [class_ "detail-row"] do
+                strong_ "Isomorphism: "
+                code_ $ prettyHtml iso
+              p_ [class_ "detail-row"] do
+                strong_ "Solution: "
+                code_ $ prettyHtml $ Unqualified solution
+
+layoutHtml :: Html () -> Html ()
+layoutHtml content = doctypehtml_ do
+  head_ do
+    title_ "Dependent type search"
+    link_ [rel_ "stylesheet", type_ "text/css", href_ "/static/style.css"]
+  body_ content
+
+prettyHtml :: (Pretty a, Monad m) => a -> HtmlT m ()
+prettyHtml = toHtml . T.show . pretty
