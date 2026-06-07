@@ -3,3 +3,6 @@
 generated
 .env
 .history
+data/pg1
+.envrc
+.direnv
