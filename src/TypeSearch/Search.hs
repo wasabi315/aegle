@@ -22,9 +22,9 @@ import TypeSearch.Core.Term
 import TypeSearch.Database.Backend
 import TypeSearch.Prelude
 import TypeSearch.Search.Feature
+import TypeSearch.Search.Match
 import TypeSearch.Search.Parser
 import TypeSearch.Search.Query qualified as Q
-import TypeSearch.Search.Unification
 
 --------------------------------------------------------------------------------
 -- Types
@@ -103,6 +103,5 @@ match tenv resol query items =
 
 match' :: TopEnv -> M.Map PQName (S1.NESet QName) -> Term -> LibraryItem -> IStr.Stream Match
 match' tenv resol query item@LibraryItem {..} = do
-  let mctx = emptyMetaCtx resol
-  (iso, solution) <- check canonicalName (initCtx tenv) resol (eval mctx tenv [] query) (eval mctx tenv [] signature)
+  (iso, solution) <- check0 tenv resol query canonicalName signature
   pure Match {..}
