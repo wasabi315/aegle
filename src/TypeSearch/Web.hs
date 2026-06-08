@@ -13,6 +13,7 @@ import Paths_dependent_type_search
 import Prettyprinter
 import Servant
 import Servant.HTML.Lucid
+import TypeSearch.Core.Isomorphism
 import TypeSearch.Core.Name
 import TypeSearch.Core.Term
 import TypeSearch.Database.Backend
@@ -151,11 +152,11 @@ webUI dbReader query = do
           li_ do
             exampleHtml
               "Search by type"
-              "(m n : Nat) -> _≡_ Nat (_*_ m n) 1 -> _≡_ Nat m 1"
+              "(m n : Nat) → _≡_ Nat (_*_ m n) 1 → _≡_ Nat m 1"
           li_ do
             exampleHtml
               "Isomorphism and instantiation"
-              "(A B : U) → B → (B × A → B) → List A → B"
+              "(A B : U) → (A → B) → A → B"
           li_ do
             exampleHtml
               "Type alias expansion"
@@ -194,14 +195,20 @@ webUI dbReader query = do
                 strong_ "Re-exported as: "
                 sequence_ $ intersperse ", " do
                   code_ . prettyHtml <$> reexportedAs
-            details_ do
-              summary_ "Isomorphism and solution"
-              p_ [class_ "detail-row"] do
-                strong_ "Isomorphism: "
-                code_ $ prettyHtml iso
-              p_ [class_ "detail-row"] do
-                strong_ "Solution: "
-                code_ $ prettyHtml $ Unqualified solution
+            case (iso, solution) of
+              (Refl, Top {}) -> pure ()
+              (Refl, _) -> details_ do
+                summary_ "Solution"
+                p_ [class_ "detail-row"] do
+                  code_ $ prettyHtml $ Unqualified solution
+              _ -> details_ do
+                summary_ "Isomorphism and solution"
+                p_ [class_ "detail-row"] do
+                  strong_ "Isomorphism: "
+                  code_ $ prettyHtml iso
+                p_ [class_ "detail-row"] do
+                  strong_ "Solution: "
+                  code_ $ prettyHtml $ Unqualified solution
 
 layoutHtml :: Html () -> Html ()
 layoutHtml content = doctypehtml_ do
