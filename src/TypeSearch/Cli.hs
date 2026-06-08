@@ -34,95 +34,52 @@ instance HasParser Command where
       ]
     where
       index = command "index" "Index an Agda library" do
-        connSetting <- connectSetting
-        libraryDir <-
-          setting
-            [ argument,
-              reader str,
-              metavar "LIBRARY_DIR",
-              help "Agda library directory to index"
-            ]
-        transparentDefsFile <-
-          setting
-            [ argument,
-              reader str,
-              metavar "TRANSPARENT_DEFS_FILE",
-              help "JSON file listing definitions to unfold"
-            ]
+        connSetting <- connectionSetting
+        libraryDir <- argSetting "LIBRARY_DIR" "Agda library directory to index" str
+        transparentDefsFile <- argSetting "TRANSPARENT_DEFS_FILE" "JSON file listing definitions to unfold" str
         pure $ Index Index.Command {..}
 
       search = command "search" "Search within indexed library" do
-        connSetting <- connectSetting
-        query <-
-          setting
-            [ argument,
-              reader str,
-              metavar "QUERY",
-              help "Type expression to search for"
-            ]
+        connSetting <- connectionSetting
+        query <- argSetting "QUERY" "Type expression to search for" str
         pure $ Search Search.Command {..}
 
       interactive = command "interactive" "Interactive search shell" do
-        connSetting <- connectSetting
+        connSetting <- connectionSetting
         pure $ Interactive Interactive.Command {..}
 
       serve = command "serve" "Run web server" do
         poolConfig <- poolConfig
-        port <-
-          setting
-            [ env "PORT",
-              metavar "PORT",
-              reader auto,
-              help "HTTP port to listen on"
-            ]
+        port <- envSetting "PORT" "HTTP port to listen on" auto
         pure $ Serve Serve.Command {..}
 
-      connectSetting = do
-        host <-
-          (host . T.pack)
-            <$> setting
-              [ env "DATABASE_HOST",
-                metavar "DATABASE_HOST",
-                reader str,
-                help "PostgreSQL host"
-              ]
-        port <-
-          port
-            <$> setting
-              [ env "DATABASE_PORT",
-                metavar "DATABASE_PORT",
-                reader auto,
-                help "PostgreSQL port"
-              ]
-        user <-
-          (user . T.pack)
-            <$> setting
-              [ env "DATABASE_USER",
-                metavar "DATABASE_USER",
-                reader str,
-                help "PostgreSQL user"
-              ]
-        password <-
-          (password . T.pack)
-            <$> setting
-              [ env "DATABASE_PASSWORD",
-                metavar "DATABASE_PASSWORD",
-                reader str,
-                help "PostgreSQL password"
-              ]
-        database <-
-          (dbname . T.pack)
-            <$> setting
-              [ env "DATABASE_NAME",
-                metavar "DATABASE_NAME",
-                reader str,
-                help "PostgreSQL database name"
-              ]
-        pure $ connection $ ConnSetting.params [host, port, user, password, database]
+      connectionSetting =
+        asum
+          [ envSetting "DATABASE_URL" "PostgreSQL connection URI" do
+              connection . ConnSetting.string . T.pack <$> str,
+            do
+              host <- envSetting "DATABASE_HOST" "PostgreSQL host" do
+                host . T.pack <$> str
+              port <- envSetting "DATABASE_PORT" "PostgreSQL port" do
+                port <$> auto
+              user <- envSetting "DATABASE_USER" "PostgreSQL user" do
+                user . T.pack <$> str
+              password <- envSetting "DATABASE_PASSWORD" "PostgreSQL password" do
+                password . T.pack <$> str
+              database <- envSetting "DATABASE_NAME" "PostgreSQL database name" do
+                dbname . T.pack <$> str
+              pure $ connection $ ConnSetting.params [host, port, user, password, database]
+          ]
 
       poolConfig = do
-        connSetting <- connectSetting
+        connSetting <- connectionSetting
         pure $ Pool.settings [Pool.staticConnectionSettings [connSetting]]
+
+      argSetting var helpText readf =
+        setting [argument, reader readf, metavar var, help helpText]
+
+      envSetting var helpText readf =
+        setting [env var, metavar var, reader readf, help helpText]
 
 --------------------------------------------------------------------------------
 
