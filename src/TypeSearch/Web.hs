@@ -148,9 +148,18 @@ webUI dbReader query = do
       section_ do
         h2_ "Example queries"
         ul_ do
-          li_ $ exampleHtml "Search by type" "Bool"
-          li_ $ exampleHtml "Isomorphism and instantiation" "(A B : U) → B → (B × A → B) → List A → B"
-          li_ $ exampleHtml "Type alias expansion" "id U Nat"
+          li_ do
+            exampleHtml
+              "Search by type"
+              "(m n : Nat) -> _≡_ Nat (_*_ m n) 1 -> _≡_ Nat m 1"
+          li_ do
+            exampleHtml
+              "Isomorphism and instantiation"
+              "(A B : U) → B → (B × A → B) → List A → B"
+          li_ do
+            exampleHtml
+              "Type alias expansion"
+              "Commutative Nat (_≡_ Nat) _+_"
       where
         exampleHtml label query = do
           toHtml @T.Text label

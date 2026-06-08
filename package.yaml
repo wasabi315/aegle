@@ -129,21 +129,38 @@ ghc-options:
   - -Wno-name-shadowing
   - -O2
   - -funbox-strict-fields
+  - -threaded
 
 flags:
   debug:
     description: turn on debug traces
     default: false
     manual: true
+  dump:
+    description: dump core
+    default: false
+    manual: true
+  llvm:
+    description: use llvm for codegen
+    default: false
+    manual: true
+
+when:
+  - condition: flag(debug)
+    cpp-options:
+      - -DDEBUG
+  - condition: flag(dump)
+    ghc-options:
+      - -ddump-simpl
+      - -dsuppress-all
+      - -dno-suppress-type-signatures
+      - -ddump-to-file
+  - condition: flag(llvm)
+    ghc-options:
+      - -fllvm
 
 library:
   source-dirs: src
-  ghc-options:
-    - -threaded
-  when:
-    - condition: flag(debug)
-      cpp-options:
-        - -DDEBUG
 
 executables:
   dependent-type-search:
@@ -156,8 +173,6 @@ executables:
         then:
           ghc-options:
             - -threaded
-          cpp-options:
-            - -DDEBUG
         else:
           ghc-options:
             - -threaded

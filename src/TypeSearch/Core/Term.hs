@@ -166,15 +166,21 @@ termSize = \case
 -- Prettyprinting
 
 instance Pretty Term where
-  pretty = pretty' True
+  pretty = pretty' True []
 
 newtype Unqualified = Unqualified Term
 
 instance Pretty Unqualified where
-  pretty = pretty' False . coerce
+  pretty = pretty' False [] . coerce
 
-pretty' :: Bool -> Term -> Doc ann
-pretty' qual = goPair []
+instance Pretty ([Name] ⊢ Term) where
+  pretty (ns :⊢ t) = pretty' True ns t
+
+instance Pretty ([Name] ⊢ Unqualified) where
+  pretty (ns :⊢ t) = pretty' False ns (coerce t)
+
+pretty' :: Bool -> [Name] -> Term -> Doc ann
+pretty' qual = goPair
   where
     goPair ns = \case
       Pair t u -> goLam ns t <+> comma <+> goPair ns u

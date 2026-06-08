@@ -270,6 +270,12 @@ unify mctx tenv l t t' = case (force mctx tenv t, force mctx tenv t') of
     | x == x' -> unifySpine mctx tenv l sp sp'
   (VTopAmb x sp, VTopAmb x' sp')
     | x == x' -> unifySpine mctx tenv l sp sp'
+  (VFlex m sp, VFlex m' sp')
+    | m == m' -> unifySpine mctx tenv l sp sp'
+  -- Currently, we try to solve flex/rigid even the rigid one is TopAmb
+  -- TODO: is this really okay?
+  (VFlex m sp, t') -> maybeToList $ solve mctx tenv l m sp t'
+  (t, VFlex m' sp') -> maybeToList $ solve mctx tenv l m' sp' t
   (VTopAmb x sp, t') ->
     asum
       [ case t' of
@@ -292,10 +298,6 @@ unify mctx tenv l t t' = case (force mctx tenv t, force mctx tenv t') of
           (mctx, t') <- expandTopAmb mctx tenv x' sp'
           unify mctx tenv l t t'
       ]
-  (VFlex m sp, VFlex m' sp')
-    | m == m' -> unifySpine mctx tenv l sp sp'
-  (VFlex m sp, t') -> maybeToList $ solve mctx tenv l m sp t'
-  (t, VFlex m' sp') -> maybeToList $ solve mctx tenv l m' sp' t
   _ -> []
 
 expandTopAmb :: MetaCtx -> TopEnv -> PQName -> Spine -> [(MetaCtx, Value)]

@@ -280,3 +280,6 @@ instance Pretty (TopEnv ⊢ MetaCtx) where
 
 instance Pretty ((TopEnv, MetaCtx, Level) ⊢ Value) where
   pretty ((tenv, mctx, lvl) :⊢ v) = pretty $ quote mctx tenv lvl v
+
+instance Pretty ((TopEnv, MetaCtx, [Name]) ⊢ Value) where
+  pretty ((tenv, mctx, ns) :⊢ v) = pretty (ns :⊢ quote mctx tenv (coerce $ length ns) v)
