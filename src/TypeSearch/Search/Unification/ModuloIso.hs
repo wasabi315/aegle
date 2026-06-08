@@ -1,5 +1,6 @@
 module TypeSearch.Search.Unification.ModuloIso where
 
+import Prettyprinter
 import TypeSearch.Core.Evaluation
 import TypeSearch.Core.Isomorphism
 import TypeSearch.Core.Name
@@ -134,6 +135,7 @@ unifyIso0 mctx tenv t t' = do
   pure (j, mctx)
 
 unifyIso :: MetaCtx -> TopEnv -> Level -> Value -> Value -> [(Iso, Iso, MetaCtx)]
+unifyIso mctx tenv lvl t u | traceUnifyIso mctx tenv lvl t u = undefined
 unifyIso mctx tenv lvl t u = case (force mctx tenv t, force mctx tenv u) of
   (VBrave {}, _) -> []
   (_, VBrave {}) -> []
@@ -168,3 +170,19 @@ unifySigma mctx tenv lvl sig sig' = do
     let j = i <> sigmaCongL ia <> sigmaCongR ib
         j' = i' <> sigmaCongL ia' <> sigmaCongR ib'
     pure (j, j', mctx)
+
+--------------------------------------------------------------------------------
+
+traceUnifyIso :: MetaCtx -> TopEnv -> Level -> Value -> Value -> Bool
+traceUnifyIso mctx tenv l v v' = traceFalse $ show do
+  vsep
+    [ "unifyIso",
+      indent 4
+        $ vsep
+          [ "tenv" <+> colon <+> align (pretty tenv),
+            "mctx" <+> colon <+> align (pretty (tenv :⊢ mctx)),
+            "ctx size" <+> colon <+> pretty l,
+            "lhs" <+> colon <+> pretty ((tenv, mctx, l) :⊢ v),
+            "rhs" <+> colon <+> pretty ((tenv, mctx, l) :⊢ v')
+          ]
+    ]

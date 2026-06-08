@@ -62,6 +62,9 @@ module TypeSearch.Prelude
     (??:),
     (??%),
     orThrow,
+    trace,
+    traceFalse,
+    type (⊢) (..),
   )
 where
 
@@ -105,6 +108,10 @@ import GHC.Stack
 import Named
 import Witherable
 import Prelude hiding (curry, filter, foldl1, foldr1, head, last, maximum, minimum, unzip)
+
+#ifdef DEBUG
+import Debug.Trace qualified
+#endif
 
 --------------------------------------------------------------------------------
 
@@ -155,3 +162,20 @@ infix 0 ??:, ??%
 -- TODO: Better exception handling
 orThrow :: (Exception a) => IO (Either a b) -> IO b
 orThrow m = either throwIO pure =<< m
+
+data a ⊢ b = a :⊢ b
+
+#ifdef DEBUG
+
+trace :: String -> a -> a
+trace = Debug.Trace.trace
+
+#else
+
+trace :: String -> a -> a
+trace ~_ x = x
+
+#endif
+
+traceFalse :: String -> Bool
+traceFalse ~s = trace s False

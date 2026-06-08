@@ -1,10 +1,12 @@
 module TypeSearch.Core.Evaluation where
 
 import Data.IntMap.Strict qualified as IM
+import Data.List.NonEmpty qualified as NE
 import Data.Map.Lazy qualified as ML
 import Data.Map.Strict qualified as M
 import Data.Set.NonEmpty qualified as S1
 import Data.Set.NonEmpty.Extra qualified as S1
+import Prettyprinter
 import TypeSearch.Core.Name
 import TypeSearch.Core.Term
 import TypeSearch.Prelude
@@ -244,3 +246,37 @@ quoteSpineAmb mctx tenv l h = \case
       <*> quoteAmb mctx tenv l u
   SProj1 sp -> Proj1 <$> quoteSpineAmb mctx tenv l h sp
   SProj2 sp -> Proj2 <$> quoteSpineAmb mctx tenv l h sp
+
+--------------------------------------------------------------------------------
+-- Prettyprinting
+
+instance Pretty TopEnv where
+  pretty tenv =
+    group
+      $ encloseSep (flatAlt "{ " "{") (flatAlt " }" "}") ", "
+      $ [ pretty m
+            <+> "="
+            <+> pretty ((tenv, emptyMetaCtx mempty, Level 0) :⊢ t)
+        | (m, t) <- ML.toList tenv
+        ]
+
+instance Pretty (TopEnv ⊢ MetaCtx) where
+  pretty (tenv :⊢ mctx) =
+    group
+      $ encloseSep (flatAlt "{ " "{") (flatAlt " }" "}") ", "
+      $ [ pretty (MetaVar m)
+            <+> "="
+            <+> maybe "?" (pretty . ((tenv, mctx, Level 0) :⊢)) sol
+        | (m, entry) <- IM.toList mctx.metaCtx,
+          let sol = case entry of
+                Solved t ~_ -> Just t
+                Unsolved ~_ -> Nothing
+        ]
+      ++ [ pretty x <+> case xs of
+             S1.Singleton x' -> "=" <+> pretty x'
+             _ -> "∈" <+> align (list (fmap pretty $ NE.toList $ S1.toList xs))
+         | (x, xs) <- M.toList mctx.resolCtx
+         ]
+
+instance Pretty ((TopEnv, MetaCtx, Level) ⊢ Value) where
+  pretty ((tenv, mctx, lvl) :⊢ v) = pretty $ quote mctx tenv lvl v

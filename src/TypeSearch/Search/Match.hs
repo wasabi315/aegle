@@ -3,6 +3,7 @@ module TypeSearch.Search.Match where
 import Data.ImmatureStream qualified as IStr
 import Data.Map.Strict qualified as M
 import Data.Set.NonEmpty qualified as S1
+import Prettyprinter
 import TypeSearch.Core.Evaluation
 import TypeSearch.Core.Isomorphism
 import TypeSearch.Core.Name
@@ -62,6 +63,7 @@ check0 tenv resol query itemName item = do
 
 -- FIXME: currently not considering pi permutation
 check :: MetaCtx -> Ctx -> Value -> QName -> Value -> IStr.Stream (Iso, Term)
+check mctx ctx query itemName item | traceCheck mctx ctx query itemName item = undefined
 check mctx ctx query itemName item =
   asum
     [ do
@@ -80,6 +82,7 @@ check mctx ctx query itemName item =
 
 -- FIXME: currently not considering pi permutation
 possibleInstantiation :: MetaCtx -> Ctx -> Value -> Value -> IStr.Stream (Value, Value, MetaCtx)
+possibleInstantiation mctx ctx a ~_ | tracePossibleInstantiation mctx ctx a = undefined
 possibleInstantiation mctx ctx a ~inst =
   asum
     [ pure (a, inst, mctx),
@@ -100,3 +103,25 @@ freshMeta mctx ctx a = do
   let ~closed = eval mctx ctx.topEnv [] $ closeTy ctx.locals (quote mctx ctx.topEnv ctx.level a)
       (m, mctx') = newMeta mctx closed
   (AppPruning (Meta m) (idPruning ctx.level), mctx')
+
+--------------------------------------------------------------------------------
+
+traceCheck :: MetaCtx -> Ctx -> Value -> QName -> Value -> Bool
+traceCheck mctx ctx query itemName item = traceFalse $ show do
+  vsep
+    [ "check" <+> pretty itemName,
+      "tenv" <+> colon <+> align (pretty ctx.topEnv),
+      "mctx" <+> colon <+> align (pretty (ctx.topEnv :⊢ mctx)),
+      "ctx size" <+> colon <+> pretty ctx.level,
+      "query" <+> colon <+> pretty ((ctx.topEnv, mctx, ctx.level) :⊢ query),
+      "item" <+> colon <+> pretty ((ctx.topEnv, mctx, ctx.level) :⊢ item)
+    ]
+
+tracePossibleInstantiation :: MetaCtx -> Ctx -> Value -> Bool
+tracePossibleInstantiation mctx ctx a = traceFalse $ show do
+  vsep
+    [ "possibleInstantiation",
+      "tenv" <+> colon <+> align (pretty ctx.topEnv),
+      "mctx" <+> colon <+> align (pretty (ctx.topEnv :⊢ mctx)),
+      "a" <+> colon <+> pretty ((ctx.topEnv, mctx, ctx.level) :⊢ a)
+    ]

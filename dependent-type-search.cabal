@@ -26,6 +26,11 @@ source-repository head
   type: git
   location: https://github.com/githubuser/dependent-type-search
 
+flag debug
+  description: turn on debug traces
+  manual: True
+  default: False
+
 library
   exposed-modules:
       Data.ImmatureStream
@@ -69,6 +74,108 @@ library
       BangPatterns
       BlockArguments
       ConstraintKinds
+      CPP
+      DataKinds
+      DerivingVia
+      DeriveAnyClass
+      DuplicateRecordFields
+      ExplicitNamespaces
+      FlexibleContexts
+      FlexibleInstances
+      FunctionalDependencies
+      GADTs
+      InstanceSigs
+      ImplicitParams
+      KindSignatures
+      LambdaCase
+      MultilineStrings
+      MultiParamTypeClasses
+      MultiWayIf
+      NoFieldSelectors
+      NoImplicitPrelude
+      OrPatterns
+      OverloadedLabels
+      OverloadedStrings
+      OverloadedRecordDot
+      PackageImports
+      PatternSynonyms
+      PolyKinds
+      QualifiedDo
+      RankNTypes
+      RecordWildCards
+      ScopedTypeVariables
+      StandaloneDeriving
+      StandaloneKindSignatures
+      Strict
+      TemplateHaskell
+      TypeApplications
+      TypeFamilies
+      TypeFamilyDependencies
+      UndecidableInstances
+      UnboxedTuples
+      UnboxedSums
+      ViewPatterns
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-deriving-strategies -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -Wno-name-shadowing -O2 -funbox-strict-fields -threaded
+  build-depends:
+      Agda
+    , aeson
+    , base >=4.7 && <5
+    , bytestring
+    , containers
+    , deepseq
+    , directory
+    , filemanip
+    , filepath
+    , flat
+    , foldl
+    , hashable
+    , haskeline
+    , hasql
+    , hasql-dynamic-statements
+    , hasql-migration
+    , hasql-pool
+    , hasql-th
+    , hasql-transaction
+    , lucid
+    , megaparsec
+    , mtl
+    , named
+    , nonempty-containers
+    , opt-env-conf
+    , parser-combinators
+    , prettyprinter
+    , prettyprinter-ansi-terminal
+    , profunctors
+    , repline
+    , servant
+    , servant-lucid
+    , servant-server
+    , streamly
+    , text
+    , time
+    , unordered-containers
+    , vector
+    , wai
+    , warp
+    , witherable
+  default-language: GHC2021
+  if flag(debug)
+    cpp-options: -DDEBUG
+
+executable dependent-type-search
+  main-is: Main.hs
+  other-modules:
+      Paths_dependent_type_search
+  autogen-modules:
+      Paths_dependent_type_search
+  hs-source-dirs:
+      app
+  default-extensions:
+      AllowAmbiguousTypes
+      BangPatterns
+      BlockArguments
+      ConstraintKinds
+      CPP
       DataKinds
       DerivingVia
       DeriveAnyClass
@@ -117,104 +224,6 @@ library
     , bytestring
     , containers
     , deepseq
-    , directory
-    , filemanip
-    , filepath
-    , flat
-    , foldl
-    , hashable
-    , haskeline
-    , hasql
-    , hasql-dynamic-statements
-    , hasql-migration
-    , hasql-pool
-    , hasql-th
-    , hasql-transaction
-    , lucid
-    , megaparsec
-    , mtl
-    , named
-    , nonempty-containers
-    , opt-env-conf
-    , parser-combinators
-    , prettyprinter
-    , prettyprinter-ansi-terminal
-    , profunctors
-    , repline
-    , servant
-    , servant-lucid
-    , servant-server
-    , streamly
-    , text
-    , time
-    , unordered-containers
-    , vector
-    , wai
-    , warp
-    , witherable
-  default-language: GHC2021
-
-executable dependent-type-search
-  main-is: Main.hs
-  other-modules:
-      Paths_dependent_type_search
-  autogen-modules:
-      Paths_dependent_type_search
-  hs-source-dirs:
-      app
-  default-extensions:
-      AllowAmbiguousTypes
-      BangPatterns
-      BlockArguments
-      ConstraintKinds
-      DataKinds
-      DerivingVia
-      DeriveAnyClass
-      DuplicateRecordFields
-      ExplicitNamespaces
-      FlexibleContexts
-      FlexibleInstances
-      FunctionalDependencies
-      GADTs
-      InstanceSigs
-      ImplicitParams
-      KindSignatures
-      LambdaCase
-      MultilineStrings
-      MultiParamTypeClasses
-      MultiWayIf
-      NoFieldSelectors
-      NoImplicitPrelude
-      OrPatterns
-      OverloadedLabels
-      OverloadedStrings
-      OverloadedRecordDot
-      PackageImports
-      PatternSynonyms
-      PolyKinds
-      QualifiedDo
-      RankNTypes
-      RecordWildCards
-      ScopedTypeVariables
-      StandaloneDeriving
-      StandaloneKindSignatures
-      Strict
-      TemplateHaskell
-      TypeApplications
-      TypeFamilies
-      TypeFamilyDependencies
-      UndecidableInstances
-      UnboxedTuples
-      UnboxedSums
-      ViewPatterns
-  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-deriving-strategies -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -Wno-name-shadowing -O2 -funbox-strict-fields -threaded -rtsopts -with-rtsopts= "-A64M -N4"
-  build-depends:
-      Agda
-    , aeson
-    , base >=4.7 && <5
-    , bytestring
-    , containers
-    , deepseq
     , dependent-type-search
     , directory
     , filemanip
@@ -252,6 +261,11 @@ executable dependent-type-search
     , warp
     , witherable
   default-language: GHC2021
+  if flag(debug)
+    ghc-options: -threaded
+    cpp-options: -DDEBUG
+  else
+    ghc-options: -threaded -rtsopts -with-rtsopts= "-A64M -N4"
 
 test-suite dependent-type-search-test
   type: exitcode-stdio-1.0
@@ -267,6 +281,7 @@ test-suite dependent-type-search-test
       BangPatterns
       BlockArguments
       ConstraintKinds
+      CPP
       DataKinds
       DerivingVia
       DeriveAnyClass

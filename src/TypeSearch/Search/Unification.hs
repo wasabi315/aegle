@@ -4,6 +4,7 @@ import Data.IntMap.Strict qualified as IM
 import Data.IntSet qualified as IS
 import Data.Map.Lazy qualified as ML
 import Data.Set.NonEmpty qualified as S1
+import Prettyprinter
 import TypeSearch.Core.Evaluation
 import TypeSearch.Core.Name
 import TypeSearch.Core.Term hiding (rename)
@@ -237,6 +238,7 @@ unify0 mctx tenv t t' = do
   unify mctx tenv 0 v v'
 
 unify :: MetaCtx -> TopEnv -> Level -> Value -> Value -> [MetaCtx]
+unify mctx tenv l t t' | traceUnify mctx tenv l t t' = undefined
 unify mctx tenv l t t' = case (force mctx tenv t, force mctx tenv t') of
   (VBrave {}, _) -> []
   (_, VBrave {}) -> []
@@ -266,26 +268,30 @@ unify mctx tenv l t t' = case (force mctx tenv t, force mctx tenv t') of
     | x == x' -> unifySpine mctx tenv l sp sp'
   (VTop x sp, VTop x' sp')
     | x == x' -> unifySpine mctx tenv l sp sp'
-  (VTop x sp, VTopAmb x' sp') ->
-    asum
-      $ ( do
-            guard $ x `S1.member` lookupResol mctx x'
-            unifySpine (resolve mctx x' x) tenv l sp sp'
-        )
-      : [ unify mctx' tenv l (VTop x sp) t
-        | (mctx', t) <- expandTopAmb mctx tenv x' sp'
-        ]
-  (VTopAmb x sp, VTop x' sp') ->
-    asum
-      $ ( do
-            guard $ x' `S1.member` lookupResol mctx x
-            unifySpine (resolve mctx x x') tenv l sp sp'
-        )
-      : [ unify mctx' tenv l t (VTop x' sp')
-        | (mctx', t) <- expandTopAmb mctx tenv x sp
-        ]
   (VTopAmb x sp, VTopAmb x' sp')
     | x == x' -> unifySpine mctx tenv l sp sp'
+  (VTopAmb x sp, t') ->
+    asum
+      [ case t' of
+          VTop x' sp' -> do
+            guard $ x' `S1.member` lookupResol mctx x
+            unifySpine (resolve mctx x x') tenv l sp sp'
+          _ -> empty,
+        do
+          (mctx, t) <- expandTopAmb mctx tenv x sp
+          unify mctx tenv l t t'
+      ]
+  (t, VTopAmb x' sp') ->
+    asum
+      [ case t of
+          VTop x sp -> do
+            guard $ x `S1.member` lookupResol mctx x'
+            unifySpine (resolve mctx x' x) tenv l sp sp'
+          _ -> empty,
+        do
+          (mctx, t') <- expandTopAmb mctx tenv x' sp'
+          unify mctx tenv l t t'
+      ]
   (VFlex m sp, VFlex m' sp')
     | m == m' -> unifySpine mctx tenv l sp sp'
   (VFlex m sp, t') -> maybeToList $ solve mctx tenv l m sp t'
@@ -310,3 +316,19 @@ unifySpine mctx tenv l = \cases
   (SProj1 sp) (SProj1 sp') -> unifySpine mctx tenv l sp sp'
   (SProj2 sp) (SProj2 sp') -> unifySpine mctx tenv l sp sp'
   _ _ -> []
+
+--------------------------------------------------------------------------------
+
+traceUnify :: MetaCtx -> TopEnv -> Level -> Value -> Value -> Bool
+traceUnify mctx tenv l v v' = traceFalse $ show do
+  vsep
+    [ "unify",
+      indent 4
+        $ vsep
+          [ "tenv" <+> colon <+> align (pretty tenv),
+            "mctx" <+> colon <+> align (pretty (tenv :⊢ mctx)),
+            "ctx size" <+> colon <+> pretty l,
+            "lhs" <+> colon <+> pretty ((tenv, mctx, l) :⊢ v),
+            "rhs" <+> colon <+> pretty ((tenv, mctx, l) :⊢ v')
+          ]
+    ]
