@@ -52,7 +52,7 @@ closeTm = \cases
   Here t -> t
   (Bind locs x _) b -> closeTm locs (Lam x b)
 
-check0 :: TopEnv -> M.Map PQName (S1.NESet QName) -> Term -> QName -> Term -> IStr.Stream (Iso, Term)
+check0 :: TopEnv -> Resol -> Term -> QName -> Term -> IStr.Stream (Iso, Term)
 check0 tenv resol query itemName item = do
   let ctx = initCtx tenv
       mctx = emptyMetaCtx resol

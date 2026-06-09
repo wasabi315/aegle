@@ -62,7 +62,7 @@ search dbReader src query = runExceptT do
     -- 1. parse query type
     typ <- parseQuery src query ??% ParseError
 
-    -- 2. resolve free variables and obtain resolution table + top env
+    -- 2. resolve free variables and obtain 'Resol' and 'TopEnv'
     let names = Q.freeVars typ
     refMap <- liftIO $ resolveNames dbReader $ M.fromSet id names
     resol <- flip M.traverseWithKey refMap \x refs ->
@@ -90,7 +90,7 @@ search dbReader src query = runExceptT do
 
   pure Result {..}
 
-match :: TopEnv -> M.Map PQName (S1.NESet QName) -> Type -> [LibraryItem] -> IO [Match]
+match :: TopEnv -> Resol -> Type -> [LibraryItem] -> IO [Match]
 match tenv resol query items =
   Streamly.fromList items
     & Streamly.parConcatMap
@@ -101,7 +101,7 @@ match tenv resol query items =
       )
     & Streamly.toList
 
-match' :: TopEnv -> M.Map PQName (S1.NESet QName) -> Term -> LibraryItem -> IStr.Stream Match
+match' :: TopEnv -> Resol -> Term -> LibraryItem -> IStr.Stream Match
 match' tenv resol query item@LibraryItem {..} = do
   (iso, solution) <- check0 tenv resol query canonicalName signature
   pure Match {..}

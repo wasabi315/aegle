@@ -53,15 +53,17 @@ type TopEnv = ML.Map QName Value
 data MetaCtx = MetaCtx
   { nextMeta :: MetaVar,
     metaCtx :: IM.IntMap MetaEntry,
-    -- unresolved name → set of resolved names
-    resolCtx :: M.Map PQName (S1.NESet QName)
+    resol :: Resol
   }
 
 data MetaEntry
   = Unsolved ~Value
   | Solved Value ~Value
 
-emptyMetaCtx :: M.Map PQName (S1.NESet QName) -> MetaCtx
+-- | Unresolved name → set of canonical names denoted
+type Resol = M.Map PQName (S1.NESet QName)
+
+emptyMetaCtx :: Resol -> MetaCtx
 emptyMetaCtx = MetaCtx 0 mempty
 
 allMetaSolved :: MetaCtx -> Bool
@@ -70,10 +72,10 @@ allMetaSolved mctx = flip all mctx.metaCtx \case
   Solved {} -> True
 
 lookupResol :: MetaCtx -> PQName -> S1.NESet QName
-lookupResol mctx n = mctx.resolCtx M.! n
+lookupResol mctx n = mctx.resol M.! n
 
 resolve :: MetaCtx -> PQName -> QName -> MetaCtx
-resolve mctx m n = mctx {resolCtx = M.insert m (S1.singleton n) mctx.resolCtx}
+resolve mctx m n = mctx {resol = M.insert m (S1.singleton n) mctx.resol}
 
 --------------------------------------------------------------------------------
 -- Evaluation
@@ -110,7 +112,7 @@ vTop tenv n = ML.findWithDefault (VTop n SNil) n tenv
 
 -- Reduce only when the name has been resolved
 vTopAmb :: MetaCtx -> TopEnv -> PQName -> Value
-vTopAmb mctx tenv n = case mctx.resolCtx M.! n of
+vTopAmb mctx tenv n = case mctx.resol M.! n of
   S1.Singleton n' -> vTop tenv n'
   _ -> VTopAmb n SNil
 
@@ -164,7 +166,7 @@ force mctx tenv = \case
     | Solved t _ <- mctx.metaCtx IM.! coerce m ->
         force mctx tenv (vAppSpine t sp)
   VTopAmb n sp
-    | S1.Singleton n' <- mctx.resolCtx M.! n ->
+    | S1.Singleton n' <- mctx.resol M.! n ->
         force mctx tenv (vAppSpine (vTop tenv n') sp)
   t -> t
 
@@ -174,7 +176,7 @@ forceAmb mctx tenv = \case
     | Solved t _ <- mctx.metaCtx IM.! coerce m ->
         forceAmb mctx tenv (vAppSpine t sp)
   VTopAmb n sp -> do
-    n' <- toList $ mctx.resolCtx M.! n
+    n' <- toList $ mctx.resol M.! n
     let mctx' = resolve mctx n n'
     forceAmb mctx' tenv (vAppSpine (vTop tenv n') sp)
   t -> pure (t, mctx)
@@ -186,7 +188,7 @@ forceAmb' mctx tenv = \case
         forceAmb' mctx tenv (vAppSpine t sp)
   VTopAmb n sp ->
     (VTopAmb n sp, mctx) : do
-      n' <- toList $ mctx.resolCtx M.! n
+      n' <- toList $ mctx.resol M.! n
       guard $ n' `ML.member` tenv
       let mctx' = resolve mctx n n'
       forceAmb' mctx' tenv (vAppSpine (vTop tenv n') sp)
@@ -288,7 +290,7 @@ instance Pretty (TopEnv ⊢ MetaCtx) where
       ++ [ pretty x <+> case xs of
              S1.Singleton x' -> "=" <+> pretty x'
              _ -> "∈" <+> align (list (fmap pretty $ NE.toList $ S1.toList xs))
-         | (x, xs) <- M.toList mctx.resolCtx
+         | (x, xs) <- M.toList mctx.resol
          ]
 
 instance Pretty ((TopEnv, MetaCtx, Level) ⊢ Value) where
