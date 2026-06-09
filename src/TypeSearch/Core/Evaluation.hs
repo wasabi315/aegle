@@ -179,6 +179,19 @@ forceAmb mctx tenv = \case
     forceAmb mctx' tenv (vAppSpine (vTop tenv n') sp)
   t -> pure (t, mctx)
 
+forceAmb' :: MetaCtx -> TopEnv -> Value -> [(Value, MetaCtx)]
+forceAmb' mctx tenv = \case
+  VFlex m sp
+    | Solved t _ <- mctx.metaCtx IM.! coerce m ->
+        forceAmb' mctx tenv (vAppSpine t sp)
+  VTopAmb n sp ->
+    (VTopAmb n sp, mctx) : do
+      n' <- toList $ mctx.resolCtx M.! n
+      guard $ n' `ML.member` tenv
+      let mctx' = resolve mctx n n'
+      forceAmb' mctx' tenv (vAppSpine (vTop tenv n') sp)
+  t -> pure (t, mctx)
+
 --------------------------------------------------------------------------------
 -- Quotation
 

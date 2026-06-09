@@ -52,7 +52,6 @@ closeTm = \cases
   Here t -> t
   (Bind locs x _) b -> closeTm locs (Lam x b)
 
--- FIXME: currently not considering pi permutation
 check0 :: TopEnv -> M.Map PQName (S1.NESet QName) -> Term -> QName -> Term -> IStr.Stream (Iso, Term)
 check0 tenv resol query itemName item = do
   let ctx = initCtx tenv
@@ -73,11 +72,13 @@ check mctx ctx query itemName item =
         let j = i <> sym i'
             ~sol = closeTm ctx.locals $ quote mctx ctx.topEnv ctx.level $ transportInv j inst
         pure (j, sol),
-      IStr.Later case force mctx ctx.topEnv query of
-        VPi "_" _ _ -> empty
-        VPi x a b -> do
-          check mctx (bind mctx ctx x a) (b $ VVar ctx.level) itemName item
-        _ -> empty
+      IStr.Later do
+        (query, mctx) <- choose $ forceAmb' mctx ctx.topEnv query
+        case query of
+          VPi "_" _ _ -> empty
+          VPi x a b -> do
+            check mctx (bind mctx ctx x a) (b $ VVar ctx.level) itemName item
+          _ -> empty
     ]
 
 -- FIXME: currently not considering pi permutation

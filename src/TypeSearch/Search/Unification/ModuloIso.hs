@@ -135,16 +135,34 @@ unifyIso0 mctx tenv t t' = do
   pure (j, mctx)
 
 unifyIso :: MetaCtx -> TopEnv -> Level -> Value -> Value -> [(Iso, Iso, MetaCtx)]
-unifyIso mctx tenv lvl t u | traceUnifyIso mctx tenv lvl t u = undefined
-unifyIso mctx tenv lvl t u = case (force mctx tenv t, force mctx tenv u) of
+unifyIso mctx tenv lvl t t' | traceUnifyIso mctx tenv lvl t t' = undefined
+unifyIso mctx tenv lvl t t' = case (force mctx tenv t, force mctx tenv t') of
   (VBrave {}, _) -> []
   (_, VBrave {}) -> []
   (VPi x a b, VPi x' a' b') ->
     unifyPi mctx tenv lvl (Quant x a b) (Quant x' a' b')
   (VSigma x a b, VSigma x' a' b') ->
     unifySigma mctx tenv lvl (Quant x a b) (Quant x' a' b')
-  (t, u) -> do
-    mctx <- unify mctx tenv lvl t u
+  (VTopAmb x sp, t') ->
+    asum
+      [ do
+          (mctx, t) <- expandTopAmb mctx tenv x sp
+          unifyIso mctx tenv lvl t t',
+        do
+          mctx <- unify mctx tenv lvl (VTopAmb x sp) t'
+          pure (Refl, Refl, mctx)
+      ]
+  (t, VTopAmb x' sp') ->
+    asum
+      [ do
+          (mctx, t') <- expandTopAmb mctx tenv x' sp'
+          unifyIso mctx tenv lvl t t',
+        do
+          mctx <- unify mctx tenv lvl t (VTopAmb x' sp')
+          pure (Refl, Refl, mctx)
+      ]
+  (t, t') -> do
+    mctx <- unify mctx tenv lvl t t'
     pure (Refl, Refl, mctx)
 
 unifyPi :: MetaCtx -> TopEnv -> Level -> Quant -> Quant -> [(Iso, Iso, MetaCtx)]
