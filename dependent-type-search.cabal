@@ -45,6 +45,7 @@ library
   exposed-modules:
       Data.ImmatureStream
       Data.Set.NonEmpty.Extra
+      Hasql.Executor
       TypeSearch.Cli
       TypeSearch.Cli.Index
       TypeSearch.Cli.Interactive

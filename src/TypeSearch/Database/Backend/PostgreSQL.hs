@@ -21,6 +21,7 @@ import Hasql.Decoders qualified as Decoders
 import Hasql.DynamicStatements.Snippet qualified as Snippet
 import Hasql.DynamicStatements.Statement
 import Hasql.Encoders qualified as Encoders
+import Hasql.Executor qualified as Executor
 import Hasql.Migration
 import Hasql.Pipeline qualified as Pipeline
 import Hasql.Session
@@ -219,18 +220,23 @@ encodeExport export = DbExportRow {..}
 --------------------------------------------------------------------------------
 -- Read operation
 
-newDbReader :: (forall a. Session a -> IO a) -> DbReader IO
-newDbReader runSession =
+newDbReader ::
+  (Exception (Executor.Error a), Executor.Executor a) =>
+  a -> DbReader IO
+newDbReader exe =
   DbReader
-    { resolveNames = resolveNames runSession,
-      loadByAnyFeature = loadByAnyFeature runSession
+    { resolveNames = resolveNames exe,
+      loadByAnyFeature = loadByAnyFeature exe
     }
 
-resolveNames :: (Traversable t) => (forall a. Session a -> IO a) -> t PQName -> IO (t [Referent])
-resolveNames runSession names = do
+resolveNames ::
+  (Traversable t, Exception (Executor.Error a), Executor.Executor a) =>
+  a -> t PQName -> IO (t [Referent])
+resolveNames exe names = do
   let names' = toList names
       (qualNames, unqualNames) = partitionEithers $ pqNameToEither <$> names'
-  (resolQual, resolUnqual) <- runSession $ pipeline do
+  -- TODO: Better exception handling
+  (resolQual, resolUnqual) <- orThrow $ Executor.execute exe $ pipeline do
     liftA2
       (,)
       do Pipeline.statement qualNames loadReferentQual
@@ -281,14 +287,20 @@ decodeReferent (canonicalName, body) = do
   body <- traverse decodeTerm body
   pure $! Referent {..}
 
-loadByAnyFeature :: (Foldable t) => (forall a. Session a -> IO a) -> t (Compat (AllFeature PQName)) -> IO [LibraryItem]
-loadByAnyFeature runSession feats = case NE.nonEmpty (toList feats) of
+loadByAnyFeature ::
+  (Foldable t, Exception (Executor.Error a), Executor.Executor a) =>
+  a -> t (Compat (AllFeature PQName)) -> IO [LibraryItem]
+loadByAnyFeature exe feats = case NE.nonEmpty (toList feats) of
   Nothing -> pure []
-  Just feats -> loadByAnyFeatureNE runSession feats
+  Just feats -> loadByAnyFeatureNE exe feats
 
-loadByAnyFeatureNE :: (forall a. Session a -> IO a) -> NE.NonEmpty (Compat (AllFeature PQName)) -> IO [LibraryItem]
-loadByAnyFeatureNE runSession compats = runSession do
-  statement () $ dynamicallyParameterized snippet decoder False
+loadByAnyFeatureNE ::
+  (Exception (Executor.Error a), Executor.Executor a) =>
+  a -> NE.NonEmpty (Compat (AllFeature PQName)) -> IO [LibraryItem]
+loadByAnyFeatureNE a compats =
+  -- TODO: Better exception handling
+  orThrow $ Executor.execute a do
+    statement () $ dynamicallyParameterized snippet decoder False
   where
     snippet =
       """

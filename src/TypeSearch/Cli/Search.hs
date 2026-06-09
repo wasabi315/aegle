@@ -9,7 +9,6 @@ import Control.Exception
 import Data.Text qualified as T
 import Hasql.Connection
 import Hasql.Connection.Setting
-import Hasql.Session
 import Prettyprinter
 import Prettyprinter.Render.Terminal
 import Prettyprinter.Util
@@ -35,7 +34,7 @@ data Command = Command
 search :: Command -> IO ()
 search Command {..} =
   withConnect connSetting \conn -> do
-    let dbReader = newDbReader (orThrow . flip run conn)
+    let dbReader = newDbReader conn
     searchWith dbReader query
 
 searchWith :: DbReader IO -> T.Text -> IO ()

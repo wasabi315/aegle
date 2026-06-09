@@ -8,7 +8,6 @@ import Control.Exception
 import Data.Text qualified as T
 import Hasql.Connection
 import Hasql.Connection.Setting
-import Hasql.Session
 import System.Console.Repline hiding (Command)
 import System.Exit
 import System.IO
@@ -28,12 +27,8 @@ newtype Command = Command
 interactive :: Command -> IO ()
 interactive Command {..} =
   withConnect connSetting \conn -> do
-    let dbReader = newDbReader (orThrow . flip run conn)
-    evalReplOpts
-      ReplOpts
-        { command = command dbReader,
-          ..
-        }
+    let dbReader = newDbReader conn
+    evalReplOpts ReplOpts {command = command dbReader, ..}
   where
     banner _ = pure ">> "
     command dbReader =
