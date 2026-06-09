@@ -1,5 +1,9 @@
 { inputs, ... }:
 {
+  imports = [
+    inputs.process-compose-flake.flakeModule
+  ];
+
   perSystem = { pkgs, config, ... }: {
     process-compose."service" = { config, ... }:
       let
