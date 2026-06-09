@@ -13,6 +13,7 @@ import Paths_dependent_type_search
 import Prettyprinter
 import Servant
 import Servant.HTML.Lucid
+import System.FilePath
 import TypeSearch.Core.Isomorphism
 import TypeSearch.Core.Name
 import TypeSearch.Core.Term
@@ -24,45 +25,44 @@ import TypeSearch.Search qualified as Search
 
 data Config = Config
   { port :: Warp.Port,
-    dbReader :: DbReader IO
+    dbReader :: DbReader IO,
+    agdaHtmlDir :: FilePath
   }
 
 runServer :: Config -> IO ()
 runServer Config {..} = do
+  dataDir <- getDataDir
+  let staticDir = dataDir </> "static"
   putStrLn $ "Listening on port " ++ show port
-  staticDir <- getDataFileName "static"
-  Warp.run port $ serve api (server staticDir dbReader)
+  Warp.run port $ serve api (server staticDir agdaHtmlDir dbReader)
 
 --------------------------------------------------------------------------------
 -- APIs
 
 type API =
-  PingAPI
-    :<|> SearchAPI
-    :<|> WebUI
-    :<|> "static" :> Raw
-
-type PingAPI = "ping" :> Get '[PlainText] T.Text
+  SearchAPI
+    :<|> SearchUI
+    :<|> "ping" :> Get '[PlainText] T.Text
+    :<|> "static" :> Raw -- static assets like css and favicon
+    :<|> "agda" :> Raw -- Agda HTML
 
 type SearchAPI = "search" :> QueryParam "q" T.Text :> Get '[JSON] Result
 
-type WebUI = QueryParam "q" T.Text :> Get '[HTML] (Html ())
+type SearchUI = QueryParam "q" T.Text :> Get '[HTML] (Html ())
 
 api :: Proxy API
 api = Proxy
 
-server :: FilePath -> DbReader IO -> Server API
-server staticDir dbReader =
-  ping
-    :<|> search dbReader
-    :<|> webUI dbReader
+server :: FilePath -> FilePath -> DbReader IO -> Server API
+server staticDir agdaHtmlDir dbReader =
+  search dbReader
+    :<|> searchUI dbReader
+    :<|> pure "pong"
     :<|> serveDirectoryFileServer staticDir
-
-ping :: Server PingAPI
-ping = pure "pong"
+    :<|> serveDirectoryFileServer agdaHtmlDir
 
 --------------------------------------------------------------------------------
--- JSON
+-- JSON API
 
 data Result = Result
   { numCands :: Int,
@@ -115,10 +115,10 @@ search dbReader = \case
         }
 
 --------------------------------------------------------------------------------
--- HTML
+-- Web interface
 
-webUI :: DbReader IO -> Server WebUI
-webUI dbReader query = do
+searchUI :: DbReader IO -> Server SearchUI
+searchUI dbReader query = do
   result <- for query $ liftIO . Search.search dbReader "<query param>"
 
   pure $ layoutHtml do
@@ -141,7 +141,7 @@ webUI dbReader query = do
       Just (Left e) ->
         pre_ $ code_ [class_ "error"] $ toHtml $ displayException e
   where
-    link = safeAbsHref_ api (Proxy @WebUI)
+    link = safeAbsHref_ @SearchUI api Proxy
 
     introHtml :: Html ()
     introHtml = do
@@ -189,9 +189,8 @@ webUI dbReader query = do
             " : "
             prettyHtml $ Unqualified signature
           div_ [class_ "match-details"] do
-            case reexportedAs of
-              [] -> pure ()
-              _ -> p_ [class_ "detail-row"] do
+            unless (null reexportedAs) do
+              p_ [class_ "detail-row"] do
                 strong_ "Re-exported as: "
                 sequence_ $ intersperse ", " do
                   code_ . prettyHtml <$> reexportedAs

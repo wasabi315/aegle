@@ -35,8 +35,9 @@ instance HasParser Command where
     where
       index = command "index" "Index an Agda library" do
         connSetting <- connectionSetting
-        libraryDir <- argSetting "LIBRARY_DIR" "Agda library directory to index" str
-        transparentDefsFile <- argSetting "TRANSPARENT_DEFS_FILE" "JSON file listing definitions to unfold" str
+        libraryDir <- argSetting "LIBRARY_DIR" "Directory containing the Agda library to index" str
+        transparentDefsFile <- argSetting "TRANSPARENT_DEFS_FILE" "JSON file listing transparent definitions" str
+        agdaHtmlDir <- longSetting "html-dir" "HTML_DIR" "Directory for generated Agda HTML files" str "html"
         pure $ Index Index.Command {..}
 
       search = command "search" "Search within indexed library" do
@@ -51,6 +52,7 @@ instance HasParser Command where
       serve = command "serve" "Run web server" do
         poolConfig <- poolConfig
         port <- envSetting "PORT" "HTTP port to listen on" auto
+        agdaHtmlDir <- longSetting "html-dir" "HTML_DIR" "Directory containing generated Agda HTML files" str "html"
         pure $ Serve Serve.Command {..}
 
       connectionSetting =
@@ -77,6 +79,9 @@ instance HasParser Command where
 
       argSetting var helpText readf =
         setting [argument, reader readf, metavar var, help helpText]
+
+      longSetting opt var helpText readf def =
+        setting [option, long opt, reader readf, metavar var, help helpText, value def]
 
       envSetting var helpText readf =
         setting [env var, metavar var, reader readf, help helpText]

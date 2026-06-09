@@ -16,7 +16,8 @@ import TypeSearch.Web
 
 data Command = Command
   { poolConfig :: Pool.Config,
-    port :: Warp.Port
+    port :: Warp.Port,
+    agdaHtmlDir :: FilePath
   }
 
 --------------------------------------------------------------------------------

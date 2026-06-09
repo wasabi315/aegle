@@ -12,7 +12,7 @@ extra-source-files:
 
 data-files:
   - migration/*.sql
-  - static/*.css
+  - static/style.css
 
 # Metadata used when publishing your package
 # synopsis:            Short description of your package

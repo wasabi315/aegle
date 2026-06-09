@@ -7,3 +7,4 @@ data/pg1
 .envrc
 .direnv
 dist-newstyle
+html
