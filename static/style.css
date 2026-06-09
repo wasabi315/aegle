@@ -71,12 +71,31 @@ pre {
   font-size: inherit;
 }
 
-.match-details {
-  margin-left: 1.75rem;
-}
-
 .match-heading {
   font-size: 1.1em;
+}
+
+.match-heading > a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.match-heading strong {
+  padding: 3px;
+}
+
+.match:hover > .match-heading strong {
+  background-color: #e6e6e6;
+}
+
+.match > .match-heading > a:hover strong,
+.match > .match-heading > a:focus strong {
+  background-color: #d0d0d0;
+  border-bottom: 2px solid #0066cc;
+}
+
+.match-details {
+  margin-left: 1.75rem;
 }
 
 .detail-row {

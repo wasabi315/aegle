@@ -24,7 +24,9 @@ data Definition = Definition
   { name :: QName,
     signature :: Type,
     feature :: AllFeature QName,
-    body :: Maybe Term
+    body :: Maybe Term,
+    moduleName :: ModuleName,
+    position :: Int
   }
   deriving stock (Show, Generic)
 
@@ -57,7 +59,9 @@ data Referent = Referent
 data LibraryItem = LibraryItem
   { canonicalName :: QName,
     reexportedAs :: [QName],
-    signature :: Type
+    signature :: Type,
+    moduleName :: ModuleName,
+    position :: Int
   }
   deriving stock (Show, Generic)
   deriving anyclass (NFData)

@@ -15,7 +15,6 @@ import Prettyprinter.Util
 import System.Exit
 import System.IO
 import TypeSearch.Core.Isomorphism
-import TypeSearch.Core.Name
 import TypeSearch.Core.Term
 import TypeSearch.Database.Backend
 import TypeSearch.Database.Backend.PostgreSQL
@@ -73,10 +72,10 @@ putResult Result {..} =
         -- rank by solution size
         matchDoc <$> sortOn (termSize . (.solution)) matches
 
-    matchDoc Match {item = LibraryItem {canonicalName = QName {..}, ..}, ..} =
+    matchDoc Match {item = LibraryItem {..}, ..} =
       vsep
         [ annotate (bold <> color Green) do
-            "∙" <+> pretty name <+> colon <+> pretty (Unqualified signature),
+            "∙" <+> pretty canonicalName <+> colon <+> pretty (Unqualified signature),
           indent 2
             $ vsep
             $ catMaybes

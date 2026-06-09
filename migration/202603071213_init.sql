@@ -25,7 +25,11 @@ CREATE TABLE library_items (
     arity_has_var        boolean           NOT NULL,
     polymorphic          polymorphic       NOT NULL,
     result_head          result_head       NOT NULL,
-    result_head_top      text                        -- NULL unless result_head = 'Top'
+    result_head_top      text,                       -- NULL unless result_head = 'Top'
+
+    -- meta info
+    module_name          text              NOT NULL,
+    position             int               NOT NULL
 
     CONSTRAINT result_head_top_check CHECK (
         (result_head = 'Top'  AND result_head_top IS NOT NULL) OR

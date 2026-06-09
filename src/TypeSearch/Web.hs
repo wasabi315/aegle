@@ -8,6 +8,7 @@ import Data.Text qualified as T
 import Data.Time.Clock
 import Lucid hiding (for_)
 import Lucid.Servant
+import Network.URI.Encode qualified
 import Network.Wai.Handler.Warp qualified as Warp
 import Paths_dependent_type_search
 import Prettyprinter
@@ -78,7 +79,9 @@ data Match = Match
     -- return prettyprinted terms for now
     signature :: T.Text,
     iso :: T.Text,
-    solution :: T.Text
+    solution :: T.Text,
+    moduleName :: ModuleName,
+    position :: Int
   }
   deriving stock (Show, Generic)
   deriving anyclass (ToJSON)
@@ -123,7 +126,7 @@ searchUI dbReader query = do
 
   pure $ layoutHtml do
     h1_ do
-      a_ [link Nothing] "Dependent type search"
+      a_ [hrefTop Nothing] "Dependent type search"
 
     form_ [method_ "get", action_ "/"] do
       input_
@@ -141,7 +144,18 @@ searchUI dbReader query = do
       Just (Left e) ->
         pre_ $ code_ [class_ "error"] $ toHtml $ displayException e
   where
-    link = safeAbsHref_ @SearchUI api Proxy
+    hrefTop = safeAbsHref_ @SearchUI api Proxy
+
+    -- Ref: Agda.Interaction.Highlighting.HTML.Base.annotate
+    hrefDefSite modName pos =
+      href_
+        $ T.pack
+        $ concat
+          [ "/agda/",
+            Network.URI.Encode.encode $ T.unpack (coerce modName),
+            ".html#",
+            Network.URI.Encode.encode $ show pos
+          ]
 
     introHtml :: Html ()
     introHtml = do
@@ -165,7 +179,7 @@ searchUI dbReader query = do
         exampleHtml label query = do
           toHtml @T.Text label
           ": "
-          a_ [link (Just query)] do
+          a_ [hrefTop (Just query)] do
             code_ [class_ "example-query"] do
               toHtml @T.Text query
 
@@ -183,9 +197,10 @@ searchUI dbReader query = do
         "."
       case matches of
         [] -> p_ "No matches."
-        _ -> ul_ $ for_ sorted \Search.Match {item = LibraryItem {..}, ..} -> li_ do
+        _ -> ul_ $ for_ sorted \Search.Match {item = LibraryItem {..}, ..} -> li_ [class_ "match"] do
           code_ [class_ "match-heading"] do
-            strong_ $ prettyHtml canonicalName
+            a_ [hrefDefSite moduleName position] do
+              strong_ $ prettyHtml canonicalName
             " : "
             prettyHtml $ Unqualified signature
           div_ [class_ "match-details"] do
@@ -214,6 +229,7 @@ layoutHtml content = doctypehtml_ do
   head_ do
     title_ "Dependent type search"
     link_ [rel_ "stylesheet", type_ "text/css", href_ "/static/style.css"]
+    meta_ [name_ "viewport", content_ "width=device-width, initial-scale=1"]
   body_ content
 
 prettyHtml :: (Pretty a, Monad m) => a -> HtmlT m ()

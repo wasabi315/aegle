@@ -6,6 +6,7 @@ module TypeSearch.Index.Translate.Definition
 where
 
 import Agda.Compiler.Backend
+import Agda.Syntax.Position
 import Agda.Utils.Monad hiding (guard, unless)
 import TypeSearch.Core.Evaluation qualified as TS
 import TypeSearch.Core.Isomorphism qualified as TS
@@ -39,21 +40,37 @@ translateDefinition def = setCurrentRangeQ def.defName do
 translateToAxiom :: Definition -> Transl TS.Definition
 translateToAxiom def = do
   let name' = translateQName def.defName
+      (moduleName, position) = bindingSite def.defName
   signature <- translateType def.defType
-  pure $! constructDefinition name' signature Nothing
+  pure $! constructDefinition name' signature Nothing moduleName position
 
 translateFunDef :: Definition -> Transl TS.Definition
 translateFunDef def = do
   let name = translateQName def.defName
+      (moduleName, position) = bindingSite def.defName
   signature <- translateType def.defType
   body <- ifM
     (isTransparentDef def.defName)
     do Just <$> translateTransparentDefBody def
     do pure Nothing
-  pure $! constructDefinition name signature body
+  pure $! constructDefinition name signature body moduleName position
 
-constructDefinition :: TS.QName -> TS.Type -> Maybe TS.Term -> TS.Definition
-constructDefinition name signature body = TS.Definition {..}
+bindingSite :: QName -> (TS.ModuleName, Int)
+bindingSite qname = (moduleName, position)
+  where
+    range = qname.qnameName.nameBindingSite
+    moduleName = translateTopLevelModuleName $ fromJust $ rangeModule range
+    -- Ref: Agda.Interaction.Highlighting.HTML.Base.annotate
+    position = fromIntegral $ posPos $ fromJust $ rStart range
+
+constructDefinition ::
+  TS.QName ->
+  TS.Type ->
+  Maybe TS.Term ->
+  TS.ModuleName ->
+  Int ->
+  TS.Definition
+constructDefinition name signature body moduleName position = TS.Definition {..}
   where
     (signature', _) = TS.normalise0 (TS.emptyMetaCtx mempty) mempty signature
     feature = TS.allFeature signature'

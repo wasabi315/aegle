@@ -58,7 +58,9 @@ data DbLibraryItemRow = DbLibraryItemRow
     arityHasVar :: Bool,
     polymorphic :: T.Text,
     resultHead :: T.Text,
-    resultHeadTop :: Maybe T.Text
+    resultHeadTop :: Maybe T.Text,
+    moduleName :: T.Text,
+    position :: Int32
   }
 
 data DbExportRow = DbExportRow
@@ -154,7 +156,9 @@ insertManyDefinitions = lmap encodeDefinitions do
       , arity_has_var
       , polymorphic
       , result_head
-      , result_head_top )
+      , result_head_top
+      , module_name
+      , position )
     SELECT * FROM UNNEST
       ( $1 :: text[]
       , $2 :: bytea[]
@@ -163,10 +167,12 @@ insertManyDefinitions = lmap encodeDefinitions do
       , $5 :: boolean[]
       , $6 :: text[] :: polymorphic[]
       , $7 :: text[] :: result_head[]
-      , $8 :: text?[] )
+      , $8 :: text?[]
+      , $9 :: text[]
+      , $10 :: int[] )
   |]
   where
-    encodeDefinitions = unzip8 . V.map (adapt . encodeDefinition) . V.fromList
+    encodeDefinitions = unzip10 . V.map (adapt . encodeDefinition) . V.fromList
     adapt DbLibraryItemRow {..} =
       ( canonicalName,
         signature,
@@ -175,7 +181,9 @@ insertManyDefinitions = lmap encodeDefinitions do
         arityHasVar,
         polymorphic,
         resultHead,
-        resultHeadTop
+        resultHeadTop,
+        moduleName,
+        position
       )
 
 insertManyExports :: Statement [Export] ()
@@ -209,6 +217,8 @@ encodeDefinition def = DbLibraryItemRow {..}
     polymorphic = encodePolymorphic def.feature.polymorphic
     resultHead = encodeResultHeadTag def.feature.resultHead
     resultHeadTop = encodeResultHeadTop def.feature.resultHead
+    moduleName = coerce def.moduleName
+    position = fromIntegral def.position
 
 encodeExport :: Export -> DbExportRow
 encodeExport export = DbExportRow {..}
@@ -307,7 +317,9 @@ loadByAnyFeatureNE a compats =
       SELECT
         i.canonical_name,
         i.signature,
-        COALESCE (e.reexported_as, '{}') :: text[] AS reexported_as
+        COALESCE (e.reexported_as, '{}') :: text[] AS reexported_as,
+        i.module_name,
+        i.position
       FROM library_items i
       LEFT JOIN (
         SELECT
@@ -397,6 +409,8 @@ loadByAnyFeatureNE a compats =
       canonicalName <- Decoders.column nonNullQNameDec
       signature <- Decoders.column nonNullTermDec
       reexportedAs <- Decoders.column $ Decoders.nonNullable $ Decoders.listArray nonNullQNameDec
+      moduleName <- Decoders.column $ Decoders.nonNullable $ coerce Decoders.text
+      position <- Decoders.column $ Decoders.nonNullable $ fromIntegral <$> Decoders.int4
       pure $! LibraryItem {..}
 
 parS :: Snippet.Snippet -> Snippet.Snippet
@@ -424,17 +438,29 @@ pqNameToEither = \case
   Qual m x -> Left (QName m x)
   Unqual x -> Right x
 
-unzip8 ::
-  V.Vector (a, b, c, d, e, f, g, h) ->
-  (V.Vector a, V.Vector b, V.Vector c, V.Vector d, V.Vector e, V.Vector f, V.Vector g, V.Vector h)
-unzip8 xs =
-  ( V.map (\(a, _, _, _, _, _, _, _) -> a) xs,
-    V.map (\(_, b, _, _, _, _, _, _) -> b) xs,
-    V.map (\(_, _, c, _, _, _, _, _) -> c) xs,
-    V.map (\(_, _, _, d, _, _, _, _) -> d) xs,
-    V.map (\(_, _, _, _, e, _, _, _) -> e) xs,
-    V.map (\(_, _, _, _, _, f, _, _) -> f) xs,
-    V.map (\(_, _, _, _, _, _, g, _) -> g) xs,
-    V.map (\(_, _, _, _, _, _, _, h) -> h) xs
+unzip10 ::
+  V.Vector (a, b, c, d, e, f, g, h, i, j) ->
+  ( V.Vector a,
+    V.Vector b,
+    V.Vector c,
+    V.Vector d,
+    V.Vector e,
+    V.Vector f,
+    V.Vector g,
+    V.Vector h,
+    V.Vector i,
+    V.Vector j
   )
-{-# INLINE unzip8 #-}
+unzip10 xs =
+  ( V.map (\(a, _, _, _, _, _, _, _, _, _) -> a) xs,
+    V.map (\(_, b, _, _, _, _, _, _, _, _) -> b) xs,
+    V.map (\(_, _, c, _, _, _, _, _, _, _) -> c) xs,
+    V.map (\(_, _, _, d, _, _, _, _, _, _) -> d) xs,
+    V.map (\(_, _, _, _, e, _, _, _, _, _) -> e) xs,
+    V.map (\(_, _, _, _, _, f, _, _, _, _) -> f) xs,
+    V.map (\(_, _, _, _, _, _, g, _, _, _) -> g) xs,
+    V.map (\(_, _, _, _, _, _, _, h, _, _) -> h) xs,
+    V.map (\(_, _, _, _, _, _, _, _, i, _) -> i) xs,
+    V.map (\(_, _, _, _, _, _, _, _, _, j) -> j) xs
+  )
+{-# INLINE unzip10 #-}
