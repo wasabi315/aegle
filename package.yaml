@@ -131,7 +131,6 @@ ghc-options:
   - -Wno-name-shadowing
   - -O2
   - -funbox-strict-fields
-  - -threaded
 
 flags:
   debug:
