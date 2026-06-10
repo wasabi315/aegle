@@ -1,8 +1,9 @@
 module TypeSearch.Search
-  ( Result (..),
+  ( search,
+    Config (..),
+    Result (..),
     Match (..),
     Error (..),
-    search,
   )
 where
 
@@ -15,6 +16,7 @@ import Data.Text qualified as T
 import Data.Time.Clock
 import Prettyprinter
 import Streamly.Data.Stream.Prelude qualified as Streamly
+import System.Timeout
 import TypeSearch.Core.Evaluation
 import TypeSearch.Core.Isomorphism
 import TypeSearch.Core.Name
@@ -28,6 +30,12 @@ import TypeSearch.Search.Query qualified as Q
 
 --------------------------------------------------------------------------------
 -- Types
+
+data Config = Config
+  { dbReader :: DbReader IO,
+    querySrc :: String,
+    timeout :: Int
+  }
 
 data Result = Result
   { numCands :: Int,
@@ -47,24 +55,27 @@ data Match = Match
 data Error
   = ParseError ParserError
   | NotFound PQName
+  | Timeout
   deriving stock (Show)
 
 instance Exception Error where
   displayException = \case
     ParseError e -> displayException e
     NotFound n -> "Not found: " ++ show (pretty n)
+    Timeout -> "Timeout"
 
 --------------------------------------------------------------------------------
+-- Entrypoint
 
-search :: DbReader IO -> FilePath -> T.Text -> IO (Either Error Result)
-search dbReader src query = runExceptT do
+search :: Config -> T.Text -> IO (Either Error Result)
+search config query = onTimeout config.timeout (Left Timeout) $ runExceptT do
   ((numCands, matches), time) <- timed do
     -- 1. parse query type
-    typ <- parseQuery src query ??% ParseError
+    typ <- parseQuery config.querySrc query ??% ParseError
 
     -- 2. resolve free variables and obtain 'Resol' and 'TopEnv'
     let names = Q.freeVars typ
-    refMap <- liftIO $ resolveNames dbReader $ M.fromSet id names
+    refMap <- liftIO $ resolveNames config.dbReader $ M.fromSet id names
     resol <- flip M.traverseWithKey refMap \x refs ->
       fmap (S1.fromList . fmap (.canonicalName)) (NE.nonEmpty refs)
         ??: NotFound x
@@ -82,7 +93,7 @@ search dbReader src query = runExceptT do
         compats = feats <&> \feat -> toCompat ! #query feat
 
     -- 4. Load candidates based on compats
-    cands <- liftIO $ loadByAnyFeature dbReader compats
+    cands <- liftIO $ loadByAnyFeature config.dbReader compats
 
     -- 4. Try matching
     matches <- liftIO $ match tenv resol typ' cands
@@ -105,3 +116,8 @@ match' :: TopEnv -> Resol -> Term -> LibraryItem -> IStr.Stream Match
 match' tenv resol query item@LibraryItem {..} = do
   (iso, solution) <- check0 tenv resol query canonicalName signature
   pure Match {..}
+
+--------------------------------------------------------------------------------
+
+onTimeout :: Int -> a -> IO a -> IO a
+onTimeout s x m = maybe (pure x) pure =<< timeout s m

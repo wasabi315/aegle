@@ -97,14 +97,21 @@ data Match = Match
   deriving anyclass (ToJSON)
 
 search :: DbReader IO -> Server SearchAPI
-search dbReader query = do
+search dbReader = \query -> do
   guard (not $ T.null $ T.strip query)
     ??: err400 {errBody = "Query parameter q must not be empty"}
   result <-
-    liftIO (Search.search dbReader "<query param>" query)
+    liftIO (Search.search config query)
       ?% convertError
   pure $! convertResult result
   where
+    config =
+      Search.Config
+        { querySrc = "<query param>",
+          timeout = 3000000,
+          ..
+        }
+
     convertResult Search.Result {..} = do
       let sorted = sortOn (termSize . (.solution)) matches
       Result {matches = map convertMatch sorted, ..}
@@ -120,14 +127,15 @@ search dbReader query = do
     convertError e = case e of
       Search.ParseError {} -> err400 {errBody = fromString $ displayException e}
       Search.NotFound {} -> err404 {errBody = fromString $ displayException e}
+      Search.Timeout -> err422 {errBody = fromString $ displayException e}
 
 --------------------------------------------------------------------------------
 -- Web interface
 
 searchUI :: DbReader IO -> Server SearchUI
-searchUI dbReader query = do
+searchUI dbReader = \query -> do
   let query' = filter (not . T.null . T.strip) query
-  result <- for query' $ liftIO . Search.search dbReader "<query param>"
+  result <- for query' $ liftIO . Search.search config
 
   pure $ layoutHtml do
     h1_ do
@@ -149,6 +157,13 @@ searchUI dbReader query = do
       Just (Left e) ->
         pre_ $ code_ [class_ "error"] $ toHtml $ displayException e
   where
+    config =
+      Search.Config
+        { querySrc = "<query param>",
+          timeout = 3000000,
+          ..
+        }
+
     hrefTop = safeAbsHref_ @SearchUI api Proxy
 
     -- Ref: Agda.Interaction.Highlighting.HTML.Base.annotate

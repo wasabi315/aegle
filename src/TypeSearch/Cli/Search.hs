@@ -38,7 +38,13 @@ search Command {..} =
 
 searchWith :: DbReader IO -> T.Text -> IO ()
 searchWith dbReader query = do
-  result <- Search.search dbReader "<interactive>" query
+  let config =
+        Search.Config
+          { querySrc = "<interactive>",
+            timeout = 3000000,
+            ..
+          }
+  result <- Search.search config query
   either putError putResult result
 
 putResult :: Result -> IO ()
