@@ -61,6 +61,8 @@ module TypeSearch.Prelude
     timed,
     (??:),
     (??%),
+    (?:),
+    (?%),
     orThrow,
     trace,
     traceFalse,
@@ -158,6 +160,12 @@ infix 0 ??:, ??%
 
 (??%) :: (MonadError e' m) => Either e a -> (e -> e') -> m a
 (??%) x f = either (throwError . f) pure x
+
+(?:) :: (MonadError e m) => m (Maybe a) -> e -> m a
+(?:) m e = m >>= (??: e)
+
+(?%) :: (MonadError e' m) => m (Either e a) -> (e -> e') -> m a
+(?%) m e = m >>= (??% e)
 
 orThrow :: (Exception a) => IO (Either a b) -> IO b
 orThrow m = either throwIO pure =<< m

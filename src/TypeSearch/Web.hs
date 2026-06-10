@@ -52,9 +52,14 @@ type API =
     :<|> "static" :> Raw -- static assets like css and favicon
     :<|> "agda" :> Raw -- Agda HTML
 
-type SearchAPI = "search" :> QueryParam "q" T.Text :> Get '[JSON] Result
+type SearchAPI =
+  "search"
+    :> QueryParam' '[Required, Strict] "q" T.Text
+    :> Get '[JSON] Result
 
-type SearchUI = QueryParam "q" T.Text :> Get '[HTML] (Html ())
+type SearchUI =
+  QueryParam "q" T.Text
+    :> Get '[HTML] (Html ())
 
 api :: Proxy API
 api = Proxy
@@ -92,42 +97,37 @@ data Match = Match
   deriving anyclass (ToJSON)
 
 search :: DbReader IO -> Server SearchAPI
-search dbReader = \case
-  Nothing -> pure Result {numCands = 0, time = 0, matches = []}
-  Just query -> do
-    result <- liftIO $ Search.search dbReader "<query param>" query
-    case result of
-      Right result -> pure $! convert result
-      Left e@Search.ParseError {} ->
-        throwError
-          err400
-            { errBody = fromString $ displayException e
-            }
-      Left e@Search.NotFound {} ->
-        throwError
-          err404
-            { errBody = fromString $ displayException e
-            }
+search dbReader query = do
+  guard (not $ T.null $ T.strip query)
+    ??: err400 {errBody = "Query parameter q must not be empty"}
+  result <-
+    liftIO (Search.search dbReader "<query param>" query)
+      ?% convertError
+  pure $! convertResult result
   where
-    convert Search.Result {..} =
-      Result
-        { matches =
-            sortOn (termSize . (.solution)) matches <&> \Search.Match {item = LibraryItem {..}, ..} ->
-              Match
-                { signature = T.show $ pretty $ Unqualified signature,
-                  iso = T.show $ pretty iso,
-                  solution = T.show $ pretty $ Unqualified solution,
-                  ..
-                },
+    convertResult Search.Result {..} = do
+      let sorted = sortOn (termSize . (.solution)) matches
+      Result {matches = map convertMatch sorted, ..}
+
+    convertMatch Search.Match {item = LibraryItem {..}, ..} =
+      Match
+        { signature = T.show $ pretty $ Unqualified signature,
+          iso = T.show $ pretty iso,
+          solution = T.show $ pretty $ Unqualified solution,
           ..
         }
+
+    convertError e = case e of
+      Search.ParseError {} -> err400 {errBody = fromString $ displayException e}
+      Search.NotFound {} -> err404 {errBody = fromString $ displayException e}
 
 --------------------------------------------------------------------------------
 -- Web interface
 
 searchUI :: DbReader IO -> Server SearchUI
 searchUI dbReader query = do
-  result <- for query $ liftIO . Search.search dbReader "<query param>"
+  let query' = filter (not . T.null . T.strip) query
+  result <- for query' $ liftIO . Search.search dbReader "<query param>"
 
   pure $ layoutHtml do
     h1_ do
