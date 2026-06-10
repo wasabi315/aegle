@@ -2,16 +2,14 @@
 
 A prototype type-based library search tool for Agda.
 
-## What it does
+## What It Does
 
-Aegle lets you search for Agda definitions by type.
+Aegle searches Agda definitions by type, beyond syntactic equality:
 
-The search is not limited to syntactic equality:
-
-- Match up to basic type isomorphisms, so we can find definitions whose types are essentially the same as the query but written in a different shape. Aegle supports permutations of arguments and pair components, pair associativity, and currying, specifically.
+- Match up to basic type isomorphisms, so we can find definitions whose types are essentially the same as the query but written in a different shape.
 
    <details>
-     <summary>Supported type isomorphisms, formally</summary>
+     <summary>Supported type isomorphisms</summary>
 
   ```math
   \begin{align*}
@@ -28,15 +26,15 @@ The search is not limited to syntactic equality:
 
 - Expand type aliases, so queries do not have to use the same aliases as the definitions they match.
 
-Moreover, Aegle synthesises code that makes a matched definition fit the query type.
+Aegle also synthesises code that makes a matched definition fit the query type.
 
-For example, consider the query type `(A B : U) → (A → B) → A → B`. Aegle finds `Function.Base._$′_`, whose type exactly matches the query, and also:
+For query type `(A B : U) → (A → B) → A → B`, Aegle can suggest:
 
 ```agda
 Function.Base._|>_ : (A : U) (B : A → U) (x : A) → ((x : A) → B x) → B x
 ```
 
-with the following synthesised code:
+with synthesised code:
 
 ```agda
 (λ A B x y. _|>_ A (λ z. B) y x) : (A B : U) → (A → B) → A → B
@@ -46,28 +44,26 @@ with the following synthesised code:
 
 ### Preparation
 
-1. Start PostgreSQL.
+1. Start PostgreSQL and keep it running while using Aegle.
 
    ```sh
    nix run .#service
    ```
 
-   Keep this process running while using Aegle.
-
-2. In another shell, set the connection settings.
+2. Set the connection settings in another shell.
 
    ```sh
    export DATABASE_URL="postgresql://$USER@127.0.0.1:5432/aegle"
    ```
 
-   The web server also needs a port:
+   For the web server:
 
    ```sh
    export PORT=8080
    ```
 
-3. Generate Agda HTML. Aegle serves generated Agda HTML files, but it does not generate them by itself.
-   For the bundled agda-stdlib, generate `Everything.agda`, then generate HTML for it.
+3. Generate Agda HTML. Aegle serves HTML files but does not generate them.
+   For the bundled agda-stdlib:
 
    ```sh
    cd vendor/agda-stdlib
@@ -83,10 +79,11 @@ with the following synthesised code:
 stack build
 ```
 
+Nix builds are not supported yet.
+
 ### Index a library
 
-Indexing reads an Agda library and stores searchable definitions in PostgreSQL.
-The second argument is a JSON file listing definitions that Aegle should treat as type aliases.
+Index an Agda library into database. The second argument lists definitions to treat as type aliases.
 
 ```sh
 stack exec aegle -- index vendor/agda-stdlib data/transparent_defs.json
@@ -94,21 +91,15 @@ stack exec aegle -- index vendor/agda-stdlib data/transparent_defs.json
 
 ### Search from the CLI
 
-After indexing, pass a query type to `search`:
-
 ```sh
 stack exec aegle -- search '(A B : U) → (A → B) → A → B'
-```
-
-For repeated queries, use the interactive shell:
-
-```sh
+# For repeated queries:
 stack exec aegle -- interactive
 ```
 
 ### Serve the web UI
 
-Run the web server with the same directory where Agda placed the generated HTML files.
+Serve the web UI with the generated HTML:
 
 ```sh
 stack exec aegle -- serve --html-dir vendor/agda-stdlib/doc/html
@@ -118,7 +109,7 @@ Then open <http://localhost:8080> in your browser.
 
 ## Query Syntax
 
-Queries use an Agda-like syntax with a few restrictions:
+Queries use an Agda-like syntax with restrictions:
 
 - Use `U` instead of `Set` or `Type`.
 - Write all arguments explicitly; implicit arguments are not supported.
@@ -129,7 +120,7 @@ Example: `Commutative Nat (_≡_ Nat) _+_`
 
 ## Reference
 
-Aegle grew out of the unification modulo type isomorphism algorithm described in the following paper, but the implementation has evolved since then.
+Aegle grew out of this paper, though the implementation has since evolved:
 
 - [Satoshi Takimoto et al., "Unification Modulo Isomorphisms between Dependent Types for Type-Based Library Search", TyDe 2025](https://dl.acm.org/doi/10.1145/3759538.3759651)
 
