@@ -139,7 +139,7 @@ searchUI dbReader = \query -> do
 
   pure $ layoutHtml do
     h1_ do
-      a_ [hrefTop Nothing] "Aegle"
+      a_ [hrefTop Nothing] "Aegle 🦅"
 
     form_ [method_ "get", action_ "/"] do
       input_
@@ -247,7 +247,7 @@ searchUI dbReader = \query -> do
 layoutHtml :: Html () -> Html ()
 layoutHtml content = doctypehtml_ do
   head_ do
-    title_ "Aegle"
+    title_ "Aegle 🦅"
     link_ [rel_ "stylesheet", type_ "text/css", href_ "/static/style.css"]
     meta_ [name_ "viewport", content_ "width=device-width, initial-scale=1"]
   body_ content
