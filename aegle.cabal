@@ -5,7 +5,7 @@ cabal-version: 2.2
 -- see: https://github.com/sol/hpack
 
 name:           aegle
-version:        0.2.0.0
+version:        0.1.0
 synopsis:       Type-based library search for Agda
 description:    Please see the README on GitHub at <https://github.com/wasabi315/aegle#readme>
 category:       Language
