@@ -127,6 +127,12 @@ Queries use an Agda-like syntax with a few restrictions:
 
 Example: `Commutative Nat (_≡_ Nat) _+_`
 
+## Reference
+
+Aegle grew out of the unification modulo type isomorphism algorithm described in the following paper, but the implementation has evolved since then.
+
+- [Satoshi Takimoto et al., "Unification Modulo Isomorphisms between Dependent Types for Type-Based Library Search", TyDe 2025](https://dl.acm.org/doi/10.1145/3759538.3759651)
+
 ## Acknowledgements
 
 - Aegle's core calculus is based in part on [elaboration-zoo](https://github.com/AndrasKovacs/elaboration-zoo).
