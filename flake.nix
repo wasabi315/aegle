@@ -1,5 +1,5 @@
 {
-  description = "dependent-type-search";
+  description = "aegle";
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-26.05"; # nixpkgs-unstable fails to build emacs on my laptop

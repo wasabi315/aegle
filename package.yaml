@@ -1,10 +1,10 @@
-name: dependent-type-search
-version: 0.1.0.0
-github: "githubuser/dependent-type-search"
+name: aegle
+version: 0.2.0.0
+github: wasabi315/aegle
 license: BSD-3-Clause
-author: "Author name here"
-maintainer: "example@example.com"
-copyright: "2025 Author name here"
+author: Satoshi Takimoto
+maintainer: wasabi.nvim.st@gmail.com
+copyright: 2016 András Kovács, 2025 Satoshi Takimoto
 
 extra-source-files:
   - README.md
@@ -14,14 +14,10 @@ data-files:
   - migration/*.sql
   - static/style.css
 
-# Metadata used when publishing your package
-# synopsis:            Short description of your package
-# category:            Web
+synopsis: Type-based library search for Agda
+category: Language
 
-# To avoid duplicated efforts in documentation and dealing with the
-# complications of embedding Haddock markup inside cabal files, it is
-# common to point users to the README.md file.
-description: Please see the README on GitHub at <https://github.com/githubuser/dependent-type-search#readme>
+description: Please see the README on GitHub at <https://github.com/wasabi315/aegle#readme>
 
 dependencies:
   - base >= 4.7 && < 5
@@ -131,6 +127,7 @@ ghc-options:
   - -Wno-name-shadowing
   - -O2
   - -funbox-strict-fields
+  - -optP-Wno-nonportable-include-path
 
 flags:
   debug:
@@ -164,11 +161,11 @@ library:
   source-dirs: src
 
 executables:
-  dependent-type-search:
+  aegle:
     main: Main.hs
     source-dirs: app
     dependencies:
-      - dependent-type-search
+      - aegle
     when:
       - condition: flag(debug)
         then:
@@ -181,8 +178,8 @@ executables:
             - -with-rtsopts= "-A64M -N4"
 
 tests:
-  dependent-type-search-test:
+  aegle-test:
     main: Spec.hs
     source-dirs: test
     dependencies:
-      - dependent-type-search
+      - aegle

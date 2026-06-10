@@ -7,7 +7,7 @@
   perSystem = { pkgs, config, ... }: {
     process-compose."service" = { config, ... }:
       let
-        dbName = "dependent-type-search";
+        dbName = "aegle";
       in
       {
         imports = [

@@ -30,6 +30,6 @@
       ];
     };
 
-    packages.default = self'.packages.dependent-type-search;
+    packages.default = self'.packages.aegle;
   };
 }

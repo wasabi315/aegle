@@ -1,4 +1,4 @@
-import TypeSearch.Prelude
+import Aegle.Prelude
 
 main :: IO ()
 main = putStrLn "Test suite not yet implemented"

@@ -1,7 +1,7 @@
 module Main (main) where
 
-import TypeSearch.Cli qualified
+import Aegle.Cli qualified
 import Prelude
 
 main :: IO ()
-main = TypeSearch.Cli.main
+main = Aegle.Cli.main
