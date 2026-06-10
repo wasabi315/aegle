@@ -1,4 +1,4 @@
-# Changelog for `dependent-type-search`
+# Changelog for `aegle`
 
 All notable changes to this project will be documented in this file.
 
