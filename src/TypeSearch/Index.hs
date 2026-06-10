@@ -3,6 +3,7 @@
 module TypeSearch.Index
   ( indexLibrary,
     Config (..),
+    TransparentDefName (..),
   )
 where
 
@@ -12,7 +13,7 @@ import Agda.Interaction.FindFile
 import Agda.Interaction.Imports
 import Agda.Interaction.Library
 import Agda.Interaction.Options
-import Agda.Syntax.Common.Pretty (prettyShow)
+import Agda.Syntax.Common.Pretty qualified as P
 import Agda.TypeChecking.Pretty
 import Agda.Utils.FileName
 import Agda.Utils.IO.Directory
@@ -20,12 +21,12 @@ import Agda.Utils.Impossible (__IMPOSSIBLE__)
 import Agda.Utils.Maybe (ifJustM)
 import Agda.Utils.Monad hiding (guard, unless)
 import Control.Foldl qualified as Foldl
+import Data.Map.Strict qualified as M
 import Data.Set qualified as S
-import Prettyprinter qualified as P
+import Data.Text qualified as T
 import System.Directory
 import System.FilePath.Find qualified as Find
 import System.IO
-import TypeSearch.Core.Name qualified as TS
 import TypeSearch.Database.Backend qualified as TS
 import TypeSearch.Index.Translate (runTransl)
 import TypeSearch.Index.Translate qualified as Transl
@@ -38,10 +39,17 @@ import TypeSearch.Prelude
 
 data Config = Config
   { -- | Set of fully-qualified definition names subject to definition unfolding during search.
-    transparentDefNames :: S.Set TS.QName,
+    transparentDefNames :: S.Set TransparentDefName,
     -- | Path to Agda library.
     libraryDir :: FilePath
   }
+
+data TransparentDefName = TransparentDefName
+  { toplevelModuleName :: T.Text,
+    name :: T.Text
+  }
+  deriving stock (Eq, Ord, Show, Generic)
+  deriving anyclass (FromJSON)
 
 -- TODO: make indexer an Agda backend when Agda supports --build-library for arbitrary backend
 
@@ -72,54 +80,56 @@ indexLibrary config builder = do
         . concat
         <$> forM (filePath libDirPrim : paths) (findWithInfo (pure True) (hasAgdaExtension <$> Find.filePath))
 
-    srcs <- for files \file -> do
-      path <- liftIO $ absolute file
-      sf <- srcFromPath path
-      parseSource sf
+    srcs <-
+      M.fromDistinctAscList <$> for files \file -> do
+        path <- liftIO $ absolute file
+        sf <- srcFromPath path
+        src <- parseSource sf
+        let modName = T.show $ P.pretty src.srcModuleName
+        pure (modName, src)
 
-    -- resolve transparent definition names
-    transparentDefNames <- resolveQNamesIn srcs config.transparentDefNames
+    transparentDefNames <- resolveTransparentDefNames srcs config.transparentDefNames
 
     flip Foldl.foldM srcs
       $ Foldl.premapM (extractFragment transparentDefNames)
       $ Foldl.hoists liftIO builder
 
-resolveQNamesIn :: [Source] -> S.Set TS.QName -> TCM (S.Set QName)
-resolveQNamesIn srcs transparentDefNames = do
-  (transparentDefNames, unresolved) <-
-    foldM
-      ( \(resolved, unresolved) src -> do
-          let m = src.srcModuleName
-          withCurrentModule noModuleName do
-            withTopLevelModule m do
-              mi <- getNonMainModuleInfo m (Just src)
-              setInterface mi.miInterface
-              withScope_ mi.miInterface.iInsideScope do
-                let mname = prettyShow mi.miInterface.iTopLevelModuleName
-                    (toResolve, unresolved') = partition ((mname ==) . show . P.pretty . (.moduleName)) unresolved
-                resolved' <- forM toResolve \x ->
-                  resolveDefinedName (show $ P.pretty x.name) >>= \case
-                    Nothing -> indexError $ "Couldn't find definition " <> pshow (P.pretty x)
-                    Just x -> pure x
-                pure (foldr S.insert resolved resolved', unresolved')
-      )
-      (mempty, S.toList transparentDefNames)
-      srcs
+resolveTransparentDefNames ::
+  M.Map T.Text Source -> S.Set TransparentDefName -> TCM (S.Set QName)
+resolveTransparentDefNames srcs transparentDefNames = do
+  let grouped =
+        S.toAscList transparentDefNames
+          & map (\TransparentDefName {..} -> (toplevelModuleName, [name]))
+          & M.fromAscListWith (++)
+  flip M.foldMapWithKey grouped \modName names -> do
+    src <- case M.lookup modName srcs of
+      Just src -> pure src
+      Nothing -> indexError $ "Could not find module " <> pretty modName
+    resolved <- resolveNamesIn src names
+    pure $! S.fromList resolved
 
-  unless (null unresolved) do
-    indexError
-      $ vsep ["Couldn't find definitions", prettyList_ (map (pshow . P.pretty) unresolved)]
-
-  pure transparentDefNames
+resolveNamesIn :: (Traversable t) => Source -> t T.Text -> TCM (t QName)
+resolveNamesIn src names = do
+  let modName = src.srcModuleName
+  withCurrentModule noModuleName do
+    withTopLevelModule modName do
+      modInfo <- getNonMainModuleInfo modName (Just src)
+      setInterface modInfo.miInterface
+      withScope_ modInfo.miInterface.iInsideScope do
+        for names \name ->
+          resolveDefinedName (T.unpack name) >>= \case
+            Just resolved -> pure resolved
+            Nothing -> indexError do
+              "Could not find definition " <> pretty modName <> "." <> pretty name
 
 extractFragment :: S.Set QName -> Source -> TCM TS.LibraryFragment
 extractFragment transparentDefNames src = do
-  let m = src.srcModuleName
+  let modName = src.srcModuleName
   withCurrentModule noModuleName do
-    withTopLevelModule m do
-      mi <- getNonMainModuleInfo m (Just src)
-      setInterface mi.miInterface
+    withTopLevelModule modName do
+      modInfo <- getNonMainModuleInfo modName (Just src)
+      setInterface modInfo.miInterface
       -- skip cubical for now
       ifJustM (useTC (stPragmaOptions . lensOptCubical)) (\_ -> pure mempty) do
         runTransl Transl.Config {..} do
-          translateScope mi.miInterface.iInsideScope
+          translateScope modInfo.miInterface.iInsideScope

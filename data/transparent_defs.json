@@ -1,3030 +1,3030 @@
 [
   {
-    "moduleName": "Agda.Builtin.Reflection",
+    "toplevelModuleName": "Agda.Builtin.Reflection",
     "name": "Telescope"
   },
   {
-    "moduleName": "Agda.Builtin.Reflection",
+    "toplevelModuleName": "Agda.Builtin.Reflection",
     "name": "Type"
   },
   {
-    "moduleName": "Agda.Builtin.Size",
+    "toplevelModuleName": "Agda.Builtin.Size",
     "name": "SizeUniv"
   },
   {
-    "moduleName": "Algebra.Bundles",
+    "toplevelModuleName": "Algebra.Bundles",
     "name": "BoundedLattice"
   },
   {
-    "moduleName": "Algebra.Core",
+    "toplevelModuleName": "Algebra.Core",
     "name": "Op₁"
   },
   {
-    "moduleName": "Algebra.Core",
+    "toplevelModuleName": "Algebra.Core",
     "name": "Op₂"
   },
   {
-    "moduleName": "Algebra.Definitions",
+    "toplevelModuleName": "Algebra.Definitions",
     "name": "_Absorbs_"
   },
   {
-    "moduleName": "Algebra.Definitions",
+    "toplevelModuleName": "Algebra.Definitions",
     "name": "_DistributesOver_"
   },
   {
-    "moduleName": "Algebra.Definitions",
+    "toplevelModuleName": "Algebra.Definitions",
     "name": "_DistributesOverˡ_"
   },
   {
-    "moduleName": "Algebra.Definitions",
+    "toplevelModuleName": "Algebra.Definitions",
     "name": "_DistributesOverʳ_"
   },
   {
-    "moduleName": "Algebra.Definitions",
+    "toplevelModuleName": "Algebra.Definitions",
     "name": "_IdempotentOn_"
   },
   {
-    "moduleName": "Algebra.Definitions",
+    "toplevelModuleName": "Algebra.Definitions",
     "name": "_MiddleFourExchange_"
   },
   {
-    "moduleName": "Algebra.Definitions",
+    "toplevelModuleName": "Algebra.Definitions",
     "name": "Absorptive"
   },
   {
-    "moduleName": "Algebra.Definitions",
+    "toplevelModuleName": "Algebra.Definitions",
     "name": "AlmostCancellative"
   },
   {
-    "moduleName": "Algebra.Definitions",
+    "toplevelModuleName": "Algebra.Definitions",
     "name": "AlmostLeftCancellative"
   },
   {
-    "moduleName": "Algebra.Definitions",
+    "toplevelModuleName": "Algebra.Definitions",
     "name": "AlmostRightCancellative"
   },
   {
-    "moduleName": "Algebra.Definitions",
+    "toplevelModuleName": "Algebra.Definitions",
     "name": "Alternative"
   },
   {
-    "moduleName": "Algebra.Definitions",
+    "toplevelModuleName": "Algebra.Definitions",
     "name": "Associative"
   },
   {
-    "moduleName": "Algebra.Definitions",
+    "toplevelModuleName": "Algebra.Definitions",
     "name": "Cancellative"
   },
   {
-    "moduleName": "Algebra.Definitions",
+    "toplevelModuleName": "Algebra.Definitions",
     "name": "Commutative"
   },
   {
-    "moduleName": "Algebra.Definitions",
+    "toplevelModuleName": "Algebra.Definitions",
     "name": "Congruent₁"
   },
   {
-    "moduleName": "Algebra.Definitions",
+    "toplevelModuleName": "Algebra.Definitions",
     "name": "Congruent₂"
   },
   {
-    "moduleName": "Algebra.Definitions",
+    "toplevelModuleName": "Algebra.Definitions",
     "name": "Conical"
   },
   {
-    "moduleName": "Algebra.Definitions",
+    "toplevelModuleName": "Algebra.Definitions",
     "name": "Flexible"
   },
   {
-    "moduleName": "Algebra.Definitions",
+    "toplevelModuleName": "Algebra.Definitions",
     "name": "Idempotent"
   },
   {
-    "moduleName": "Algebra.Definitions",
+    "toplevelModuleName": "Algebra.Definitions",
     "name": "IdempotentFun"
   },
   {
-    "moduleName": "Algebra.Definitions",
+    "toplevelModuleName": "Algebra.Definitions",
     "name": "Identical"
   },
   {
-    "moduleName": "Algebra.Definitions",
+    "toplevelModuleName": "Algebra.Definitions",
     "name": "Identity"
   },
   {
-    "moduleName": "Algebra.Definitions",
+    "toplevelModuleName": "Algebra.Definitions",
     "name": "Interchangable"
   },
   {
-    "moduleName": "Algebra.Definitions",
+    "toplevelModuleName": "Algebra.Definitions",
     "name": "Inverse"
   },
   {
-    "moduleName": "Algebra.Definitions",
+    "toplevelModuleName": "Algebra.Definitions",
     "name": "Invertible"
   },
   {
-    "moduleName": "Algebra.Definitions",
+    "toplevelModuleName": "Algebra.Definitions",
     "name": "Involutive"
   },
   {
-    "moduleName": "Algebra.Definitions",
+    "toplevelModuleName": "Algebra.Definitions",
     "name": "LeftAlternative"
   },
   {
-    "moduleName": "Algebra.Definitions",
+    "toplevelModuleName": "Algebra.Definitions",
     "name": "LeftBol"
   },
   {
-    "moduleName": "Algebra.Definitions",
+    "toplevelModuleName": "Algebra.Definitions",
     "name": "LeftCancellative"
   },
   {
-    "moduleName": "Algebra.Definitions",
+    "toplevelModuleName": "Algebra.Definitions",
     "name": "LeftCongruent"
   },
   {
-    "moduleName": "Algebra.Definitions",
+    "toplevelModuleName": "Algebra.Definitions",
     "name": "LeftConical"
   },
   {
-    "moduleName": "Algebra.Definitions",
+    "toplevelModuleName": "Algebra.Definitions",
     "name": "LeftDivides"
   },
   {
-    "moduleName": "Algebra.Definitions",
+    "toplevelModuleName": "Algebra.Definitions",
     "name": "LeftDividesˡ"
   },
   {
-    "moduleName": "Algebra.Definitions",
+    "toplevelModuleName": "Algebra.Definitions",
     "name": "LeftDividesʳ"
   },
   {
-    "moduleName": "Algebra.Definitions",
+    "toplevelModuleName": "Algebra.Definitions",
     "name": "LeftIdentity"
   },
   {
-    "moduleName": "Algebra.Definitions",
+    "toplevelModuleName": "Algebra.Definitions",
     "name": "LeftInverse"
   },
   {
-    "moduleName": "Algebra.Definitions",
+    "toplevelModuleName": "Algebra.Definitions",
     "name": "LeftInvertible"
   },
   {
-    "moduleName": "Algebra.Definitions",
+    "toplevelModuleName": "Algebra.Definitions",
     "name": "LeftSemimedial"
   },
   {
-    "moduleName": "Algebra.Definitions",
+    "toplevelModuleName": "Algebra.Definitions",
     "name": "LeftZero"
   },
   {
-    "moduleName": "Algebra.Definitions",
+    "toplevelModuleName": "Algebra.Definitions",
     "name": "Medial"
   },
   {
-    "moduleName": "Algebra.Definitions",
+    "toplevelModuleName": "Algebra.Definitions",
     "name": "MiddleBol"
   },
   {
-    "moduleName": "Algebra.Definitions.RawMagma",
+    "toplevelModuleName": "Algebra.Definitions.RawMagma",
     "name": "_∣_"
   },
   {
-    "moduleName": "Algebra.Definitions.RawMagma",
+    "toplevelModuleName": "Algebra.Definitions.RawMagma",
     "name": "_∤_"
   },
   {
-    "moduleName": "Algebra.Definitions.RawMagma",
+    "toplevelModuleName": "Algebra.Definitions.RawMagma",
     "name": "_∥_"
   },
   {
-    "moduleName": "Algebra.Definitions.RawMagma",
+    "toplevelModuleName": "Algebra.Definitions.RawMagma",
     "name": "_∦_"
   },
   {
-    "moduleName": "Algebra.Definitions.RawMagma",
+    "toplevelModuleName": "Algebra.Definitions.RawMagma",
     "name": "_∤ˡ_"
   },
   {
-    "moduleName": "Algebra.Definitions.RawMagma",
+    "toplevelModuleName": "Algebra.Definitions.RawMagma",
     "name": "_∤ʳ_"
   },
   {
-    "moduleName": "Algebra.Definitions.RawMonoid",
+    "toplevelModuleName": "Algebra.Definitions.RawMonoid",
     "name": "_∦_"
   },
   {
-    "moduleName": "Algebra.Definitions.RawSemiring",
+    "toplevelModuleName": "Algebra.Definitions.RawSemiring",
     "name": "_∣_"
   },
   {
-    "moduleName": "Algebra.Definitions.RawSemiring",
+    "toplevelModuleName": "Algebra.Definitions.RawSemiring",
     "name": "_∤_"
   },
   {
-    "moduleName": "Algebra.Definitions.RawSemiring",
+    "toplevelModuleName": "Algebra.Definitions.RawSemiring",
     "name": "Coprime"
   },
   {
-    "moduleName": "Algebra.Definitions",
+    "toplevelModuleName": "Algebra.Definitions",
     "name": "RightAlternative"
   },
   {
-    "moduleName": "Algebra.Definitions",
+    "toplevelModuleName": "Algebra.Definitions",
     "name": "RightBol"
   },
   {
-    "moduleName": "Algebra.Definitions",
+    "toplevelModuleName": "Algebra.Definitions",
     "name": "RightCancellative"
   },
   {
-    "moduleName": "Algebra.Definitions",
+    "toplevelModuleName": "Algebra.Definitions",
     "name": "RightCongruent"
   },
   {
-    "moduleName": "Algebra.Definitions",
+    "toplevelModuleName": "Algebra.Definitions",
     "name": "RightConical"
   },
   {
-    "moduleName": "Algebra.Definitions",
+    "toplevelModuleName": "Algebra.Definitions",
     "name": "RightDivides"
   },
   {
-    "moduleName": "Algebra.Definitions",
+    "toplevelModuleName": "Algebra.Definitions",
     "name": "RightDividesˡ"
   },
   {
-    "moduleName": "Algebra.Definitions",
+    "toplevelModuleName": "Algebra.Definitions",
     "name": "RightDividesʳ"
   },
   {
-    "moduleName": "Algebra.Definitions",
+    "toplevelModuleName": "Algebra.Definitions",
     "name": "RightIdentity"
   },
   {
-    "moduleName": "Algebra.Definitions",
+    "toplevelModuleName": "Algebra.Definitions",
     "name": "RightInverse"
   },
   {
-    "moduleName": "Algebra.Definitions",
+    "toplevelModuleName": "Algebra.Definitions",
     "name": "RightInvertible"
   },
   {
-    "moduleName": "Algebra.Definitions",
+    "toplevelModuleName": "Algebra.Definitions",
     "name": "RightSemimedial"
   },
   {
-    "moduleName": "Algebra.Definitions",
+    "toplevelModuleName": "Algebra.Definitions",
     "name": "RightZero"
   },
   {
-    "moduleName": "Algebra.Definitions",
+    "toplevelModuleName": "Algebra.Definitions",
     "name": "Selective"
   },
   {
-    "moduleName": "Algebra.Definitions",
+    "toplevelModuleName": "Algebra.Definitions",
     "name": "SelfInverse"
   },
   {
-    "moduleName": "Algebra.Definitions",
+    "toplevelModuleName": "Algebra.Definitions",
     "name": "Semimedial"
   },
   {
-    "moduleName": "Algebra.Definitions",
+    "toplevelModuleName": "Algebra.Definitions",
     "name": "StarDestructive"
   },
   {
-    "moduleName": "Algebra.Definitions",
+    "toplevelModuleName": "Algebra.Definitions",
     "name": "StarExpansive"
   },
   {
-    "moduleName": "Algebra.Definitions",
+    "toplevelModuleName": "Algebra.Definitions",
     "name": "StarLeftDestructive"
   },
   {
-    "moduleName": "Algebra.Definitions",
+    "toplevelModuleName": "Algebra.Definitions",
     "name": "StarLeftExpansive"
   },
   {
-    "moduleName": "Algebra.Definitions",
+    "toplevelModuleName": "Algebra.Definitions",
     "name": "StarRightDestructive"
   },
   {
-    "moduleName": "Algebra.Definitions",
+    "toplevelModuleName": "Algebra.Definitions",
     "name": "StarRightExpansive"
   },
   {
-    "moduleName": "Algebra.Definitions",
+    "toplevelModuleName": "Algebra.Definitions",
     "name": "Zero"
   },
   {
-    "moduleName": "Algebra.Module.Core",
+    "toplevelModuleName": "Algebra.Module.Core",
     "name": "Opₗ"
   },
   {
-    "moduleName": "Algebra.Module.Core",
+    "toplevelModuleName": "Algebra.Module.Core",
     "name": "Opᵣ"
   },
   {
-    "moduleName": "Algebra.Module.Definitions.Bi",
+    "toplevelModuleName": "Algebra.Module.Definitions.Bi",
     "name": "Associative"
   },
   {
-    "moduleName": "Algebra.Module.Definitions.Bi.Simultaneous",
+    "toplevelModuleName": "Algebra.Module.Definitions.Bi.Simultaneous",
     "name": "Coincident"
   },
   {
-    "moduleName": "Algebra.Module.Definitions.Left",
+    "toplevelModuleName": "Algebra.Module.Definitions.Left",
     "name": "_DistributesOverˡ_"
   },
   {
-    "moduleName": "Algebra.Module.Definitions.Left",
+    "toplevelModuleName": "Algebra.Module.Definitions.Left",
     "name": "_DistributesOverʳ_⟶_"
   },
   {
-    "moduleName": "Algebra.Module.Definitions.Left",
+    "toplevelModuleName": "Algebra.Module.Definitions.Left",
     "name": "Associative"
   },
   {
-    "moduleName": "Algebra.Module.Definitions.Left",
+    "toplevelModuleName": "Algebra.Module.Definitions.Left",
     "name": "Commutative"
   },
   {
-    "moduleName": "Algebra.Module.Definitions.Left",
+    "toplevelModuleName": "Algebra.Module.Definitions.Left",
     "name": "Congruent"
   },
   {
-    "moduleName": "Algebra.Module.Definitions.Left",
+    "toplevelModuleName": "Algebra.Module.Definitions.Left",
     "name": "LeftCongruent"
   },
   {
-    "moduleName": "Algebra.Module.Definitions.Left",
+    "toplevelModuleName": "Algebra.Module.Definitions.Left",
     "name": "LeftIdentity"
   },
   {
-    "moduleName": "Algebra.Module.Definitions.Left",
+    "toplevelModuleName": "Algebra.Module.Definitions.Left",
     "name": "LeftZero"
   },
   {
-    "moduleName": "Algebra.Module.Definitions.Left",
+    "toplevelModuleName": "Algebra.Module.Definitions.Left",
     "name": "RightCongruent"
   },
   {
-    "moduleName": "Algebra.Module.Definitions.Left",
+    "toplevelModuleName": "Algebra.Module.Definitions.Left",
     "name": "RightZero"
   },
   {
-    "moduleName": "Algebra.Module.Definitions.Right",
+    "toplevelModuleName": "Algebra.Module.Definitions.Right",
     "name": "_DistributesOverˡ_⟶_"
   },
   {
-    "moduleName": "Algebra.Module.Definitions.Right",
+    "toplevelModuleName": "Algebra.Module.Definitions.Right",
     "name": "_DistributesOverʳ_"
   },
   {
-    "moduleName": "Algebra.Module.Definitions.Right",
+    "toplevelModuleName": "Algebra.Module.Definitions.Right",
     "name": "Associative"
   },
   {
-    "moduleName": "Algebra.Module.Definitions.Right",
+    "toplevelModuleName": "Algebra.Module.Definitions.Right",
     "name": "Commutative"
   },
   {
-    "moduleName": "Algebra.Module.Definitions.Right",
+    "toplevelModuleName": "Algebra.Module.Definitions.Right",
     "name": "Congruent"
   },
   {
-    "moduleName": "Algebra.Module.Definitions.Right",
+    "toplevelModuleName": "Algebra.Module.Definitions.Right",
     "name": "LeftCongruent"
   },
   {
-    "moduleName": "Algebra.Module.Definitions.Right",
+    "toplevelModuleName": "Algebra.Module.Definitions.Right",
     "name": "LeftZero"
   },
   {
-    "moduleName": "Algebra.Module.Definitions.Right",
+    "toplevelModuleName": "Algebra.Module.Definitions.Right",
     "name": "RightCongruent"
   },
   {
-    "moduleName": "Algebra.Module.Definitions.Right",
+    "toplevelModuleName": "Algebra.Module.Definitions.Right",
     "name": "RightIdentity"
   },
   {
-    "moduleName": "Algebra.Module.Definitions.Right",
+    "toplevelModuleName": "Algebra.Module.Definitions.Right",
     "name": "RightZero"
   },
   {
-    "moduleName": "Algebra.Module.Morphism.Definitions",
+    "toplevelModuleName": "Algebra.Module.Morphism.Definitions",
     "name": "Homomorphicₗ"
   },
   {
-    "moduleName": "Algebra.Module.Morphism.Definitions",
+    "toplevelModuleName": "Algebra.Module.Morphism.Definitions",
     "name": "Homomorphicᵣ"
   },
   {
-    "moduleName": "Algebra.Module.Morphism.Definitions",
+    "toplevelModuleName": "Algebra.Module.Morphism.Definitions",
     "name": "Morphism"
   },
   {
-    "moduleName": "Algebra.Module.Morphism.ModuleHomomorphism",
+    "toplevelModuleName": "Algebra.Module.Morphism.ModuleHomomorphism",
     "name": "NonTrivial"
   },
   {
-    "moduleName": "Algebra.Morphism.Definitions",
+    "toplevelModuleName": "Algebra.Morphism.Definitions",
     "name": "Homomorphic₀"
   },
   {
-    "moduleName": "Algebra.Morphism.Definitions",
+    "toplevelModuleName": "Algebra.Morphism.Definitions",
     "name": "Homomorphic₁"
   },
   {
-    "moduleName": "Algebra.Morphism.Definitions",
+    "toplevelModuleName": "Algebra.Morphism.Definitions",
     "name": "Homomorphic₂"
   },
   {
-    "moduleName": "Algebra.Morphism",
+    "toplevelModuleName": "Algebra.Morphism",
     "name": "IsAbelianGroupMorphism-syntax"
   },
   {
-    "moduleName": "Algebra.Morphism",
+    "toplevelModuleName": "Algebra.Morphism",
     "name": "IsCommutativeMonoidMorphism-syntax"
   },
   {
-    "moduleName": "Algebra.Morphism",
+    "toplevelModuleName": "Algebra.Morphism",
     "name": "IsGroupMorphism-syntax"
   },
   {
-    "moduleName": "Algebra.Morphism",
+    "toplevelModuleName": "Algebra.Morphism",
     "name": "IsIdempotentCommutativeMonoidMorphism-syntax"
   },
   {
-    "moduleName": "Algebra.Morphism",
+    "toplevelModuleName": "Algebra.Morphism",
     "name": "IsMonoidMorphism-syntax"
   },
   {
-    "moduleName": "Algebra.Morphism",
+    "toplevelModuleName": "Algebra.Morphism",
     "name": "IsRingMorphism-syntax"
   },
   {
-    "moduleName": "Algebra.Morphism",
+    "toplevelModuleName": "Algebra.Morphism",
     "name": "IsSemigroupMorphism-syntax"
   },
   {
-    "moduleName": "Algebra.Properties.Magma.Divisibility",
+    "toplevelModuleName": "Algebra.Properties.Magma.Divisibility",
     "name": "_∦_"
   },
   {
-    "moduleName": "Algebra.Solver.CommutativeMonoid",
+    "toplevelModuleName": "Algebra.Solver.CommutativeMonoid",
     "name": "Env"
   },
   {
-    "moduleName": "Algebra.Solver.IdempotentCommutativeMonoid",
+    "toplevelModuleName": "Algebra.Solver.IdempotentCommutativeMonoid",
     "name": "Env"
   },
   {
-    "moduleName": "Algebra.Solver.Monoid",
+    "toplevelModuleName": "Algebra.Solver.Monoid",
     "name": "Env"
   },
   {
-    "moduleName": "Algebra.Solver.Monoid.Expression",
+    "toplevelModuleName": "Algebra.Solver.Monoid.Expression",
     "name": "Env"
   },
   {
-    "moduleName": "Algebra.Solver.Ring",
+    "toplevelModuleName": "Algebra.Solver.Ring",
     "name": "Env"
   },
   {
-    "moduleName": "Axiom.DoubleNegationElimination",
+    "toplevelModuleName": "Axiom.DoubleNegationElimination",
     "name": "DoubleNegationElimination"
   },
   {
-    "moduleName": "Axiom.ExcludedMiddle",
+    "toplevelModuleName": "Axiom.ExcludedMiddle",
     "name": "ExcludedMiddle"
   },
   {
-    "moduleName": "Axiom.Extensionality.Heterogeneous",
+    "toplevelModuleName": "Axiom.Extensionality.Heterogeneous",
     "name": "Extensionality"
   },
   {
-    "moduleName": "Axiom.Extensionality.Propositional",
+    "toplevelModuleName": "Axiom.Extensionality.Propositional",
     "name": "Extensionality"
   },
   {
-    "moduleName": "Axiom.Extensionality.Propositional",
+    "toplevelModuleName": "Axiom.Extensionality.Propositional",
     "name": "ExtensionalityImplicit"
   },
   {
-    "moduleName": "Axiom.UniquenessOfIdentityProofs",
+    "toplevelModuleName": "Axiom.UniquenessOfIdentityProofs",
     "name": "UIP"
   },
   {
-    "moduleName": "Codata.Musical.Colist",
+    "toplevelModuleName": "Codata.Musical.Colist",
     "name": "_∈_"
   },
   {
-    "moduleName": "Codata.Musical.Colist",
+    "toplevelModuleName": "Codata.Musical.Colist",
     "name": "_⊆_"
   },
   {
-    "moduleName": "Codata.Musical.Costring",
+    "toplevelModuleName": "Codata.Musical.Costring",
     "name": "Costring"
   },
   {
-    "moduleName": "Codata.Sized.Conat",
+    "toplevelModuleName": "Codata.Sized.Conat",
     "name": "_ℕ<_"
   },
   {
-    "moduleName": "Codata.Sized.Thunk",
+    "toplevelModuleName": "Codata.Sized.Thunk",
     "name": "Thunk^P"
   },
   {
-    "moduleName": "Codata.Sized.Thunk",
+    "toplevelModuleName": "Codata.Sized.Thunk",
     "name": "Thunk^R"
   },
   {
-    "moduleName": "Data.Char.Base",
+    "toplevelModuleName": "Data.Char.Base",
     "name": "_≈_"
   },
   {
-    "moduleName": "Data.Char.Base",
+    "toplevelModuleName": "Data.Char.Base",
     "name": "_≉_"
   },
   {
-    "moduleName": "Data.Char.Base",
+    "toplevelModuleName": "Data.Char.Base",
     "name": "_≤_"
   },
   {
-    "moduleName": "Data.Char.Base",
+    "toplevelModuleName": "Data.Char.Base",
     "name": "_<_"
   },
   {
-    "moduleName": "Data.Char.Properties",
+    "toplevelModuleName": "Data.Char.Properties",
     "name": "≈-subst"
   },
   {
-    "moduleName": "Data.Container",
+    "toplevelModuleName": "Data.Container",
     "name": "μ"
   },
   {
-    "moduleName": "Data.Container.Fixpoints.Guarded",
+    "toplevelModuleName": "Data.Container.Fixpoints.Guarded",
     "name": "ν"
   },
   {
-    "moduleName": "Data.Container.Fixpoints.Sized",
+    "toplevelModuleName": "Data.Container.Fixpoints.Sized",
     "name": "μ"
   },
   {
-    "moduleName": "Data.Container.Fixpoints.Sized",
+    "toplevelModuleName": "Data.Container.Fixpoints.Sized",
     "name": "ν"
   },
   {
-    "moduleName": "Data.Container.Indexed",
+    "toplevelModuleName": "Data.Container.Indexed",
     "name": "μ"
   },
   {
-    "moduleName": "Data.Container.Indexed",
+    "toplevelModuleName": "Data.Container.Indexed",
     "name": "_▷_"
   },
   {
-    "moduleName": "Data.Container.Indexed",
+    "toplevelModuleName": "Data.Container.Indexed",
     "name": "_⇒C_"
   },
   {
-    "moduleName": "Data.Container.Indexed.Fixpoints.Guarded",
+    "toplevelModuleName": "Data.Container.Indexed.Fixpoints.Guarded",
     "name": "ν"
   },
   {
-    "moduleName": "Data.Container.Indexed.FreeMonad",
+    "toplevelModuleName": "Data.Container.Indexed.FreeMonad",
     "name": "_⋆_"
   },
   {
-    "moduleName": "Data.Container.Indexed.WithK",
+    "toplevelModuleName": "Data.Container.Indexed.WithK",
     "name": "_∈_"
   },
   {
-    "moduleName": "Data.Container.Membership",
+    "toplevelModuleName": "Data.Container.Membership",
     "name": "_∈_"
   },
   {
-    "moduleName": "Data.Container.Related",
+    "toplevelModuleName": "Data.Container.Related",
     "name": "_∼[_]_"
   },
   {
-    "moduleName": "Data.Container.Related",
+    "toplevelModuleName": "Data.Container.Related",
     "name": "_≲[_]_"
   },
   {
-    "moduleName": "Data.DifferenceList",
+    "toplevelModuleName": "Data.DifferenceList",
     "name": "DiffList"
   },
   {
-    "moduleName": "Data.DifferenceNat",
+    "toplevelModuleName": "Data.DifferenceNat",
     "name": "Diffℕ"
   },
   {
-    "moduleName": "Data.DifferenceVec",
+    "toplevelModuleName": "Data.DifferenceVec",
     "name": "DiffVec"
   },
   {
-    "moduleName": "Data.DifferenceVec",
+    "toplevelModuleName": "Data.DifferenceVec",
     "name": "head"
   },
   {
-    "moduleName": "Data.Digit",
+    "toplevelModuleName": "Data.Digit",
     "name": "Bit"
   },
   {
-    "moduleName": "Data.Digit",
+    "toplevelModuleName": "Data.Digit",
     "name": "Decimal"
   },
   {
-    "moduleName": "Data.Digit",
+    "toplevelModuleName": "Data.Digit",
     "name": "Digit"
   },
   {
-    "moduleName": "Data.Digit",
+    "toplevelModuleName": "Data.Digit",
     "name": "Expansion"
   },
   {
-    "moduleName": "Data.Empty",
+    "toplevelModuleName": "Data.Empty",
     "name": "⊥"
   },
   {
-    "moduleName": "Data.Empty.Polymorphic",
+    "toplevelModuleName": "Data.Empty.Polymorphic",
     "name": "⊥"
   },
   {
-    "moduleName": "Data.Fin.Base",
+    "toplevelModuleName": "Data.Fin.Base",
     "name": "_≤_"
   },
   {
-    "moduleName": "Data.Fin.Base",
+    "toplevelModuleName": "Data.Fin.Base",
     "name": "_≥_"
   },
   {
-    "moduleName": "Data.Fin.Base",
+    "toplevelModuleName": "Data.Fin.Base",
     "name": "_≮_"
   },
   {
-    "moduleName": "Data.Fin.Base",
+    "toplevelModuleName": "Data.Fin.Base",
     "name": "_≰_"
   },
   {
-    "moduleName": "Data.Fin.Base",
+    "toplevelModuleName": "Data.Fin.Base",
     "name": "_<_"
   },
   {
-    "moduleName": "Data.Fin.Base",
+    "toplevelModuleName": "Data.Fin.Base",
     "name": "_>_"
   },
   {
-    "moduleName": "Data.Fin.Base",
+    "toplevelModuleName": "Data.Fin.Base",
     "name": "Fin′"
   },
   {
-    "moduleName": "Data.Fin.Induction",
+    "toplevelModuleName": "Data.Fin.Induction",
     "name": "≺-Rec"
   },
   {
-    "moduleName": "Data.Fin.Induction",
+    "toplevelModuleName": "Data.Fin.Induction",
     "name": "≺-recBuilder"
   },
   {
-    "moduleName": "Data.Fin.Permutation",
+    "toplevelModuleName": "Data.Fin.Permutation",
     "name": "_≈_"
   },
   {
-    "moduleName": "Data.Fin.Permutation",
+    "toplevelModuleName": "Data.Fin.Permutation",
     "name": "Permutation"
   },
   {
-    "moduleName": "Data.Fin.Permutation",
+    "toplevelModuleName": "Data.Fin.Permutation",
     "name": "Permutation′"
   },
   {
-    "moduleName": "Data.Fin.Permutation.Transposition.List",
+    "toplevelModuleName": "Data.Fin.Permutation.Transposition.List",
     "name": "TranspositionList"
   },
   {
-    "moduleName": "Data.Fin.Subset",
+    "toplevelModuleName": "Data.Fin.Subset",
     "name": "_∈_"
   },
   {
-    "moduleName": "Data.Fin.Subset",
+    "toplevelModuleName": "Data.Fin.Subset",
     "name": "_∉_"
   },
   {
-    "moduleName": "Data.Fin.Subset",
+    "toplevelModuleName": "Data.Fin.Subset",
     "name": "_⊂_"
   },
   {
-    "moduleName": "Data.Fin.Subset",
+    "toplevelModuleName": "Data.Fin.Subset",
     "name": "_⊃_"
   },
   {
-    "moduleName": "Data.Fin.Subset",
+    "toplevelModuleName": "Data.Fin.Subset",
     "name": "_⊄_"
   },
   {
-    "moduleName": "Data.Fin.Subset",
+    "toplevelModuleName": "Data.Fin.Subset",
     "name": "_⊅_"
   },
   {
-    "moduleName": "Data.Fin.Subset",
+    "toplevelModuleName": "Data.Fin.Subset",
     "name": "_⊆_"
   },
   {
-    "moduleName": "Data.Fin.Subset",
+    "toplevelModuleName": "Data.Fin.Subset",
     "name": "_⊇_"
   },
   {
-    "moduleName": "Data.Fin.Subset",
+    "toplevelModuleName": "Data.Fin.Subset",
     "name": "_⊈_"
   },
   {
-    "moduleName": "Data.Fin.Subset",
+    "toplevelModuleName": "Data.Fin.Subset",
     "name": "_⊉_"
   },
   {
-    "moduleName": "Data.Fin.Subset",
+    "toplevelModuleName": "Data.Fin.Subset",
     "name": "Empty"
   },
   {
-    "moduleName": "Data.Fin.Subset",
+    "toplevelModuleName": "Data.Fin.Subset",
     "name": "Lift"
   },
   {
-    "moduleName": "Data.Fin.Subset",
+    "toplevelModuleName": "Data.Fin.Subset",
     "name": "Nonempty"
   },
   {
-    "moduleName": "Data.Fin.Subset",
+    "toplevelModuleName": "Data.Fin.Subset",
     "name": "Subset"
   },
   {
-    "moduleName": "Data.Fin.Substitution",
+    "toplevelModuleName": "Data.Fin.Substitution",
     "name": "Sub"
   },
   {
-    "moduleName": "Data.Fin.Substitution",
+    "toplevelModuleName": "Data.Fin.Substitution",
     "name": "Subs"
   },
   {
-    "moduleName": "Data.Float.Base",
+    "toplevelModuleName": "Data.Float.Base",
     "name": "_≈_"
   },
   {
-    "moduleName": "Data.Float.Base",
+    "toplevelModuleName": "Data.Float.Base",
     "name": "_≤_"
   },
   {
-    "moduleName": "Data.Float.Properties",
+    "toplevelModuleName": "Data.Float.Properties",
     "name": "≈-subst"
   },
   {
-    "moduleName": "Data.Integer.Base",
+    "toplevelModuleName": "Data.Integer.Base",
     "name": "_≥_"
   },
   {
-    "moduleName": "Data.Integer.Base",
+    "toplevelModuleName": "Data.Integer.Base",
     "name": "_≮_"
   },
   {
-    "moduleName": "Data.Integer.Base",
+    "toplevelModuleName": "Data.Integer.Base",
     "name": "_≯_"
   },
   {
-    "moduleName": "Data.Integer.Base",
+    "toplevelModuleName": "Data.Integer.Base",
     "name": "_≰_"
   },
   {
-    "moduleName": "Data.Integer.Base",
+    "toplevelModuleName": "Data.Integer.Base",
     "name": "_≱_"
   },
   {
-    "moduleName": "Data.Integer.Base",
+    "toplevelModuleName": "Data.Integer.Base",
     "name": "_>_"
   },
   {
-    "moduleName": "Data.Integer.Base",
+    "toplevelModuleName": "Data.Integer.Base",
     "name": "NonZero"
   },
   {
-    "moduleName": "Data.Integer.Coprimality",
+    "toplevelModuleName": "Data.Integer.Coprimality",
     "name": "Coprime"
   },
   {
-    "moduleName": "Data.Integer.Divisibility",
+    "toplevelModuleName": "Data.Integer.Divisibility",
     "name": "_∣_"
   },
   {
-    "moduleName": "Data.List.Fresh.Membership.Setoid",
+    "toplevelModuleName": "Data.List.Fresh.Membership.Setoid",
     "name": "_∈_"
   },
   {
-    "moduleName": "Data.List.Fresh.Membership.Setoid",
+    "toplevelModuleName": "Data.List.Fresh.Membership.Setoid",
     "name": "_∉_"
   },
   {
-    "moduleName": "Data.List.Membership.Propositional",
+    "toplevelModuleName": "Data.List.Membership.Propositional",
     "name": "_≢∈_"
   },
   {
-    "moduleName": "Data.List.Membership.Setoid",
+    "toplevelModuleName": "Data.List.Membership.Setoid",
     "name": "_∈_"
   },
   {
-    "moduleName": "Data.List.Membership.Setoid",
+    "toplevelModuleName": "Data.List.Membership.Setoid",
     "name": "_∉_"
   },
   {
-    "moduleName": "Data.List.Relation.Binary.BagAndSetEquality",
+    "toplevelModuleName": "Data.List.Relation.Binary.BagAndSetEquality",
     "name": "_∼[_]_"
   },
   {
-    "moduleName": "Data.List.Relation.Binary.Disjoint.Setoid",
+    "toplevelModuleName": "Data.List.Relation.Binary.Disjoint.Setoid",
     "name": "Disjoint"
   },
   {
-    "moduleName": "Data.List.Relation.Binary.Equality.Setoid",
+    "toplevelModuleName": "Data.List.Relation.Binary.Equality.Setoid",
     "name": "_≋_"
   },
   {
-    "moduleName": "Data.List.Relation.Binary.Lex.Core",
+    "toplevelModuleName": "Data.List.Relation.Binary.Lex.Core",
     "name": "Lex-≤"
   },
   {
-    "moduleName": "Data.List.Relation.Binary.Lex.Core",
+    "toplevelModuleName": "Data.List.Relation.Binary.Lex.Core",
     "name": "Lex-<"
   },
   {
-    "moduleName": "Data.List.Relation.Binary.Permutation.Setoid",
+    "toplevelModuleName": "Data.List.Relation.Binary.Permutation.Setoid",
     "name": "_↭_"
   },
   {
-    "moduleName": "Data.List.Relation.Binary.Sublist.Heterogeneous.Solver",
+    "toplevelModuleName": "Data.List.Relation.Binary.Sublist.Heterogeneous.Solver",
     "name": "_⊆R_"
   },
   {
-    "moduleName": "Data.List.Relation.Binary.Sublist.Heterogeneous.Solver",
+    "toplevelModuleName": "Data.List.Relation.Binary.Sublist.Heterogeneous.Solver",
     "name": "_⊆T_"
   },
   {
-    "moduleName": "Data.List.Relation.Binary.Sublist.Heterogeneous.Solver",
+    "toplevelModuleName": "Data.List.Relation.Binary.Sublist.Heterogeneous.Solver",
     "name": "RList"
   },
   {
-    "moduleName": "Data.List.Relation.Binary.Sublist.Propositional.Example.UniqueBoundVariables",
+    "toplevelModuleName": "Data.List.Relation.Binary.Sublist.Propositional.Example.UniqueBoundVariables",
     "name": "BVars"
   },
   {
-    "moduleName": "Data.List.Relation.Binary.Sublist.Propositional.Example.UniqueBoundVariables",
+    "toplevelModuleName": "Data.List.Relation.Binary.Sublist.Propositional.Example.UniqueBoundVariables",
     "name": "Cxt"
   },
   {
-    "moduleName": "Data.List.Relation.Binary.Sublist.Setoid",
+    "toplevelModuleName": "Data.List.Relation.Binary.Sublist.Setoid",
     "name": "_⊂_"
   },
   {
-    "moduleName": "Data.List.Relation.Binary.Sublist.Setoid",
+    "toplevelModuleName": "Data.List.Relation.Binary.Sublist.Setoid",
     "name": "_⊃_"
   },
   {
-    "moduleName": "Data.List.Relation.Binary.Sublist.Setoid",
+    "toplevelModuleName": "Data.List.Relation.Binary.Sublist.Setoid",
     "name": "_⊄_"
   },
   {
-    "moduleName": "Data.List.Relation.Binary.Sublist.Setoid",
+    "toplevelModuleName": "Data.List.Relation.Binary.Sublist.Setoid",
     "name": "_⊆_"
   },
   {
-    "moduleName": "Data.List.Relation.Binary.Sublist.Setoid",
+    "toplevelModuleName": "Data.List.Relation.Binary.Sublist.Setoid",
     "name": "_⊇_"
   },
   {
-    "moduleName": "Data.List.Relation.Binary.Sublist.Setoid",
+    "toplevelModuleName": "Data.List.Relation.Binary.Sublist.Setoid",
     "name": "_⊈_"
   },
   {
-    "moduleName": "Data.List.Relation.Binary.Sublist.Setoid",
+    "toplevelModuleName": "Data.List.Relation.Binary.Sublist.Setoid",
     "name": "_⊉_"
   },
   {
-    "moduleName": "Data.List.Relation.Binary.Subset.DecSetoid",
+    "toplevelModuleName": "Data.List.Relation.Binary.Subset.DecSetoid",
     "name": "_⊉_"
   },
   {
-    "moduleName": "Data.List.Relation.Binary.Subset.Propositional",
+    "toplevelModuleName": "Data.List.Relation.Binary.Subset.Propositional",
     "name": "_⊉_"
   },
   {
-    "moduleName": "Data.List.Relation.Binary.Subset.Setoid",
+    "toplevelModuleName": "Data.List.Relation.Binary.Subset.Setoid",
     "name": "_⊆_"
   },
   {
-    "moduleName": "Data.List.Relation.Binary.Subset.Setoid",
+    "toplevelModuleName": "Data.List.Relation.Binary.Subset.Setoid",
     "name": "_⊇_"
   },
   {
-    "moduleName": "Data.List.Relation.Binary.Subset.Setoid",
+    "toplevelModuleName": "Data.List.Relation.Binary.Subset.Setoid",
     "name": "_⊈_"
   },
   {
-    "moduleName": "Data.List.Relation.Binary.Subset.Setoid",
+    "toplevelModuleName": "Data.List.Relation.Binary.Subset.Setoid",
     "name": "_⊉_"
   },
   {
-    "moduleName": "Data.List.Relation.Ternary.Appending.Propositional",
+    "toplevelModuleName": "Data.List.Relation.Ternary.Appending.Propositional",
     "name": "Appending"
   },
   {
-    "moduleName": "Data.List.Relation.Ternary.Interleaving.Propositional",
+    "toplevelModuleName": "Data.List.Relation.Ternary.Interleaving.Propositional",
     "name": "Interleaving"
   },
   {
-    "moduleName": "Data.List.Relation.Ternary.Interleaving.Setoid",
+    "toplevelModuleName": "Data.List.Relation.Ternary.Interleaving.Setoid",
     "name": "Interleaving"
   },
   {
-    "moduleName": "Data.List.Relation.Unary.All",
+    "toplevelModuleName": "Data.List.Relation.Unary.All",
     "name": "Null"
   },
   {
-    "moduleName": "Data.List.Relation.Unary.Any",
+    "toplevelModuleName": "Data.List.Relation.Unary.Any",
     "name": "lookup"
   },
   {
-    "moduleName": "Data.List.Relation.Unary.Enumerates.Setoid",
+    "toplevelModuleName": "Data.List.Relation.Unary.Enumerates.Setoid",
     "name": "IsEnumeration"
   },
   {
-    "moduleName": "Data.Maybe",
+    "toplevelModuleName": "Data.Maybe",
     "name": "Is-just"
   },
   {
-    "moduleName": "Data.Maybe",
+    "toplevelModuleName": "Data.Maybe",
     "name": "Is-nothing"
   },
   {
-    "moduleName": "Data.Nat.Base",
+    "toplevelModuleName": "Data.Nat.Base",
     "name": "_≤″_"
   },
   {
-    "moduleName": "Data.Nat.Base",
+    "toplevelModuleName": "Data.Nat.Base",
     "name": "_≥_"
   },
   {
-    "moduleName": "Data.Nat.Base",
+    "toplevelModuleName": "Data.Nat.Base",
     "name": "_≥′_"
   },
   {
-    "moduleName": "Data.Nat.Base",
+    "toplevelModuleName": "Data.Nat.Base",
     "name": "_≥″_"
   },
   {
-    "moduleName": "Data.Nat.Base",
+    "toplevelModuleName": "Data.Nat.Base",
     "name": "_≥‴_"
   },
   {
-    "moduleName": "Data.Nat.Base",
+    "toplevelModuleName": "Data.Nat.Base",
     "name": "_≮_"
   },
   {
-    "moduleName": "Data.Nat.Base",
+    "toplevelModuleName": "Data.Nat.Base",
     "name": "_≯_"
   },
   {
-    "moduleName": "Data.Nat.Base",
+    "toplevelModuleName": "Data.Nat.Base",
     "name": "_≰_"
   },
   {
-    "moduleName": "Data.Nat.Base",
+    "toplevelModuleName": "Data.Nat.Base",
     "name": "_≱_"
   },
   {
-    "moduleName": "Data.Nat.Base",
+    "toplevelModuleName": "Data.Nat.Base",
     "name": "_<_"
   },
   {
-    "moduleName": "Data.Nat.Base",
+    "toplevelModuleName": "Data.Nat.Base",
     "name": "_<′_"
   },
   {
-    "moduleName": "Data.Nat.Base",
+    "toplevelModuleName": "Data.Nat.Base",
     "name": "_<″_"
   },
   {
-    "moduleName": "Data.Nat.Base",
+    "toplevelModuleName": "Data.Nat.Base",
     "name": "_<‴_"
   },
   {
-    "moduleName": "Data.Nat.Base",
+    "toplevelModuleName": "Data.Nat.Base",
     "name": "_>_"
   },
   {
-    "moduleName": "Data.Nat.Base",
+    "toplevelModuleName": "Data.Nat.Base",
     "name": "_>′_"
   },
   {
-    "moduleName": "Data.Nat.Base",
+    "toplevelModuleName": "Data.Nat.Base",
     "name": "_>″_"
   },
   {
-    "moduleName": "Data.Nat.Base",
+    "toplevelModuleName": "Data.Nat.Base",
     "name": "_>‴_"
   },
   {
-    "moduleName": "Data.Nat.Binary.Base",
+    "toplevelModuleName": "Data.Nat.Binary.Base",
     "name": "_≤_"
   },
   {
-    "moduleName": "Data.Nat.Binary.Base",
+    "toplevelModuleName": "Data.Nat.Binary.Base",
     "name": "_≥_"
   },
   {
-    "moduleName": "Data.Nat.Binary.Base",
+    "toplevelModuleName": "Data.Nat.Binary.Base",
     "name": "_≮_"
   },
   {
-    "moduleName": "Data.Nat.Binary.Base",
+    "toplevelModuleName": "Data.Nat.Binary.Base",
     "name": "_≯_"
   },
   {
-    "moduleName": "Data.Nat.Binary.Base",
+    "toplevelModuleName": "Data.Nat.Binary.Base",
     "name": "_≰_"
   },
   {
-    "moduleName": "Data.Nat.Binary.Base",
+    "toplevelModuleName": "Data.Nat.Binary.Base",
     "name": "_≱_"
   },
   {
-    "moduleName": "Data.Nat.Binary.Base",
+    "toplevelModuleName": "Data.Nat.Binary.Base",
     "name": "_<ℕ_"
   },
   {
-    "moduleName": "Data.Nat.Binary.Base",
+    "toplevelModuleName": "Data.Nat.Binary.Base",
     "name": "_>_"
   },
   {
-    "moduleName": "Data.Nat.Coprimality",
+    "toplevelModuleName": "Data.Nat.Coprimality",
     "name": "Coprime"
   },
   {
-    "moduleName": "Data.Nat.Divisibility.Core",
+    "toplevelModuleName": "Data.Nat.Divisibility.Core",
     "name": "_∤_"
   },
   {
-    "moduleName": "Data.Nat.Induction",
+    "toplevelModuleName": "Data.Nat.Induction",
     "name": "<-Rec"
   },
   {
-    "moduleName": "Data.Nat.Induction",
+    "toplevelModuleName": "Data.Nat.Induction",
     "name": "<′-Rec"
   },
   {
-    "moduleName": "Data.Nat.InfinitelyOften",
+    "toplevelModuleName": "Data.Nat.InfinitelyOften",
     "name": "Fin"
   },
   {
-    "moduleName": "Data.Nat.InfinitelyOften",
+    "toplevelModuleName": "Data.Nat.InfinitelyOften",
     "name": "Inf"
   },
   {
-    "moduleName": "Data.Nat.Primality",
+    "toplevelModuleName": "Data.Nat.Primality",
     "name": "_Rough_"
   },
   {
-    "moduleName": "Data.Nat.Primality",
+    "toplevelModuleName": "Data.Nat.Primality",
     "name": "Composite"
   },
   {
-    "moduleName": "Data.Nat.Primality",
+    "toplevelModuleName": "Data.Nat.Primality",
     "name": "Irreducible"
   },
   {
-    "moduleName": "Data.Product",
+    "toplevelModuleName": "Data.Product",
     "name": "∄"
   },
   {
-    "moduleName": "Data.Product",
+    "toplevelModuleName": "Data.Product",
     "name": "∄-syntax"
   },
   {
-    "moduleName": "Data.Product",
+    "toplevelModuleName": "Data.Product",
     "name": "∃!"
   },
   {
-    "moduleName": "Data.Product.Base",
+    "toplevelModuleName": "Data.Product.Base",
     "name": "∃"
   },
   {
-    "moduleName": "Data.Product.Base",
+    "toplevelModuleName": "Data.Product.Base",
     "name": "∃₂"
   },
   {
-    "moduleName": "Data.Product.Base",
+    "toplevelModuleName": "Data.Product.Base",
     "name": "_,′_"
   },
   {
-    "moduleName": "Data.Product.Base",
+    "toplevelModuleName": "Data.Product.Base",
     "name": "-,_"
   },
   {
-    "moduleName": "Data.Product.Base",
+    "toplevelModuleName": "Data.Product.Base",
     "name": "_×_"
   },
   {
-    "moduleName": "Data.Product.Base",
+    "toplevelModuleName": "Data.Product.Base",
     "name": "_-×-_"
   },
   {
-    "moduleName": "Data.Product.Base",
+    "toplevelModuleName": "Data.Product.Base",
     "name": "Σ-syntax"
   },
   {
-    "moduleName": "Data.Product.Base",
+    "toplevelModuleName": "Data.Product.Base",
     "name": "∃-syntax"
   },
   {
-    "moduleName": "Data.Product.Effectful.Left.Base",
+    "toplevelModuleName": "Data.Product.Effectful.Left.Base",
     "name": "Productₗ"
   },
   {
-    "moduleName": "Data.Product.Effectful.Right.Base",
+    "toplevelModuleName": "Data.Product.Effectful.Right.Base",
     "name": "Productᵣ"
   },
   {
-    "moduleName": "Data.Product.Nary.NonDependent",
+    "toplevelModuleName": "Data.Product.Nary.NonDependent",
     "name": "HomoProduct"
   },
   {
-    "moduleName": "Data.Product.Nary.NonDependent",
+    "toplevelModuleName": "Data.Product.Nary.NonDependent",
     "name": "HomoProduct′"
   },
   {
-    "moduleName": "Data.Product.Relation.Binary.Lex.NonStrict",
+    "toplevelModuleName": "Data.Product.Relation.Binary.Lex.NonStrict",
     "name": "×-Lex"
   },
   {
-    "moduleName": "Data.Product.Relation.Binary.Lex.Strict",
+    "toplevelModuleName": "Data.Product.Relation.Binary.Lex.Strict",
     "name": "×-Lex"
   },
   {
-    "moduleName": "Data.Rational.Base",
+    "toplevelModuleName": "Data.Rational.Base",
     "name": "_≄_"
   },
   {
-    "moduleName": "Data.Rational.Base",
+    "toplevelModuleName": "Data.Rational.Base",
     "name": "_≥_"
   },
   {
-    "moduleName": "Data.Rational.Base",
+    "toplevelModuleName": "Data.Rational.Base",
     "name": "_≮_"
   },
   {
-    "moduleName": "Data.Rational.Base",
+    "toplevelModuleName": "Data.Rational.Base",
     "name": "_≯_"
   },
   {
-    "moduleName": "Data.Rational.Base",
+    "toplevelModuleName": "Data.Rational.Base",
     "name": "_≰_"
   },
   {
-    "moduleName": "Data.Rational.Base",
+    "toplevelModuleName": "Data.Rational.Base",
     "name": "_≱_"
   },
   {
-    "moduleName": "Data.Rational.Base",
+    "toplevelModuleName": "Data.Rational.Base",
     "name": "_>_"
   },
   {
-    "moduleName": "Data.Rational.Base",
+    "toplevelModuleName": "Data.Rational.Base",
     "name": "Negative"
   },
   {
-    "moduleName": "Data.Rational.Base",
+    "toplevelModuleName": "Data.Rational.Base",
     "name": "NonNegative"
   },
   {
-    "moduleName": "Data.Rational.Base",
+    "toplevelModuleName": "Data.Rational.Base",
     "name": "NonPositive"
   },
   {
-    "moduleName": "Data.Rational.Base",
+    "toplevelModuleName": "Data.Rational.Base",
     "name": "NonZero"
   },
   {
-    "moduleName": "Data.Rational.Base",
+    "toplevelModuleName": "Data.Rational.Base",
     "name": "Positive"
   },
   {
-    "moduleName": "Data.Rational.Unnormalised.Base",
+    "toplevelModuleName": "Data.Rational.Unnormalised.Base",
     "name": "_≄_"
   },
   {
-    "moduleName": "Data.Rational.Unnormalised.Base",
+    "toplevelModuleName": "Data.Rational.Unnormalised.Base",
     "name": "_≠_"
   },
   {
-    "moduleName": "Data.Rational.Unnormalised.Base",
+    "toplevelModuleName": "Data.Rational.Unnormalised.Base",
     "name": "_≥_"
   },
   {
-    "moduleName": "Data.Rational.Unnormalised.Base",
+    "toplevelModuleName": "Data.Rational.Unnormalised.Base",
     "name": "_≮_"
   },
   {
-    "moduleName": "Data.Rational.Unnormalised.Base",
+    "toplevelModuleName": "Data.Rational.Unnormalised.Base",
     "name": "_≯_"
   },
   {
-    "moduleName": "Data.Rational.Unnormalised.Base",
+    "toplevelModuleName": "Data.Rational.Unnormalised.Base",
     "name": "_≰_"
   },
   {
-    "moduleName": "Data.Rational.Unnormalised.Base",
+    "toplevelModuleName": "Data.Rational.Unnormalised.Base",
     "name": "_≱_"
   },
   {
-    "moduleName": "Data.Rational.Unnormalised.Base",
+    "toplevelModuleName": "Data.Rational.Unnormalised.Base",
     "name": "_>_"
   },
   {
-    "moduleName": "Data.Rational.Unnormalised.Base",
+    "toplevelModuleName": "Data.Rational.Unnormalised.Base",
     "name": "Negative"
   },
   {
-    "moduleName": "Data.Rational.Unnormalised.Base",
+    "toplevelModuleName": "Data.Rational.Unnormalised.Base",
     "name": "NonNegative"
   },
   {
-    "moduleName": "Data.Rational.Unnormalised.Base",
+    "toplevelModuleName": "Data.Rational.Unnormalised.Base",
     "name": "NonPositive"
   },
   {
-    "moduleName": "Data.Rational.Unnormalised.Base",
+    "toplevelModuleName": "Data.Rational.Unnormalised.Base",
     "name": "NonZero"
   },
   {
-    "moduleName": "Data.Rational.Unnormalised.Base",
+    "toplevelModuleName": "Data.Rational.Unnormalised.Base",
     "name": "Positive"
   },
   {
-    "moduleName": "Data.Record",
+    "toplevelModuleName": "Data.Record",
     "name": "_∈_"
   },
   {
-    "moduleName": "Data.Record",
+    "toplevelModuleName": "Data.Record",
     "name": "Restricted"
   },
   {
-    "moduleName": "Data.Star.Decoration",
+    "toplevelModuleName": "Data.Star.Decoration",
     "name": "All"
   },
   {
-    "moduleName": "Data.Star.Decoration",
+    "toplevelModuleName": "Data.Star.Decoration",
     "name": "EdgePred"
   },
   {
-    "moduleName": "Data.Star.Environment",
+    "toplevelModuleName": "Data.Star.Environment",
     "name": "Ctxt"
   },
   {
-    "moduleName": "Data.Star.Environment",
+    "toplevelModuleName": "Data.Star.Environment",
     "name": "Env"
   },
   {
-    "moduleName": "Data.String.Base",
+    "toplevelModuleName": "Data.String.Base",
     "name": "_≈_"
   },
   {
-    "moduleName": "Data.String.Base",
+    "toplevelModuleName": "Data.String.Base",
     "name": "_≤_"
   },
   {
-    "moduleName": "Data.String.Base",
+    "toplevelModuleName": "Data.String.Base",
     "name": "_<_"
   },
   {
-    "moduleName": "Data.Sum.Effectful.Left",
+    "toplevelModuleName": "Data.Sum.Effectful.Left",
     "name": "Sumₗ"
   },
   {
-    "moduleName": "Data.Sum.Effectful.Right",
+    "toplevelModuleName": "Data.Sum.Effectful.Right",
     "name": "Sumᵣ"
   },
   {
-    "moduleName": "Data.These.Effectful.Left.Base",
+    "toplevelModuleName": "Data.These.Effectful.Left.Base",
     "name": "Theseₗ"
   },
   {
-    "moduleName": "Data.These.Effectful.Right.Base",
+    "toplevelModuleName": "Data.These.Effectful.Right.Base",
     "name": "Theseᵣ"
   },
   {
-    "moduleName": "Data.Tree.AVL.Height",
+    "toplevelModuleName": "Data.Tree.AVL.Height",
     "name": "ℕ₂"
   },
   {
-    "moduleName": "Data.Tree.AVL.IndexedMap",
+    "toplevelModuleName": "Data.Tree.AVL.IndexedMap",
     "name": "KV"
   },
   {
-    "moduleName": "Data.Tree.AVL.Key",
+    "toplevelModuleName": "Data.Tree.AVL.Key",
     "name": "_<_<_"
   },
   {
-    "moduleName": "Data.Tree.AVL.Map",
+    "toplevelModuleName": "Data.Tree.AVL.Map",
     "name": "Map"
   },
   {
-    "moduleName": "Data.Tree.AVL.Map.Membership.Propositional",
+    "toplevelModuleName": "Data.Tree.AVL.Map.Membership.Propositional",
     "name": "_∈ₖᵥ_"
   },
   {
-    "moduleName": "Data.Tree.AVL.Map.Membership.Propositional",
+    "toplevelModuleName": "Data.Tree.AVL.Map.Membership.Propositional",
     "name": "_∉ₖᵥ_"
   },
   {
-    "moduleName": "Data.Tree.AVL.Map.Membership.Propositional",
+    "toplevelModuleName": "Data.Tree.AVL.Map.Membership.Propositional",
     "name": "_≈ₖᵥ_"
   },
   {
-    "moduleName": "Data.Tree.AVL.Map.Relation.Unary.Any",
+    "toplevelModuleName": "Data.Tree.AVL.Map.Relation.Unary.Any",
     "name": "Any"
   },
   {
-    "moduleName": "Data.Tree.AVL.NonEmpty.Propositional",
+    "toplevelModuleName": "Data.Tree.AVL.NonEmpty.Propositional",
     "name": "Tree⁺"
   },
   {
-    "moduleName": "Data.Tree.AVL.Sets.Membership",
+    "toplevelModuleName": "Data.Tree.AVL.Sets.Membership",
     "name": "_∈_"
   },
   {
-    "moduleName": "Data.Tree.AVL.Sets.Membership",
+    "toplevelModuleName": "Data.Tree.AVL.Sets.Membership",
     "name": "_∉_"
   },
   {
-    "moduleName": "Data.Tree.AVL.Sets",
+    "toplevelModuleName": "Data.Tree.AVL.Sets",
     "name": "⟨Set⟩"
   },
   {
-    "moduleName": "Data.Trie.NonEmpty",
+    "toplevelModuleName": "Data.Trie.NonEmpty",
     "name": "Word"
   },
   {
-    "moduleName": "Data.Trie",
+    "toplevelModuleName": "Data.Trie",
     "name": "Word"
   },
   {
-    "moduleName": "Data.Unit.NonEta",
+    "toplevelModuleName": "Data.Unit.NonEta",
     "name": "Hidden"
   },
   {
-    "moduleName": "Data.Unit.Polymorphic.Base",
+    "toplevelModuleName": "Data.Unit.Polymorphic.Base",
     "name": "⊤"
   },
   {
-    "moduleName": "Data.Vec.Base",
+    "toplevelModuleName": "Data.Vec.Base",
     "name": "FoldlOp"
   },
   {
-    "moduleName": "Data.Vec.Functional.Relation.Binary.Equality.Setoid",
+    "toplevelModuleName": "Data.Vec.Functional.Relation.Binary.Equality.Setoid",
     "name": "_≋_"
   },
   {
-    "moduleName": "Data.Vec.Functional.Relation.Binary.Permutation",
+    "toplevelModuleName": "Data.Vec.Functional.Relation.Binary.Permutation",
     "name": "_↭_"
   },
   {
-    "moduleName": "Data.Vec.Functional.Relation.Binary.Pointwise",
+    "toplevelModuleName": "Data.Vec.Functional.Relation.Binary.Pointwise",
     "name": "map"
   },
   {
-    "moduleName": "Data.Vec.Functional.Relation.Unary.All.Properties",
+    "toplevelModuleName": "Data.Vec.Functional.Relation.Unary.All.Properties",
     "name": "⊛⁺"
   },
   {
-    "moduleName": "Data.Vec.Functional.Relation.Unary.All.Properties",
+    "toplevelModuleName": "Data.Vec.Functional.Relation.Unary.All.Properties",
     "name": "head⁺"
   },
   {
-    "moduleName": "Data.Vec.Functional.Relation.Unary.All.Properties",
+    "toplevelModuleName": "Data.Vec.Functional.Relation.Unary.All.Properties",
     "name": "map⁺"
   },
   {
-    "moduleName": "Data.Vec.Functional.Relation.Unary.All.Properties",
+    "toplevelModuleName": "Data.Vec.Functional.Relation.Unary.All.Properties",
     "name": "replicate⁺"
   },
   {
-    "moduleName": "Data.Vec.Functional.Relation.Unary.All.Properties",
+    "toplevelModuleName": "Data.Vec.Functional.Relation.Unary.All.Properties",
     "name": "zipWith⁺"
   },
   {
-    "moduleName": "Data.Vec.Functional",
+    "toplevelModuleName": "Data.Vec.Functional",
     "name": "Vector"
   },
   {
-    "moduleName": "Data.Vec.Membership.Setoid",
+    "toplevelModuleName": "Data.Vec.Membership.Setoid",
     "name": "_∈_"
   },
   {
-    "moduleName": "Data.Vec.Membership.Setoid",
+    "toplevelModuleName": "Data.Vec.Membership.Setoid",
     "name": "_∉_"
   },
   {
-    "moduleName": "Data.Vec.N-ary",
+    "toplevelModuleName": "Data.Vec.N-ary",
     "name": "Eq"
   },
   {
-    "moduleName": "Data.Vec.N-ary",
+    "toplevelModuleName": "Data.Vec.N-ary",
     "name": "Eqʰ"
   },
   {
-    "moduleName": "Data.Vec.Recursive.Effectful",
+    "toplevelModuleName": "Data.Vec.Recursive.Effectful",
     "name": "forM"
   },
   {
-    "moduleName": "Data.Vec.Relation.Binary.Equality.Cast",
+    "toplevelModuleName": "Data.Vec.Relation.Binary.Equality.Cast",
     "name": "_≈[_]_"
   },
   {
-    "moduleName": "Data.Vec.Relation.Binary.Equality.Setoid",
+    "toplevelModuleName": "Data.Vec.Relation.Binary.Equality.Setoid",
     "name": "_≋_"
   },
   {
-    "moduleName": "Data.Word64.Base",
+    "toplevelModuleName": "Data.Word64.Base",
     "name": "_≈_"
   },
   {
-    "moduleName": "Data.Word64.Base",
+    "toplevelModuleName": "Data.Word64.Base",
     "name": "_≤_"
   },
   {
-    "moduleName": "Data.Word64.Base",
+    "toplevelModuleName": "Data.Word64.Base",
     "name": "_<_"
   },
   {
-    "moduleName": "Effect.Applicative.Indexed",
+    "toplevelModuleName": "Effect.Applicative.Indexed",
     "name": "IFun"
   },
   {
-    "moduleName": "Effect.Monad.Continuation",
+    "toplevelModuleName": "Effect.Monad.Continuation",
     "name": "DCont"
   },
   {
-    "moduleName": "Effect.Monad.Continuation",
+    "toplevelModuleName": "Effect.Monad.Continuation",
     "name": "DContT"
   },
   {
-    "moduleName": "Effect.Monad.Indexed",
+    "toplevelModuleName": "Effect.Monad.Indexed",
     "name": "RawIMonadT"
   },
   {
-    "moduleName": "Effect.Monad.Partiality",
+    "toplevelModuleName": "Effect.Monad.Partiality",
     "name": "Equality"
   },
   {
-    "moduleName": "Effect.Monad",
+    "toplevelModuleName": "Effect.Monad",
     "name": "RawMonadT"
   },
   {
-    "moduleName": "Effect.Monad.Reader",
+    "toplevelModuleName": "Effect.Monad.Reader",
     "name": "Reader"
   },
   {
-    "moduleName": "Effect.Monad.State.Indexed",
+    "toplevelModuleName": "Effect.Monad.State.Indexed",
     "name": "IStateT"
   },
   {
-    "moduleName": "Effect.Monad.State",
+    "toplevelModuleName": "Effect.Monad.State",
     "name": "State"
   },
   {
-    "moduleName": "Effect.Monad.Writer",
+    "toplevelModuleName": "Effect.Monad.Writer",
     "name": "Writer"
   },
   {
-    "moduleName": "Foreign.Haskell.Coerce",
+    "toplevelModuleName": "Foreign.Haskell.Coerce",
     "name": "Coercible₁"
   },
   {
-    "moduleName": "Foreign.Haskell.Coerce",
+    "toplevelModuleName": "Foreign.Haskell.Coerce",
     "name": "Coercible₂"
   },
   {
-    "moduleName": "Function.Base",
+    "toplevelModuleName": "Function.Base",
     "name": "_∋_"
   },
   {
-    "moduleName": "Function.Base",
+    "toplevelModuleName": "Function.Base",
     "name": "_∘_"
   },
   {
-    "moduleName": "Function.Base",
+    "toplevelModuleName": "Function.Base",
     "name": "_∘′_"
   },
   {
-    "moduleName": "Function.Base",
+    "toplevelModuleName": "Function.Base",
     "name": "_∘₂_"
   },
   {
-    "moduleName": "Function.Base",
+    "toplevelModuleName": "Function.Base",
     "name": "_∘₂′_"
   },
   {
-    "moduleName": "Function.Base",
+    "toplevelModuleName": "Function.Base",
     "name": "_⟨_⟩_"
   },
   {
-    "moduleName": "Function.Base",
+    "toplevelModuleName": "Function.Base",
     "name": "_-⟨_∣"
   },
   {
-    "moduleName": "Function.Base",
+    "toplevelModuleName": "Function.Base",
     "name": "_-⟪_∣"
   },
   {
-    "moduleName": "Function.Base",
+    "toplevelModuleName": "Function.Base",
     "name": "∣_⟩-_"
   },
   {
-    "moduleName": "Function.Base",
+    "toplevelModuleName": "Function.Base",
     "name": "∣_⟫-_"
   },
   {
-    "moduleName": "Function.Base",
+    "toplevelModuleName": "Function.Base",
     "name": "_-⟨_⟩-_"
   },
   {
-    "moduleName": "Function.Base",
+    "toplevelModuleName": "Function.Base",
     "name": "_-⟨_⟫-_"
   },
   {
-    "moduleName": "Function.Base",
+    "toplevelModuleName": "Function.Base",
     "name": "_-⟪_⟩-_"
   },
   {
-    "moduleName": "Function.Base",
+    "toplevelModuleName": "Function.Base",
     "name": "_-⟪_⟫-_"
   },
   {
-    "moduleName": "Function.Base",
+    "toplevelModuleName": "Function.Base",
     "name": "_-[_]-_"
   },
   {
-    "moduleName": "Function.Base",
+    "toplevelModuleName": "Function.Base",
     "name": "_|>_"
   },
   {
-    "moduleName": "Function.Base",
+    "toplevelModuleName": "Function.Base",
     "name": "_|>′_"
   },
   {
-    "moduleName": "Function.Base",
+    "toplevelModuleName": "Function.Base",
     "name": "_$_"
   },
   {
-    "moduleName": "Function.Base",
+    "toplevelModuleName": "Function.Base",
     "name": "_$′_"
   },
   {
-    "moduleName": "Function.Base",
+    "toplevelModuleName": "Function.Base",
     "name": "_$-"
   },
   {
-    "moduleName": "Function.Base",
+    "toplevelModuleName": "Function.Base",
     "name": "_on_"
   },
   {
-    "moduleName": "Function.Base",
+    "toplevelModuleName": "Function.Base",
     "name": "_on₂_"
   },
   {
-    "moduleName": "Function.Base",
+    "toplevelModuleName": "Function.Base",
     "name": "_ˢ_"
   },
   {
-    "moduleName": "Function.Base",
+    "toplevelModuleName": "Function.Base",
     "name": "λ-"
   },
   {
-    "moduleName": "Function.Base",
+    "toplevelModuleName": "Function.Base",
     "name": "const"
   },
   {
-    "moduleName": "Function.Base",
+    "toplevelModuleName": "Function.Base",
     "name": "constᵣ"
   },
   {
-    "moduleName": "Function.Base",
+    "toplevelModuleName": "Function.Base",
     "name": "flip"
   },
   {
-    "moduleName": "Function.Base",
+    "toplevelModuleName": "Function.Base",
     "name": "flip′"
   },
   {
-    "moduleName": "Function.Base",
+    "toplevelModuleName": "Function.Base",
     "name": "id"
   },
   {
-    "moduleName": "Function.Base",
+    "toplevelModuleName": "Function.Base",
     "name": "it"
   },
   {
-    "moduleName": "Function.Base",
+    "toplevelModuleName": "Function.Base",
     "name": "typeOf"
   },
   {
-    "moduleName": "Function.Bijection",
+    "toplevelModuleName": "Function.Bijection",
     "name": "_⤖_"
   },
   {
-    "moduleName": "Function.Bundles",
+    "toplevelModuleName": "Function.Bundles",
     "name": "_↠_"
   },
   {
-    "moduleName": "Function.Bundles",
+    "toplevelModuleName": "Function.Bundles",
     "name": "_↣_"
   },
   {
-    "moduleName": "Function.Bundles",
+    "toplevelModuleName": "Function.Bundles",
     "name": "_↩_"
   },
   {
-    "moduleName": "Function.Bundles",
+    "toplevelModuleName": "Function.Bundles",
     "name": "_↩↪_"
   },
   {
-    "moduleName": "Function.Bundles",
+    "toplevelModuleName": "Function.Bundles",
     "name": "_↪_"
   },
   {
-    "moduleName": "Function.Bundles",
+    "toplevelModuleName": "Function.Bundles",
     "name": "_⇔_"
   },
   {
-    "moduleName": "Function.Bundles",
+    "toplevelModuleName": "Function.Bundles",
     "name": "_⟶_"
   },
   {
-    "moduleName": "Function.Bundles",
+    "toplevelModuleName": "Function.Bundles",
     "name": "_⤖_"
   },
   {
-    "moduleName": "Function.Bundles",
+    "toplevelModuleName": "Function.Bundles",
     "name": "_⟶ₛ_"
   },
   {
-    "moduleName": "Function.Bundles",
+    "toplevelModuleName": "Function.Bundles",
     "name": "SplitSurjection"
   },
   {
-    "moduleName": "Function.Core",
+    "toplevelModuleName": "Function.Core",
     "name": "Fun₁"
   },
   {
-    "moduleName": "Function.Core",
+    "toplevelModuleName": "Function.Core",
     "name": "Fun₂"
   },
   {
-    "moduleName": "Function.Core",
+    "toplevelModuleName": "Function.Core",
     "name": "Morphism"
   },
   {
-    "moduleName": "Function.Definitions",
+    "toplevelModuleName": "Function.Definitions",
     "name": "Inverseᵇ"
   },
   {
-    "moduleName": "Function.Definitions",
+    "toplevelModuleName": "Function.Definitions",
     "name": "StrictlyInverseˡ"
   },
   {
-    "moduleName": "Function.Definitions",
+    "toplevelModuleName": "Function.Definitions",
     "name": "StrictlyInverseʳ"
   },
   {
-    "moduleName": "Function.Definitions",
+    "toplevelModuleName": "Function.Definitions",
     "name": "StrictlySurjective"
   },
   {
-    "moduleName": "Function.Endo.Propositional",
+    "toplevelModuleName": "Function.Endo.Propositional",
     "name": "Endo"
   },
   {
-    "moduleName": "Function.Endo.Setoid",
+    "toplevelModuleName": "Function.Endo.Setoid",
     "name": "Endo"
   },
   {
-    "moduleName": "Function.Endomorphism.Propositional",
+    "toplevelModuleName": "Function.Endomorphism.Propositional",
     "name": "Endo"
   },
   {
-    "moduleName": "Function.Endomorphism.Propositional",
+    "toplevelModuleName": "Function.Endomorphism.Propositional",
     "name": "fromSetoidEndo"
   },
   {
-    "moduleName": "Function.Endomorphism.Setoid",
+    "toplevelModuleName": "Function.Endomorphism.Setoid",
     "name": "Endo"
   },
   {
-    "moduleName": "Function.Equality",
+    "toplevelModuleName": "Function.Equality",
     "name": "_⟶_"
   },
   {
-    "moduleName": "Function.Equivalence",
+    "toplevelModuleName": "Function.Equivalence",
     "name": "_⇔_"
   },
   {
-    "moduleName": "Function.Identity.Effectful",
+    "toplevelModuleName": "Function.Identity.Effectful",
     "name": "Identity"
   },
   {
-    "moduleName": "Function.Indexed.Bundles",
+    "toplevelModuleName": "Function.Indexed.Bundles",
     "name": "_↔ᵢ_"
   },
   {
-    "moduleName": "Function.Indexed.Bundles",
+    "toplevelModuleName": "Function.Indexed.Bundles",
     "name": "_↠ᵢ_"
   },
   {
-    "moduleName": "Function.Indexed.Bundles",
+    "toplevelModuleName": "Function.Indexed.Bundles",
     "name": "_↣ᵢ_"
   },
   {
-    "moduleName": "Function.Indexed.Bundles",
+    "toplevelModuleName": "Function.Indexed.Bundles",
     "name": "_↩ᵢ_"
   },
   {
-    "moduleName": "Function.Indexed.Bundles",
+    "toplevelModuleName": "Function.Indexed.Bundles",
     "name": "_↩↪ᵢ_"
   },
   {
-    "moduleName": "Function.Indexed.Bundles",
+    "toplevelModuleName": "Function.Indexed.Bundles",
     "name": "_↪ᵢ_"
   },
   {
-    "moduleName": "Function.Indexed.Bundles",
+    "toplevelModuleName": "Function.Indexed.Bundles",
     "name": "_⇔ᵢ_"
   },
   {
-    "moduleName": "Function.Indexed.Bundles",
+    "toplevelModuleName": "Function.Indexed.Bundles",
     "name": "_⟶ᵢ_"
   },
   {
-    "moduleName": "Function.Indexed.Bundles",
+    "toplevelModuleName": "Function.Indexed.Bundles",
     "name": "_⤖ᵢ_"
   },
   {
-    "moduleName": "Function.Injection",
+    "toplevelModuleName": "Function.Injection",
     "name": "_↣_"
   },
   {
-    "moduleName": "Function.Injection",
+    "toplevelModuleName": "Function.Injection",
     "name": "Injective"
   },
   {
-    "moduleName": "Function.Inverse",
+    "toplevelModuleName": "Function.Inverse",
     "name": "_↔_"
   },
   {
-    "moduleName": "Function.Inverse",
+    "toplevelModuleName": "Function.Inverse",
     "name": "_↔̇_"
   },
   {
-    "moduleName": "Function.LeftInverse",
+    "toplevelModuleName": "Function.LeftInverse",
     "name": "_↞_"
   },
   {
-    "moduleName": "Function.LeftInverse",
+    "toplevelModuleName": "Function.LeftInverse",
     "name": "_LeftInverseOf_"
   },
   {
-    "moduleName": "Function.LeftInverse",
+    "toplevelModuleName": "Function.LeftInverse",
     "name": "_RightInverseOf_"
   },
   {
-    "moduleName": "Function.LeftInverse",
+    "toplevelModuleName": "Function.LeftInverse",
     "name": "RightInverse"
   },
   {
-    "moduleName": "Function.Metric.Core",
+    "toplevelModuleName": "Function.Metric.Core",
     "name": "DistanceFunction"
   },
   {
-    "moduleName": "Function.Metric.Definitions",
+    "toplevelModuleName": "Function.Metric.Definitions",
     "name": "Bounded"
   },
   {
-    "moduleName": "Function.Metric.Definitions",
+    "toplevelModuleName": "Function.Metric.Definitions",
     "name": "Congruent"
   },
   {
-    "moduleName": "Function.Metric.Definitions",
+    "toplevelModuleName": "Function.Metric.Definitions",
     "name": "Contracting"
   },
   {
-    "moduleName": "Function.Metric.Definitions",
+    "toplevelModuleName": "Function.Metric.Definitions",
     "name": "ContractingOnOrbits"
   },
   {
-    "moduleName": "Function.Metric.Definitions",
+    "toplevelModuleName": "Function.Metric.Definitions",
     "name": "Definite"
   },
   {
-    "moduleName": "Function.Metric.Definitions",
+    "toplevelModuleName": "Function.Metric.Definitions",
     "name": "Indiscernable"
   },
   {
-    "moduleName": "Function.Metric.Definitions",
+    "toplevelModuleName": "Function.Metric.Definitions",
     "name": "NonNegative"
   },
   {
-    "moduleName": "Function.Metric.Definitions",
+    "toplevelModuleName": "Function.Metric.Definitions",
     "name": "StrictlyContracting"
   },
   {
-    "moduleName": "Function.Metric.Definitions",
+    "toplevelModuleName": "Function.Metric.Definitions",
     "name": "StrictlyContractingOnOrbits"
   },
   {
-    "moduleName": "Function.Metric.Definitions",
+    "toplevelModuleName": "Function.Metric.Definitions",
     "name": "Symmetric"
   },
   {
-    "moduleName": "Function.Metric.Definitions",
+    "toplevelModuleName": "Function.Metric.Definitions",
     "name": "TranslationInvariant"
   },
   {
-    "moduleName": "Function.Metric.Definitions",
+    "toplevelModuleName": "Function.Metric.Definitions",
     "name": "TriangleInequality"
   },
   {
-    "moduleName": "Function.Metric.Nat.Core",
+    "toplevelModuleName": "Function.Metric.Nat.Core",
     "name": "DistanceFunction"
   },
   {
-    "moduleName": "Function.Metric.Nat.Definitions",
+    "toplevelModuleName": "Function.Metric.Nat.Definitions",
     "name": "Bounded"
   },
   {
-    "moduleName": "Function.Metric.Nat.Definitions",
+    "toplevelModuleName": "Function.Metric.Nat.Definitions",
     "name": "Congruent"
   },
   {
-    "moduleName": "Function.Metric.Nat.Definitions",
+    "toplevelModuleName": "Function.Metric.Nat.Definitions",
     "name": "Contracting"
   },
   {
-    "moduleName": "Function.Metric.Nat.Definitions",
+    "toplevelModuleName": "Function.Metric.Nat.Definitions",
     "name": "ContractingOnOrbits"
   },
   {
-    "moduleName": "Function.Metric.Nat.Definitions",
+    "toplevelModuleName": "Function.Metric.Nat.Definitions",
     "name": "Definite"
   },
   {
-    "moduleName": "Function.Metric.Nat.Definitions",
+    "toplevelModuleName": "Function.Metric.Nat.Definitions",
     "name": "Indiscernable"
   },
   {
-    "moduleName": "Function.Metric.Nat.Definitions",
+    "toplevelModuleName": "Function.Metric.Nat.Definitions",
     "name": "MaxTriangleInequality"
   },
   {
-    "moduleName": "Function.Metric.Nat.Definitions",
+    "toplevelModuleName": "Function.Metric.Nat.Definitions",
     "name": "StrictlyContracting"
   },
   {
-    "moduleName": "Function.Metric.Nat.Definitions",
+    "toplevelModuleName": "Function.Metric.Nat.Definitions",
     "name": "StrictlyContractingOnOrbits"
   },
   {
-    "moduleName": "Function.Metric.Nat.Definitions",
+    "toplevelModuleName": "Function.Metric.Nat.Definitions",
     "name": "Symmetric"
   },
   {
-    "moduleName": "Function.Metric.Nat.Definitions",
+    "toplevelModuleName": "Function.Metric.Nat.Definitions",
     "name": "TranslationInvariant"
   },
   {
-    "moduleName": "Function.Metric.Nat.Definitions",
+    "toplevelModuleName": "Function.Metric.Nat.Definitions",
     "name": "TriangleInequality"
   },
   {
-    "moduleName": "Function.Metric.Nat.Structures",
+    "toplevelModuleName": "Function.Metric.Nat.Structures",
     "name": "IsPreMetric"
   },
   {
-    "moduleName": "Function.Metric.Nat.Structures",
+    "toplevelModuleName": "Function.Metric.Nat.Structures",
     "name": "IsProtoMetric"
   },
   {
-    "moduleName": "Function.Metric.Nat.Structures",
+    "toplevelModuleName": "Function.Metric.Nat.Structures",
     "name": "IsQuasiSemiMetric"
   },
   {
-    "moduleName": "Function.Metric.Nat.Structures",
+    "toplevelModuleName": "Function.Metric.Nat.Structures",
     "name": "IsSemiMetric"
   },
   {
-    "moduleName": "Function.Metric.Rational.Core",
+    "toplevelModuleName": "Function.Metric.Rational.Core",
     "name": "DistanceFunction"
   },
   {
-    "moduleName": "Function.Metric.Rational.Definitions",
+    "toplevelModuleName": "Function.Metric.Rational.Definitions",
     "name": "Bounded"
   },
   {
-    "moduleName": "Function.Metric.Rational.Definitions",
+    "toplevelModuleName": "Function.Metric.Rational.Definitions",
     "name": "Congruent"
   },
   {
-    "moduleName": "Function.Metric.Rational.Definitions",
+    "toplevelModuleName": "Function.Metric.Rational.Definitions",
     "name": "Contracting"
   },
   {
-    "moduleName": "Function.Metric.Rational.Definitions",
+    "toplevelModuleName": "Function.Metric.Rational.Definitions",
     "name": "ContractingOnOrbits"
   },
   {
-    "moduleName": "Function.Metric.Rational.Definitions",
+    "toplevelModuleName": "Function.Metric.Rational.Definitions",
     "name": "MaxTriangleInequality"
   },
   {
-    "moduleName": "Function.Metric.Rational.Definitions",
+    "toplevelModuleName": "Function.Metric.Rational.Definitions",
     "name": "StrictlyContracting"
   },
   {
-    "moduleName": "Function.Metric.Rational.Definitions",
+    "toplevelModuleName": "Function.Metric.Rational.Definitions",
     "name": "StrictlyContractingOnOrbits"
   },
   {
-    "moduleName": "Function.Metric.Rational.Definitions",
+    "toplevelModuleName": "Function.Metric.Rational.Definitions",
     "name": "Symmetric"
   },
   {
-    "moduleName": "Function.Metric.Rational.Definitions",
+    "toplevelModuleName": "Function.Metric.Rational.Definitions",
     "name": "TranslationInvariant"
   },
   {
-    "moduleName": "Function.Metric.Rational.Definitions",
+    "toplevelModuleName": "Function.Metric.Rational.Definitions",
     "name": "TriangleInequality"
   },
   {
-    "moduleName": "Function.Reasoning",
+    "toplevelModuleName": "Function.Reasoning",
     "name": "∋-syntax"
   },
   {
-    "moduleName": "Function.Related",
+    "toplevelModuleName": "Function.Related",
     "name": "InducedRelation₁"
   },
   {
-    "moduleName": "Function.Related",
+    "toplevelModuleName": "Function.Related",
     "name": "InducedRelation₂"
   },
   {
-    "moduleName": "Function.Related.Propositional",
+    "toplevelModuleName": "Function.Related.Propositional",
     "name": "InducedRelation₁"
   },
   {
-    "moduleName": "Function.Related.Propositional",
+    "toplevelModuleName": "Function.Related.Propositional",
     "name": "InducedRelation₂"
   },
   {
-    "moduleName": "Function.Related.Propositional",
+    "toplevelModuleName": "Function.Related.Propositional",
     "name": "Related"
   },
   {
-    "moduleName": "Function.Related",
+    "toplevelModuleName": "Function.Related",
     "name": "Related"
   },
   {
-    "moduleName": "Function.Relation.Binary.Setoid.Equality",
+    "toplevelModuleName": "Function.Relation.Binary.Setoid.Equality",
     "name": "_≈_"
   },
   {
-    "moduleName": "Function.Strict",
+    "toplevelModuleName": "Function.Strict",
     "name": "_!|>_"
   },
   {
-    "moduleName": "Function.Strict",
+    "toplevelModuleName": "Function.Strict",
     "name": "_!|>′_"
   },
   {
-    "moduleName": "Function.Strict",
+    "toplevelModuleName": "Function.Strict",
     "name": "_$!_"
   },
   {
-    "moduleName": "Function.Strict",
+    "toplevelModuleName": "Function.Strict",
     "name": "_$!′_"
   },
   {
-    "moduleName": "Function.Strict",
+    "toplevelModuleName": "Function.Strict",
     "name": "force′"
   },
   {
-    "moduleName": "Function.Strict",
+    "toplevelModuleName": "Function.Strict",
     "name": "seq"
   },
   {
-    "moduleName": "Function.Surjection",
+    "toplevelModuleName": "Function.Surjection",
     "name": "_↠_"
   },
   {
-    "moduleName": "Induction.InfiniteDescent",
+    "toplevelModuleName": "Induction.InfiniteDescent",
     "name": "Descent"
   },
   {
-    "moduleName": "Induction.InfiniteDescent",
+    "toplevelModuleName": "Induction.InfiniteDescent",
     "name": "DescentFrom"
   },
   {
-    "moduleName": "Induction.InfiniteDescent",
+    "toplevelModuleName": "Induction.InfiniteDescent",
     "name": "InfiniteDescendingSequence"
   },
   {
-    "moduleName": "Induction.InfiniteDescent",
+    "toplevelModuleName": "Induction.InfiniteDescent",
     "name": "InfiniteDescendingSequence⁺"
   },
   {
-    "moduleName": "Induction.InfiniteDescent",
+    "toplevelModuleName": "Induction.InfiniteDescent",
     "name": "InfiniteDescendingSequenceFrom"
   },
   {
-    "moduleName": "Induction.InfiniteDescent",
+    "toplevelModuleName": "Induction.InfiniteDescent",
     "name": "InfiniteDescendingSequenceFrom⁺"
   },
   {
-    "moduleName": "Induction.InfiniteDescent",
+    "toplevelModuleName": "Induction.InfiniteDescent",
     "name": "InfiniteDescent"
   },
   {
-    "moduleName": "Induction.InfiniteDescent",
+    "toplevelModuleName": "Induction.InfiniteDescent",
     "name": "InfiniteDescent⁺"
   },
   {
-    "moduleName": "Induction.InfiniteDescent",
+    "toplevelModuleName": "Induction.InfiniteDescent",
     "name": "InfiniteDescentFrom"
   },
   {
-    "moduleName": "Induction.InfiniteDescent",
+    "toplevelModuleName": "Induction.InfiniteDescent",
     "name": "InfiniteDescentFrom⁺"
   },
   {
-    "moduleName": "Induction.InfiniteDescent",
+    "toplevelModuleName": "Induction.InfiniteDescent",
     "name": "NoSmallestCounterExample"
   },
   {
-    "moduleName": "Induction",
+    "toplevelModuleName": "Induction",
     "name": "RecStruct"
   },
   {
-    "moduleName": "Induction",
+    "toplevelModuleName": "Induction",
     "name": "Recursor"
   },
   {
-    "moduleName": "Induction",
+    "toplevelModuleName": "Induction",
     "name": "RecursorBuilder"
   },
   {
-    "moduleName": "Induction",
+    "toplevelModuleName": "Induction",
     "name": "SubsetRecursor"
   },
   {
-    "moduleName": "Induction",
+    "toplevelModuleName": "Induction",
     "name": "SubsetRecursorBuilder"
   },
   {
-    "moduleName": "Induction.WellFounded",
+    "toplevelModuleName": "Induction.WellFounded",
     "name": "WellFounded"
   },
   {
-    "moduleName": "Induction.WellFounded",
+    "toplevelModuleName": "Induction.WellFounded",
     "name": "WfRec"
   },
   {
-    "moduleName": "IO.Base",
+    "toplevelModuleName": "IO.Base",
     "name": "Main"
   },
   {
-    "moduleName": "Reflection.AnnotatedAST",
+    "toplevelModuleName": "Reflection.AnnotatedAST",
     "name": "Absₐ"
   },
   {
-    "moduleName": "Reflection.AnnotatedAST",
+    "toplevelModuleName": "Reflection.AnnotatedAST",
     "name": "Annotated"
   },
   {
-    "moduleName": "Reflection.AnnotatedAST",
+    "toplevelModuleName": "Reflection.AnnotatedAST",
     "name": "Annotation"
   },
   {
-    "moduleName": "Reflection.AnnotatedAST",
+    "toplevelModuleName": "Reflection.AnnotatedAST",
     "name": "Argₐ"
   },
   {
-    "moduleName": "Reflection.AnnotatedAST",
+    "toplevelModuleName": "Reflection.AnnotatedAST",
     "name": "Argsₐ"
   },
   {
-    "moduleName": "Reflection.AnnotatedAST",
+    "toplevelModuleName": "Reflection.AnnotatedAST",
     "name": "Clauseₐ"
   },
   {
-    "moduleName": "Reflection.AnnotatedAST",
+    "toplevelModuleName": "Reflection.AnnotatedAST",
     "name": "Clausesₐ"
   },
   {
-    "moduleName": "Reflection.AnnotatedAST.Free",
+    "toplevelModuleName": "Reflection.AnnotatedAST.Free",
     "name": "FVs"
   },
   {
-    "moduleName": "Reflection.AnnotatedAST",
+    "toplevelModuleName": "Reflection.AnnotatedAST",
     "name": "Listₐ"
   },
   {
-    "moduleName": "Reflection.AnnotatedAST",
+    "toplevelModuleName": "Reflection.AnnotatedAST",
     "name": "Namedₐ"
   },
   {
-    "moduleName": "Reflection.AnnotatedAST",
+    "toplevelModuleName": "Reflection.AnnotatedAST",
     "name": "Patternₐ"
   },
   {
-    "moduleName": "Reflection.AnnotatedAST",
+    "toplevelModuleName": "Reflection.AnnotatedAST",
     "name": "Sortₐ"
   },
   {
-    "moduleName": "Reflection.AnnotatedAST",
+    "toplevelModuleName": "Reflection.AnnotatedAST",
     "name": "Telₐ"
   },
   {
-    "moduleName": "Reflection.AnnotatedAST",
+    "toplevelModuleName": "Reflection.AnnotatedAST",
     "name": "Termₐ"
   },
   {
-    "moduleName": "Reflection.AnnotatedAST",
+    "toplevelModuleName": "Reflection.AnnotatedAST",
     "name": "Typeₐ"
   },
   {
-    "moduleName": "Reflection",
+    "toplevelModuleName": "Reflection",
     "name": "Arg-info"
   },
   {
-    "moduleName": "Reflection.AST.Argument",
+    "toplevelModuleName": "Reflection.AST.Argument",
     "name": "Args"
   },
   {
-    "moduleName": "Reflection.AST.Meta",
+    "toplevelModuleName": "Reflection.AST.Meta",
     "name": "_≈_"
   },
   {
-    "moduleName": "Reflection.AST.Name",
+    "toplevelModuleName": "Reflection.AST.Name",
     "name": "_≈_"
   },
   {
-    "moduleName": "Reflection.AST.Name",
+    "toplevelModuleName": "Reflection.AST.Name",
     "name": "Names"
   },
   {
-    "moduleName": "Reflection.AST.Term",
+    "toplevelModuleName": "Reflection.AST.Term",
     "name": "Clauses"
   },
   {
-    "moduleName": "Reflection.AST.Term",
+    "toplevelModuleName": "Reflection.AST.Term",
     "name": "Telescope"
   },
   {
-    "moduleName": "Reflection.AST.Traversal",
+    "toplevelModuleName": "Reflection.AST.Traversal",
     "name": "Action"
   },
   {
-    "moduleName": "Reflection.External",
+    "toplevelModuleName": "Reflection.External",
     "name": "CmdName"
   },
   {
-    "moduleName": "Reflection.External",
+    "toplevelModuleName": "Reflection.External",
     "name": "StdErr"
   },
   {
-    "moduleName": "Reflection.External",
+    "toplevelModuleName": "Reflection.External",
     "name": "StdIn"
   },
   {
-    "moduleName": "Reflection.External",
+    "toplevelModuleName": "Reflection.External",
     "name": "StdOut"
   },
   {
-    "moduleName": "Relation.Binary.Construct.Closure.Reflexive",
+    "toplevelModuleName": "Relation.Binary.Construct.Closure.Reflexive",
     "name": "Refl"
   },
   {
-    "moduleName": "Relation.Binary.Construct.Closure.Transitive",
+    "toplevelModuleName": "Relation.Binary.Construct.Closure.Transitive",
     "name": "Plus′"
   },
   {
-    "moduleName": "Relation.Binary.Construct.Constant.Core",
+    "toplevelModuleName": "Relation.Binary.Construct.Constant.Core",
     "name": "Const"
   },
   {
-    "moduleName": "Relation.Binary.Construct.NaturalOrder.Left",
+    "toplevelModuleName": "Relation.Binary.Construct.NaturalOrder.Left",
     "name": "_≤_"
   },
   {
-    "moduleName": "Relation.Binary.Construct.NaturalOrder.Right",
+    "toplevelModuleName": "Relation.Binary.Construct.NaturalOrder.Right",
     "name": "_≤_"
   },
   {
-    "moduleName": "Relation.Binary.Construct.Never",
+    "toplevelModuleName": "Relation.Binary.Construct.Never",
     "name": "Never"
   },
   {
-    "moduleName": "Relation.Binary.Construct.NonStrictToStrict",
+    "toplevelModuleName": "Relation.Binary.Construct.NonStrictToStrict",
     "name": "_<_"
   },
   {
-    "moduleName": "Relation.Binary.Construct.StrictToNonStrict",
+    "toplevelModuleName": "Relation.Binary.Construct.StrictToNonStrict",
     "name": "_≤_"
   },
   {
-    "moduleName": "Relation.Binary.Core",
+    "toplevelModuleName": "Relation.Binary.Core",
     "name": "_⇒_"
   },
   {
-    "moduleName": "Relation.Binary.Core",
+    "toplevelModuleName": "Relation.Binary.Core",
     "name": "_⇔_"
   },
   {
-    "moduleName": "Relation.Binary.Core",
+    "toplevelModuleName": "Relation.Binary.Core",
     "name": "_=[_]⇒_"
   },
   {
-    "moduleName": "Relation.Binary.Core",
+    "toplevelModuleName": "Relation.Binary.Core",
     "name": "_Preserves_⟶_"
   },
   {
-    "moduleName": "Relation.Binary.Core",
+    "toplevelModuleName": "Relation.Binary.Core",
     "name": "_Preserves₂_⟶_⟶_"
   },
   {
-    "moduleName": "Relation.Binary.Core",
+    "toplevelModuleName": "Relation.Binary.Core",
     "name": "Rel"
   },
   {
-    "moduleName": "Relation.Binary.Core",
+    "toplevelModuleName": "Relation.Binary.Core",
     "name": "REL"
   },
   {
-    "moduleName": "Relation.Binary.Definitions",
+    "toplevelModuleName": "Relation.Binary.Definitions",
     "name": "_⟶_Respects_"
   },
   {
-    "moduleName": "Relation.Binary.Definitions",
+    "toplevelModuleName": "Relation.Binary.Definitions",
     "name": "_Respects_"
   },
   {
-    "moduleName": "Relation.Binary.Definitions",
+    "toplevelModuleName": "Relation.Binary.Definitions",
     "name": "_Respects₂_"
   },
   {
-    "moduleName": "Relation.Binary.Definitions",
+    "toplevelModuleName": "Relation.Binary.Definitions",
     "name": "_Respectsˡ_"
   },
   {
-    "moduleName": "Relation.Binary.Definitions",
+    "toplevelModuleName": "Relation.Binary.Definitions",
     "name": "_Respectsʳ_"
   },
   {
-    "moduleName": "Relation.Binary.Definitions",
+    "toplevelModuleName": "Relation.Binary.Definitions",
     "name": "Adjoint"
   },
   {
-    "moduleName": "Relation.Binary.Definitions",
+    "toplevelModuleName": "Relation.Binary.Definitions",
     "name": "Antisym"
   },
   {
-    "moduleName": "Relation.Binary.Definitions",
+    "toplevelModuleName": "Relation.Binary.Definitions",
     "name": "Antisymmetric"
   },
   {
-    "moduleName": "Relation.Binary.Definitions",
+    "toplevelModuleName": "Relation.Binary.Definitions",
     "name": "Antitonic₁"
   },
   {
-    "moduleName": "Relation.Binary.Definitions",
+    "toplevelModuleName": "Relation.Binary.Definitions",
     "name": "Antitonic₂"
   },
   {
-    "moduleName": "Relation.Binary.Definitions",
+    "toplevelModuleName": "Relation.Binary.Definitions",
     "name": "AntitonicMonotonic"
   },
   {
-    "moduleName": "Relation.Binary.Definitions",
+    "toplevelModuleName": "Relation.Binary.Definitions",
     "name": "Asymmetric"
   },
   {
-    "moduleName": "Relation.Binary.Definitions",
+    "toplevelModuleName": "Relation.Binary.Definitions",
     "name": "Connex"
   },
   {
-    "moduleName": "Relation.Binary.Definitions",
+    "toplevelModuleName": "Relation.Binary.Definitions",
     "name": "Cotransitive"
   },
   {
-    "moduleName": "Relation.Binary.Definitions",
+    "toplevelModuleName": "Relation.Binary.Definitions",
     "name": "Decidable"
   },
   {
-    "moduleName": "Relation.Binary.Definitions",
+    "toplevelModuleName": "Relation.Binary.Definitions",
     "name": "DecidableEquality"
   },
   {
-    "moduleName": "Relation.Binary.Definitions",
+    "toplevelModuleName": "Relation.Binary.Definitions",
     "name": "Dense"
   },
   {
-    "moduleName": "Relation.Binary.Definitions",
+    "toplevelModuleName": "Relation.Binary.Definitions",
     "name": "Empty"
   },
   {
-    "moduleName": "Relation.Binary.Definitions",
+    "toplevelModuleName": "Relation.Binary.Definitions",
     "name": "Irreflexive"
   },
   {
-    "moduleName": "Relation.Binary.Definitions",
+    "toplevelModuleName": "Relation.Binary.Definitions",
     "name": "Irrelevant"
   },
   {
-    "moduleName": "Relation.Binary.Definitions",
+    "toplevelModuleName": "Relation.Binary.Definitions",
     "name": "LeftMonotonic"
   },
   {
-    "moduleName": "Relation.Binary.Definitions",
+    "toplevelModuleName": "Relation.Binary.Definitions",
     "name": "LeftTrans"
   },
   {
-    "moduleName": "Relation.Binary.Definitions",
+    "toplevelModuleName": "Relation.Binary.Definitions",
     "name": "Max"
   },
   {
-    "moduleName": "Relation.Binary.Definitions",
+    "toplevelModuleName": "Relation.Binary.Definitions",
     "name": "Maximum"
   },
   {
-    "moduleName": "Relation.Binary.Definitions",
+    "toplevelModuleName": "Relation.Binary.Definitions",
     "name": "Min"
   },
   {
-    "moduleName": "Relation.Binary.Definitions",
+    "toplevelModuleName": "Relation.Binary.Definitions",
     "name": "Minimum"
   },
   {
-    "moduleName": "Relation.Binary.Definitions",
+    "toplevelModuleName": "Relation.Binary.Definitions",
     "name": "Monotonic₁"
   },
   {
-    "moduleName": "Relation.Binary.Definitions",
+    "toplevelModuleName": "Relation.Binary.Definitions",
     "name": "Monotonic₂"
   },
   {
-    "moduleName": "Relation.Binary.Definitions",
+    "toplevelModuleName": "Relation.Binary.Definitions",
     "name": "MonotonicAntitonic"
   },
   {
-    "moduleName": "Relation.Binary.Definitions",
+    "toplevelModuleName": "Relation.Binary.Definitions",
     "name": "Recomputable"
   },
   {
-    "moduleName": "Relation.Binary.Definitions",
+    "toplevelModuleName": "Relation.Binary.Definitions",
     "name": "Reflexive"
   },
   {
-    "moduleName": "Relation.Binary.Definitions",
+    "toplevelModuleName": "Relation.Binary.Definitions",
     "name": "RightMonotonic"
   },
   {
-    "moduleName": "Relation.Binary.Definitions",
+    "toplevelModuleName": "Relation.Binary.Definitions",
     "name": "RightTrans"
   },
   {
-    "moduleName": "Relation.Binary.Definitions",
+    "toplevelModuleName": "Relation.Binary.Definitions",
     "name": "Stable"
   },
   {
-    "moduleName": "Relation.Binary.Definitions",
+    "toplevelModuleName": "Relation.Binary.Definitions",
     "name": "Substitutive"
   },
   {
-    "moduleName": "Relation.Binary.Definitions",
+    "toplevelModuleName": "Relation.Binary.Definitions",
     "name": "Sym"
   },
   {
-    "moduleName": "Relation.Binary.Definitions",
+    "toplevelModuleName": "Relation.Binary.Definitions",
     "name": "Symmetric"
   },
   {
-    "moduleName": "Relation.Binary.Definitions",
+    "toplevelModuleName": "Relation.Binary.Definitions",
     "name": "Tight"
   },
   {
-    "moduleName": "Relation.Binary.Definitions",
+    "toplevelModuleName": "Relation.Binary.Definitions",
     "name": "Total"
   },
   {
-    "moduleName": "Relation.Binary.Definitions",
+    "toplevelModuleName": "Relation.Binary.Definitions",
     "name": "Trans"
   },
   {
-    "moduleName": "Relation.Binary.Definitions",
+    "toplevelModuleName": "Relation.Binary.Definitions",
     "name": "TransFlip"
   },
   {
-    "moduleName": "Relation.Binary.Definitions",
+    "toplevelModuleName": "Relation.Binary.Definitions",
     "name": "Transitive"
   },
   {
-    "moduleName": "Relation.Binary.Definitions",
+    "toplevelModuleName": "Relation.Binary.Definitions",
     "name": "Universal"
   },
   {
-    "moduleName": "Relation.Binary.Definitions",
+    "toplevelModuleName": "Relation.Binary.Definitions",
     "name": "WeaklyDecidable"
   },
   {
-    "moduleName": "Relation.Binary.HeterogeneousEquality",
+    "toplevelModuleName": "Relation.Binary.HeterogeneousEquality",
     "name": "_≇_"
   },
   {
-    "moduleName": "Relation.Binary.HeterogeneousEquality.Quotients.Examples",
+    "toplevelModuleName": "Relation.Binary.HeterogeneousEquality.Quotients.Examples",
     "name": "ℕ²"
   },
   {
-    "moduleName": "Relation.Binary.Indexed.Heterogeneous.Core",
+    "toplevelModuleName": "Relation.Binary.Indexed.Heterogeneous.Core",
     "name": "_=[_]⇒_"
   },
   {
-    "moduleName": "Relation.Binary.Indexed.Heterogeneous.Core",
+    "toplevelModuleName": "Relation.Binary.Indexed.Heterogeneous.Core",
     "name": "IRel"
   },
   {
-    "moduleName": "Relation.Binary.Indexed.Heterogeneous.Core",
+    "toplevelModuleName": "Relation.Binary.Indexed.Heterogeneous.Core",
     "name": "IREL"
   },
   {
-    "moduleName": "Relation.Binary.Indexed.Heterogeneous.Definitions",
+    "toplevelModuleName": "Relation.Binary.Indexed.Heterogeneous.Definitions",
     "name": "Reflexive"
   },
   {
-    "moduleName": "Relation.Binary.Indexed.Heterogeneous.Definitions",
+    "toplevelModuleName": "Relation.Binary.Indexed.Heterogeneous.Definitions",
     "name": "Symmetric"
   },
   {
-    "moduleName": "Relation.Binary.Indexed.Heterogeneous.Definitions",
+    "toplevelModuleName": "Relation.Binary.Indexed.Heterogeneous.Definitions",
     "name": "Transitive"
   },
   {
-    "moduleName": "Relation.Binary.Indexed.Homogeneous.Core",
+    "toplevelModuleName": "Relation.Binary.Indexed.Homogeneous.Core",
     "name": "fromHetIndexed"
   },
   {
-    "moduleName": "Relation.Binary.Indexed.Homogeneous.Core",
+    "toplevelModuleName": "Relation.Binary.Indexed.Homogeneous.Core",
     "name": "IRel"
   },
   {
-    "moduleName": "Relation.Binary.Indexed.Homogeneous.Core",
+    "toplevelModuleName": "Relation.Binary.Indexed.Homogeneous.Core",
     "name": "IREL"
   },
   {
-    "moduleName": "Relation.Binary.Lattice.Definitions",
+    "toplevelModuleName": "Relation.Binary.Lattice.Definitions",
     "name": "Exponential"
   },
   {
-    "moduleName": "Relation.Binary.Lattice.Definitions",
+    "toplevelModuleName": "Relation.Binary.Lattice.Definitions",
     "name": "Infimum"
   },
   {
-    "moduleName": "Relation.Binary.Lattice.Definitions",
+    "toplevelModuleName": "Relation.Binary.Lattice.Definitions",
     "name": "Supremum"
   },
   {
-    "moduleName": "Relation.Binary.Morphism.Definitions",
+    "toplevelModuleName": "Relation.Binary.Morphism.Definitions",
     "name": "Homomorphic₂"
   },
   {
-    "moduleName": "Relation.Binary.Morphism.OrderMonomorphism",
+    "toplevelModuleName": "Relation.Binary.Morphism.OrderMonomorphism",
     "name": "antisym"
   },
   {
-    "moduleName": "Relation.Binary.Morphism.OrderMonomorphism",
+    "toplevelModuleName": "Relation.Binary.Morphism.OrderMonomorphism",
     "name": "reflexive"
   },
   {
-    "moduleName": "Relation.Binary.Morphism.OrderMonomorphism",
+    "toplevelModuleName": "Relation.Binary.Morphism.OrderMonomorphism",
     "name": "respˡ"
   },
   {
-    "moduleName": "Relation.Binary.Morphism.OrderMonomorphism",
+    "toplevelModuleName": "Relation.Binary.Morphism.OrderMonomorphism",
     "name": "respʳ"
   },
   {
-    "moduleName": "Relation.Binary.Morphism.OrderMonomorphism",
+    "toplevelModuleName": "Relation.Binary.Morphism.OrderMonomorphism",
     "name": "trans"
   },
   {
-    "moduleName": "Relation.Binary.Morphism.RelMonomorphism",
+    "toplevelModuleName": "Relation.Binary.Morphism.RelMonomorphism",
     "name": "refl"
   },
   {
-    "moduleName": "Relation.Binary.Morphism.RelMonomorphism",
+    "toplevelModuleName": "Relation.Binary.Morphism.RelMonomorphism",
     "name": "sym"
   },
   {
-    "moduleName": "Relation.Binary.Morphism.RelMonomorphism",
+    "toplevelModuleName": "Relation.Binary.Morphism.RelMonomorphism",
     "name": "trans"
   },
   {
-    "moduleName": "Relation.Binary.OrderMorphism",
+    "toplevelModuleName": "Relation.Binary.OrderMorphism",
     "name": "_⇒-DTO_"
   },
   {
-    "moduleName": "Relation.Binary.Properties.DecTotalOrder",
+    "toplevelModuleName": "Relation.Binary.Properties.DecTotalOrder",
     "name": "_<_"
   },
   {
-    "moduleName": "Relation.Binary.Properties.Poset",
+    "toplevelModuleName": "Relation.Binary.Properties.Poset",
     "name": "_<_"
   },
   {
-    "moduleName": "Relation.Binary.Properties.TotalOrder",
+    "toplevelModuleName": "Relation.Binary.Properties.TotalOrder",
     "name": "_<_"
   },
   {
-    "moduleName": "Relation.Binary.PropositionalEquality.Core",
+    "toplevelModuleName": "Relation.Binary.PropositionalEquality.Core",
     "name": "_≗_"
   },
   {
-    "moduleName": "Relation.Binary.PropositionalEquality.Core",
+    "toplevelModuleName": "Relation.Binary.PropositionalEquality.Core",
     "name": "_≢_"
   },
   {
-    "moduleName": "Relation.Binary.PropositionalEquality",
+    "toplevelModuleName": "Relation.Binary.PropositionalEquality",
     "name": "isPropositional"
   },
   {
-    "moduleName": "Relation.Binary.Rewriting",
+    "toplevelModuleName": "Relation.Binary.Rewriting",
     "name": "WeaklyConfluent"
   },
   {
-    "moduleName": "Relation.Nary",
+    "toplevelModuleName": "Relation.Nary",
     "name": "∃⟨_⟩"
   },
   {
-    "moduleName": "Relation.Nary",
+    "toplevelModuleName": "Relation.Nary",
     "name": "Π[_]"
   },
   {
-    "moduleName": "Relation.Nary",
+    "toplevelModuleName": "Relation.Nary",
     "name": "∀[_]"
   },
   {
-    "moduleName": "Relation.Nary",
+    "toplevelModuleName": "Relation.Nary",
     "name": "Decidable"
   },
   {
-    "moduleName": "Relation.Nullary.Construct.Add.Extrema",
+    "toplevelModuleName": "Relation.Nullary.Construct.Add.Extrema",
     "name": "_±"
   },
   {
-    "moduleName": "Relation.Nullary.Decidable.Core",
+    "toplevelModuleName": "Relation.Nullary.Decidable.Core",
     "name": "False"
   },
   {
-    "moduleName": "Relation.Nullary.Decidable.Core",
+    "toplevelModuleName": "Relation.Nullary.Decidable.Core",
     "name": "recompute"
   },
   {
-    "moduleName": "Relation.Nullary.Decidable.Core",
+    "toplevelModuleName": "Relation.Nullary.Decidable.Core",
     "name": "True"
   },
   {
-    "moduleName": "Relation.Nullary.Indexed",
+    "toplevelModuleName": "Relation.Nullary.Indexed",
     "name": "¬"
   },
   {
-    "moduleName": "Relation.Nullary.Irrelevant",
+    "toplevelModuleName": "Relation.Nullary.Irrelevant",
     "name": "Irrelevant"
   },
   {
-    "moduleName": "Relation.Nullary.Negation.Core",
+    "toplevelModuleName": "Relation.Nullary.Negation.Core",
     "name": "¬_"
   },
   {
-    "moduleName": "Relation.Nullary.Negation.Core",
+    "toplevelModuleName": "Relation.Nullary.Negation.Core",
     "name": "DoubleNegation"
   },
   {
-    "moduleName": "Relation.Nullary.Negation.Core",
+    "toplevelModuleName": "Relation.Nullary.Negation.Core",
     "name": "Stable"
   },
   {
-    "moduleName": "Relation.Nullary",
+    "toplevelModuleName": "Relation.Nullary",
     "name": "WeaklyDecidable"
   },
   {
-    "moduleName": "Relation.Unary",
+    "toplevelModuleName": "Relation.Unary",
     "name": "∁"
   },
   {
-    "moduleName": "Relation.Unary",
+    "toplevelModuleName": "Relation.Unary",
     "name": "∅"
   },
   {
-    "moduleName": "Relation.Unary",
+    "toplevelModuleName": "Relation.Unary",
     "name": "⋂"
   },
   {
-    "moduleName": "Relation.Unary",
+    "toplevelModuleName": "Relation.Unary",
     "name": "⋃"
   },
   {
-    "moduleName": "Relation.Unary",
+    "toplevelModuleName": "Relation.Unary",
     "name": "⌊_⌋"
   },
   {
-    "moduleName": "Relation.Unary",
+    "toplevelModuleName": "Relation.Unary",
     "name": "｛_｝"
   },
   {
-    "moduleName": "Relation.Unary",
+    "toplevelModuleName": "Relation.Unary",
     "name": "_⇒_"
   },
   {
-    "moduleName": "Relation.Unary",
+    "toplevelModuleName": "Relation.Unary",
     "name": "_∈_"
   },
   {
-    "moduleName": "Relation.Unary",
+    "toplevelModuleName": "Relation.Unary",
     "name": "_∉_"
   },
   {
-    "moduleName": "Relation.Unary",
+    "toplevelModuleName": "Relation.Unary",
     "name": "_∖_"
   },
   {
-    "moduleName": "Relation.Unary",
+    "toplevelModuleName": "Relation.Unary",
     "name": "_∩_"
   },
   {
-    "moduleName": "Relation.Unary",
+    "toplevelModuleName": "Relation.Unary",
     "name": "_∪_"
   },
   {
-    "moduleName": "Relation.Unary",
+    "toplevelModuleName": "Relation.Unary",
     "name": "_≐_"
   },
   {
-    "moduleName": "Relation.Unary",
+    "toplevelModuleName": "Relation.Unary",
     "name": "_≐′_"
   },
   {
-    "moduleName": "Relation.Unary",
+    "toplevelModuleName": "Relation.Unary",
     "name": "_≬_"
   },
   {
-    "moduleName": "Relation.Unary",
+    "toplevelModuleName": "Relation.Unary",
     "name": "_⊂_"
   },
   {
-    "moduleName": "Relation.Unary",
+    "toplevelModuleName": "Relation.Unary",
     "name": "_⊂′_"
   },
   {
-    "moduleName": "Relation.Unary",
+    "toplevelModuleName": "Relation.Unary",
     "name": "_⊃_"
   },
   {
-    "moduleName": "Relation.Unary",
+    "toplevelModuleName": "Relation.Unary",
     "name": "_⊃′_"
   },
   {
-    "moduleName": "Relation.Unary",
+    "toplevelModuleName": "Relation.Unary",
     "name": "_⊄_"
   },
   {
-    "moduleName": "Relation.Unary",
+    "toplevelModuleName": "Relation.Unary",
     "name": "_⊄′_"
   },
   {
-    "moduleName": "Relation.Unary",
+    "toplevelModuleName": "Relation.Unary",
     "name": "_⊅_"
   },
   {
-    "moduleName": "Relation.Unary",
+    "toplevelModuleName": "Relation.Unary",
     "name": "_⊅′_"
   },
   {
-    "moduleName": "Relation.Unary",
+    "toplevelModuleName": "Relation.Unary",
     "name": "_⊆_"
   },
   {
-    "moduleName": "Relation.Unary",
+    "toplevelModuleName": "Relation.Unary",
     "name": "_⊆′_"
   },
   {
-    "moduleName": "Relation.Unary",
+    "toplevelModuleName": "Relation.Unary",
     "name": "_⊇_"
   },
   {
-    "moduleName": "Relation.Unary",
+    "toplevelModuleName": "Relation.Unary",
     "name": "_⊇′_"
   },
   {
-    "moduleName": "Relation.Unary",
+    "toplevelModuleName": "Relation.Unary",
     "name": "_⊈_"
   },
   {
-    "moduleName": "Relation.Unary",
+    "toplevelModuleName": "Relation.Unary",
     "name": "_⊈′_"
   },
   {
-    "moduleName": "Relation.Unary",
+    "toplevelModuleName": "Relation.Unary",
     "name": "_⊉_"
   },
   {
-    "moduleName": "Relation.Unary",
+    "toplevelModuleName": "Relation.Unary",
     "name": "_⊉′_"
   },
   {
-    "moduleName": "Relation.Unary",
+    "toplevelModuleName": "Relation.Unary",
     "name": "_⊢_"
   },
   {
-    "moduleName": "Relation.Unary",
+    "toplevelModuleName": "Relation.Unary",
     "name": "_⊥_"
   },
   {
-    "moduleName": "Relation.Unary",
+    "toplevelModuleName": "Relation.Unary",
     "name": "_⊥′_"
   },
   {
-    "moduleName": "Relation.Unary",
+    "toplevelModuleName": "Relation.Unary",
     "name": "_⟨→⟩_"
   },
   {
-    "moduleName": "Relation.Unary",
+    "toplevelModuleName": "Relation.Unary",
     "name": "_⟨⊎⟩_"
   },
   {
-    "moduleName": "Relation.Unary",
+    "toplevelModuleName": "Relation.Unary",
     "name": "_\\\\_"
   },
   {
-    "moduleName": "Relation.Unary",
+    "toplevelModuleName": "Relation.Unary",
     "name": "_~"
   },
   {
-    "moduleName": "Relation.Unary.Closure.Base",
+    "toplevelModuleName": "Relation.Unary.Closure.Base",
     "name": "□"
   },
   {
-    "moduleName": "Relation.Unary.Closure.Base",
+    "toplevelModuleName": "Relation.Unary.Closure.Base",
     "name": "◇"
   },
   {
-    "moduleName": "Relation.Unary.Closure.Preorder",
+    "toplevelModuleName": "Relation.Unary.Closure.Preorder",
     "name": "□"
   },
   {
-    "moduleName": "Relation.Unary.Closure.Preorder",
+    "toplevelModuleName": "Relation.Unary.Closure.Preorder",
     "name": "◇"
   },
   {
-    "moduleName": "Relation.Unary.Closure.StrictPartialOrder",
+    "toplevelModuleName": "Relation.Unary.Closure.StrictPartialOrder",
     "name": "□"
   },
   {
-    "moduleName": "Relation.Unary.Closure.StrictPartialOrder",
+    "toplevelModuleName": "Relation.Unary.Closure.StrictPartialOrder",
     "name": "◇"
   },
   {
-    "moduleName": "Relation.Unary",
+    "toplevelModuleName": "Relation.Unary",
     "name": "Decidable"
   },
   {
-    "moduleName": "Relation.Unary",
+    "toplevelModuleName": "Relation.Unary",
     "name": "Empty"
   },
   {
-    "moduleName": "Relation.Unary.Indexed",
+    "toplevelModuleName": "Relation.Unary.Indexed",
     "name": "_∉_"
   },
   {
-    "moduleName": "Relation.Unary",
+    "toplevelModuleName": "Relation.Unary",
     "name": "Irrelevant"
   },
   {
-    "moduleName": "Relation.Unary",
+    "toplevelModuleName": "Relation.Unary",
     "name": "IUniversal"
   },
   {
-    "moduleName": "Relation.Unary.Polymorphic",
+    "toplevelModuleName": "Relation.Unary.Polymorphic",
     "name": "∅"
   },
   {
-    "moduleName": "Relation.Unary.Polymorphic",
+    "toplevelModuleName": "Relation.Unary.Polymorphic",
     "name": "U"
   },
   {
-    "moduleName": "Relation.Unary",
+    "toplevelModuleName": "Relation.Unary",
     "name": "Pred"
   },
   {
-    "moduleName": "Relation.Unary.PredicateTransformer",
+    "toplevelModuleName": "Relation.Unary.PredicateTransformer",
     "name": "⨅"
   },
   {
-    "moduleName": "Relation.Unary.PredicateTransformer",
+    "toplevelModuleName": "Relation.Unary.PredicateTransformer",
     "name": "⨆"
   },
   {
-    "moduleName": "Relation.Unary.PredicateTransformer",
+    "toplevelModuleName": "Relation.Unary.PredicateTransformer",
     "name": "∼_"
   },
   {
-    "moduleName": "Relation.Unary.PredicateTransformer",
+    "toplevelModuleName": "Relation.Unary.PredicateTransformer",
     "name": "⟨_⟩"
   },
   {
-    "moduleName": "Relation.Unary.PredicateTransformer",
+    "toplevelModuleName": "Relation.Unary.PredicateTransformer",
     "name": "_⇛_"
   },
   {
-    "moduleName": "Relation.Unary.PredicateTransformer",
+    "toplevelModuleName": "Relation.Unary.PredicateTransformer",
     "name": "_⊑_"
   },
   {
-    "moduleName": "Relation.Unary.PredicateTransformer",
+    "toplevelModuleName": "Relation.Unary.PredicateTransformer",
     "name": "_⊑′_"
   },
   {
-    "moduleName": "Relation.Unary.PredicateTransformer",
+    "toplevelModuleName": "Relation.Unary.PredicateTransformer",
     "name": "_⊒_"
   },
   {
-    "moduleName": "Relation.Unary.PredicateTransformer",
+    "toplevelModuleName": "Relation.Unary.PredicateTransformer",
     "name": "_⊒′_"
   },
   {
-    "moduleName": "Relation.Unary.PredicateTransformer",
+    "toplevelModuleName": "Relation.Unary.PredicateTransformer",
     "name": "_⊓_"
   },
   {
-    "moduleName": "Relation.Unary.PredicateTransformer",
+    "toplevelModuleName": "Relation.Unary.PredicateTransformer",
     "name": "_⊔_"
   },
   {
-    "moduleName": "Relation.Unary.PredicateTransformer",
+    "toplevelModuleName": "Relation.Unary.PredicateTransformer",
     "name": "_⋢_"
   },
   {
-    "moduleName": "Relation.Unary.PredicateTransformer",
+    "toplevelModuleName": "Relation.Unary.PredicateTransformer",
     "name": "_⍮_"
   },
   {
-    "moduleName": "Relation.Unary.PredicateTransformer",
+    "toplevelModuleName": "Relation.Unary.PredicateTransformer",
     "name": "[_]"
   },
   {
-    "moduleName": "Relation.Unary.PredicateTransformer",
+    "toplevelModuleName": "Relation.Unary.PredicateTransformer",
     "name": "abort"
   },
   {
-    "moduleName": "Relation.Unary.PredicateTransformer",
+    "toplevelModuleName": "Relation.Unary.PredicateTransformer",
     "name": "magic"
   },
   {
-    "moduleName": "Relation.Unary.PredicateTransformer",
+    "toplevelModuleName": "Relation.Unary.PredicateTransformer",
     "name": "Pt"
   },
   {
-    "moduleName": "Relation.Unary.PredicateTransformer",
+    "toplevelModuleName": "Relation.Unary.PredicateTransformer",
     "name": "PT"
   },
   {
-    "moduleName": "Relation.Unary.PredicateTransformer",
+    "toplevelModuleName": "Relation.Unary.PredicateTransformer",
     "name": "skip"
   },
   {
-    "moduleName": "Relation.Unary",
+    "toplevelModuleName": "Relation.Unary",
     "name": "Recomputable"
   },
   {
-    "moduleName": "Relation.Unary",
+    "toplevelModuleName": "Relation.Unary",
     "name": "Satisfiable"
   },
   {
-    "moduleName": "Relation.Unary.Sized",
+    "toplevelModuleName": "Relation.Unary.Sized",
     "name": "_⇒_"
   },
   {
-    "moduleName": "Relation.Unary.Sized",
+    "toplevelModuleName": "Relation.Unary.Sized",
     "name": "∀[_]"
   },
   {
-    "moduleName": "Relation.Unary",
+    "toplevelModuleName": "Relation.Unary",
     "name": "Stable"
   },
   {
-    "moduleName": "Relation.Unary",
+    "toplevelModuleName": "Relation.Unary",
     "name": "U"
   },
   {
-    "moduleName": "Relation.Unary",
+    "toplevelModuleName": "Relation.Unary",
     "name": "Universal"
   },
   {
-    "moduleName": "Relation.Unary",
+    "toplevelModuleName": "Relation.Unary",
     "name": "WeaklyDecidable"
   },
   {
-    "moduleName": "Size",
+    "toplevelModuleName": "Size",
     "name": "SizedSet"
   },
   {
-    "moduleName": "System.FilePath.Posix.Primitive",
+    "toplevelModuleName": "System.FilePath.Posix.Primitive",
     "name": "AbsolutePath"
   },
   {
-    "moduleName": "System.FilePath.Posix.Primitive",
+    "toplevelModuleName": "System.FilePath.Posix.Primitive",
     "name": "RelativePath"
   },
   {
-    "moduleName": "System.FilePath.Posix.Primitive",
+    "toplevelModuleName": "System.FilePath.Posix.Primitive",
     "name": "SomePath"
   },
   {
-    "moduleName": "System.Random",
+    "toplevelModuleName": "System.Random",
     "name": "RandomRIO"
   },
   {
-    "moduleName": "Tactic.RingSolver.Core.NatSet",
+    "toplevelModuleName": "Tactic.RingSolver.Core.NatSet",
     "name": "NatSet"
   },
   {
-    "moduleName": "Tactic.RingSolver.Core.Polynomial.Base",
+    "toplevelModuleName": "Tactic.RingSolver.Core.Polynomial.Base",
     "name": "Coeff"
   },
   {
-    "moduleName": "Tactic.RingSolver.Core.Polynomial.Base",
+    "toplevelModuleName": "Tactic.RingSolver.Core.Polynomial.Base",
     "name": "Fold"
   },
   {
-    "moduleName": "Tactic.RingSolver.Core.Polynomial.Base",
+    "toplevelModuleName": "Tactic.RingSolver.Core.Polynomial.Base",
     "name": "PolyF"
   },
   {
-    "moduleName": "Test.Golden",
+    "toplevelModuleName": "Test.Golden",
     "name": "Result"
   },
   {
-    "moduleName": "Text.Pretty.Core",
+    "toplevelModuleName": "Text.Pretty.Core",
     "name": "All"
   },
   {
-    "moduleName": "Text.Pretty.Core",
+    "toplevelModuleName": "Text.Pretty.Core",
     "name": "All≤"
   },
   {
-    "moduleName": "Text.Pretty.Core",
+    "toplevelModuleName": "Text.Pretty.Core",
     "name": "Content"
   },
   {
-    "moduleName": "Text.Regex",
+    "toplevelModuleName": "Text.Regex",
     "name": "_∉_"
   },
   {
-    "moduleName": "Text.Regex",
+    "toplevelModuleName": "Text.Regex",
     "name": "_∉ᴿ_"
   },
   {
-    "moduleName": "Text.Regex.Base",
+    "toplevelModuleName": "Text.Regex.Base",
     "name": "_∉_"
   },
   {
-    "moduleName": "Text.Regex.Base",
+    "toplevelModuleName": "Text.Regex.Base",
     "name": "_∉ᴿ_"
   },
   {
-    "moduleName": "Text.Regex.String.Unsafe",
+    "toplevelModuleName": "Text.Regex.String.Unsafe",
     "name": "_∈_"
   },
   {
-    "moduleName": "Text.Regex.String.Unsafe",
+    "toplevelModuleName": "Text.Regex.String.Unsafe",
     "name": "_∉_"
   }
 ]
