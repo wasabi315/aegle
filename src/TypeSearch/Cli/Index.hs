@@ -20,8 +20,7 @@ import TypeSearch.Prelude
 data Command = Command
   { connSetting :: Setting,
     libraryDir :: FilePath,
-    transparentDefsFile :: FilePath,
-    agdaHtmlDir :: FilePath
+    transparentDefsFile :: FilePath
   }
 
 index :: Command -> IO ()

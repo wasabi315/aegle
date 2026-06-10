@@ -37,7 +37,6 @@ instance HasParser Command where
         connSetting <- connectionSetting
         libraryDir <- argSetting "LIBRARY_DIR" "Directory containing the Agda library to index" str
         transparentDefsFile <- argSetting "TRANSPARENT_DEFS_FILE" "JSON file listing transparent definitions" str
-        agdaHtmlDir <- longSetting "html-dir" "HTML_DIR" "Directory for generated Agda HTML files" str "html"
         pure $ Index Index.Command {..}
 
       search = command "search" "Search within indexed library" do
