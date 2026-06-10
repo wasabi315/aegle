@@ -168,6 +168,7 @@ library
     , uri-encode
     , vector
     , wai
+    , wai-extra
     , warp
     , witherable
   default-language: GHC2021
@@ -275,6 +276,7 @@ executable dependent-type-search
     , uri-encode
     , vector
     , wai
+    , wai-extra
     , warp
     , witherable
   default-language: GHC2021
@@ -387,6 +389,7 @@ test-suite dependent-type-search-test
     , uri-encode
     , vector
     , wai
+    , wai-extra
     , warp
     , witherable
   default-language: GHC2021

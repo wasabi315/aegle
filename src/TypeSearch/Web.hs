@@ -9,7 +9,9 @@ import Data.Time.Clock
 import Lucid hiding (for_)
 import Lucid.Servant
 import Network.URI.Encode qualified
+import Network.Wai
 import Network.Wai.Handler.Warp qualified as Warp
+import Network.Wai.Middleware.RequestLogger
 import Paths_dependent_type_search
 import Prettyprinter
 import Servant
@@ -35,7 +37,10 @@ runServer Config {..} = do
   dataDir <- getDataDir
   let staticDir = dataDir </> "static"
   putStrLn $ "Listening on port " ++ show port
-  Warp.run port $ serve api (server staticDir agdaHtmlDir dbReader)
+  Warp.run port $ middleware $ serve api (server staticDir agdaHtmlDir dbReader)
+
+middleware :: Middleware
+middleware = logStdout
 
 --------------------------------------------------------------------------------
 -- APIs
