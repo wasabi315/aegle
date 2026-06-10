@@ -8,18 +8,16 @@ module Aegle.Search.Query
     returnType,
     freeVars,
     toTerm,
-    possibleResolutions,
     Unqualified (..),
   )
 where
 
-import Data.Map.Strict qualified as M
-import Data.Set qualified as S
-import Prettyprinter
 import Aegle.Core.Name
 import Aegle.Core.Term (AppView (..), TeleView (..))
 import Aegle.Core.Term qualified as C
 import Aegle.Prelude
+import Data.Set qualified as S
+import Prettyprinter
 
 --------------------------------------------------------------------------------
 
@@ -95,39 +93,6 @@ toTerm = go []
       Pair t u -> C.Pair (go ns t) (go ns u)
       Proj1 t -> C.Proj1 (go ns t)
       Proj2 t -> C.Proj2 (go ns t)
-
-possibleResolutions :: M.Map Name [QName] -> Term -> [C.Term]
-possibleResolutions tbl = flip evalStateT mempty . go []
-  where
-    fixName qn = StateT \fixed -> do
-      fixed <-
-        M.alterF
-          ( maybe
-              (pure $ Just qn)
-              \qn' -> if qn == qn' then pure (Just qn) else []
-          )
-          qn.name
-          fixed
-      pure ((), fixed)
-
-    go ns = \case
-      Var (Unqual x)
-        | Just i <- x `elemIndex` ns -> pure $ C.Var (Index i)
-      Var (Unqual x) -> do
-        qn <- lift $ fromMaybe [] (tbl M.!? x)
-        fixName qn
-        pure $ C.Top qn
-      Var (Qual m x) -> do
-        fixName (QName m x)
-        pure $ C.Top (QName m x)
-      U -> pure C.U
-      Pi x a b -> C.Pi x <$> go ns a <*> go (x : ns) b
-      Lam x t -> C.Lam x <$> go (x : ns) t
-      App t u -> C.App <$> go ns t <*> go ns u
-      Sigma x a b -> C.Sigma x <$> go ns a <*> go (x : ns) b
-      Pair t u -> C.Pair <$> go ns t <*> go ns u
-      Proj1 t -> C.Proj1 <$> go ns t
-      Proj2 t -> C.Proj2 <$> go ns t
 
 --------------------------------------------------------------------------------
 -- Prettyprinting
