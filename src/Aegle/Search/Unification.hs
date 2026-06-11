@@ -6,8 +6,6 @@ import Aegle.Core.Term hiding (rename)
 import Aegle.Prelude
 import Data.IntMap.Strict qualified as IM
 import Data.IntSet qualified as IS
-import Data.Map.Lazy qualified as ML
-import Data.Set.NonEmpty qualified as S1
 import Prettyprinter
 
 --------------------------------------------------------------------------------
@@ -278,36 +276,25 @@ unify mctx tenv l t t' = case (force mctx tenv t, force mctx tenv t') of
   (t, VFlex m' sp') -> maybeToList $ solve mctx tenv l m' sp' t
   (VTopAmb x sp, t') ->
     asum
-      [ case t' of
-          VTop x' sp' -> do
-            guard $ x' `S1.member` lookupResol mctx x
-            unifySpine (resolve mctx x x') tenv l sp sp'
-          _ -> empty,
+      [ do
+          VTop x' sp' <- pure t'
+          mctx <- maybeToList $ resolve mctx x x'
+          unifySpine mctx tenv l sp sp',
         do
-          (mctx, t) <- expandTopAmb mctx tenv x sp
+          (t, mctx) <- expandNondet mctx tenv x sp
           unify mctx tenv l t t'
       ]
   (t, VTopAmb x' sp') ->
     asum
-      [ case t of
-          VTop x sp -> do
-            guard $ x `S1.member` lookupResol mctx x'
-            unifySpine (resolve mctx x' x) tenv l sp sp'
-          _ -> empty,
+      [ do
+          VTop x sp <- pure t
+          mctx <- maybeToList $ resolve mctx x' x
+          unifySpine mctx tenv l sp sp',
         do
-          (mctx, t') <- expandTopAmb mctx tenv x' sp'
+          (t', mctx) <- expandNondet mctx tenv x' sp'
           unify mctx tenv l t t'
       ]
   _ -> []
-
-expandTopAmb :: MetaCtx -> TopEnv -> PQName -> Spine -> [(MetaCtx, Value)]
-expandTopAmb mctx tenv x sp =
-  [ (mctx', v)
-  | x' <- toList $ lookupResol mctx x,
-    Just t <- pure $ ML.lookup x' tenv,
-    let mctx' = resolve mctx x x'
-        v = vAppSpine t sp
-  ]
 
 unifySpine :: MetaCtx -> TopEnv -> Level -> Spine -> Spine -> [MetaCtx]
 unifySpine mctx tenv l = \cases

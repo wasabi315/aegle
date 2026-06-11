@@ -71,7 +71,7 @@ check mctx ctx query itemName item =
             ~sol = closeTm ctx.locals $ quote mctx ctx.topEnv ctx.level $ transportInv j inst
         pure (j, sol),
       IStr.Later do
-        (query, mctx) <- choose $ forceAmb' mctx ctx.topEnv query
+        (query, mctx) <- choose $ forceNondet mctx ctx.topEnv query
         case query of
           VPi "_" _ _ -> empty
           VPi x a b -> do

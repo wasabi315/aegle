@@ -1,12 +1,12 @@
 module Aegle.Search.Unification.ModuloIso where
 
-import Prettyprinter
 import Aegle.Core.Evaluation
 import Aegle.Core.Isomorphism
 import Aegle.Core.Name
 import Aegle.Core.Term hiding (rename)
 import Aegle.Prelude
 import Aegle.Search.Unification
+import Prettyprinter
 
 --------------------------------------------------------------------------------
 -- Rewriting types
@@ -146,7 +146,7 @@ unifyIso mctx tenv lvl t t' = case (force mctx tenv t, force mctx tenv t') of
   (VTopAmb x sp, t') ->
     asum
       [ do
-          (mctx, t) <- expandTopAmb mctx tenv x sp
+          (t, mctx) <- expandNondet mctx tenv x sp
           unifyIso mctx tenv lvl t t',
         do
           mctx <- unify mctx tenv lvl (VTopAmb x sp) t'
@@ -155,7 +155,7 @@ unifyIso mctx tenv lvl t t' = case (force mctx tenv t, force mctx tenv t') of
   (t, VTopAmb x' sp') ->
     asum
       [ do
-          (mctx, t') <- expandTopAmb mctx tenv x' sp'
+          (t', mctx) <- expandNondet mctx tenv x' sp'
           unifyIso mctx tenv lvl t t',
         do
           mctx <- unify mctx tenv lvl t (VTopAmb x' sp')
