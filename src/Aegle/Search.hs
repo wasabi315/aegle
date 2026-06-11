@@ -88,8 +88,8 @@ search config query = onTimeout config.timeout (Left Timeout) $ runExceptT do
 
     -- 3. Speculatively normalise the query type and compute possible features
     let typ' = Q.toTerm typ
-        typs = filter (not . isLam) $ quoteAmb mctx tenv 0 (eval mctx mempty [] typ')
-        feats = nubOrd $ map allFeatureQ typs
+        typs = quoteAmb mctx tenv 0 (eval mctx mempty [] typ')
+        feats = nubOrd $ mapMaybe allFeatureQ typs
         compats = feats <&> \feat -> toCompat ! #query feat
 
     -- 4. Load candidates based on compats

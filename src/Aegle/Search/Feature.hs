@@ -32,23 +32,23 @@ data ResultHead n
   deriving anyclass (ToJSON, FromJSON)
 
 -- | The input type must be closed. Doesn't perform any reduction.
-resultHead' :: (QName -> n) -> (PQName -> n) -> Type -> ResultHead n
+resultHead' :: (QName -> n) -> (PQName -> n) -> Type -> Maybe (ResultHead n)
 resultHead' onTop onTopAmb t = case headTerm (returnType t) of
-  U -> RHU
-  Var {} -> RHVar
-  Top x -> RHTop (onTop x)
-  TopAmb x -> RHTop (onTopAmb x)
-  Sigma {} -> RHSigma
-  Proj1 {} -> RHProj1
-  Proj2 {} -> RHProj2
-  (Meta {}; Pi {}; Lam {}; App {}; AppPruning {}; Pair {}) -> impossible "resultHead'"
+  U -> Just RHU
+  Var {} -> Just RHVar
+  Top x -> Just $ RHTop (onTop x)
+  TopAmb x -> Just $ RHTop (onTopAmb x)
+  Sigma {} -> Just RHSigma
+  Proj1 {} -> Just RHProj1
+  Proj2 {} -> Just RHProj2
+  (Meta {}; Pi {}; Lam {}; App {}; AppPruning {}; Pair {}) -> Nothing
 
--- | The input type must be closed. Doesn't perform any reduction.
+-- | The input type must be closed and well-formed. Doesn't perform any reduction.
 resultHead :: Type -> ResultHead QName
-resultHead = resultHead' id (const $ impossible "resultHead")
+resultHead = fromJust . resultHead' id (const $ impossible "resultHead")
 
 -- | The input type must be closed.
-resultHeadQ :: Type -> ResultHead PQName
+resultHeadQ :: Type -> Maybe (ResultHead PQName)
 resultHeadQ = resultHead' (\(QName m x) -> Qual m x) id
 
 data ResultHeadCompat n
@@ -166,13 +166,15 @@ allFeature typ =
       arity = arity typ
     }
 
-allFeatureQ :: Type -> AllFeature PQName
-allFeatureQ typ =
-  AllFeature
-    { resultHead = resultHeadQ typ,
-      polymorphic = polymorphic typ,
-      arity = arity typ
-    }
+allFeatureQ :: Type -> Maybe (AllFeature PQName)
+allFeatureQ typ = do
+  resultHead <- resultHeadQ typ
+  pure
+    AllFeature
+      { resultHead,
+        polymorphic = polymorphic typ,
+        arity = arity typ
+      }
 
 data AllFeatureCompat n = AllFeatureCompat
   { resultHead :: ResultHeadCompat n,
