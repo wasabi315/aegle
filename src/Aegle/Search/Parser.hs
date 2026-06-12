@@ -1,6 +1,7 @@
 module Aegle.Search.Parser
   ( parseQuery,
     ParserError,
+    keyword,
   )
 where
 

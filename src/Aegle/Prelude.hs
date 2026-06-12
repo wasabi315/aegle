@@ -53,6 +53,7 @@ module Aegle.Prelude
 
     -- * Utils
     impossible,
+    implies,
     down,
     choose,
     foldMapA,
@@ -119,6 +120,11 @@ import Debug.Trace qualified
 
 impossible :: (HasCallStack) => String -> a
 impossible msg = error $ "impossible: " ++ msg
+
+infixr 1 `implies`
+
+implies :: Bool -> Bool -> Bool
+implies p q = not p || q
 
 -- | @[x, pred x, ..., y]@
 down :: (Enum a) => a -> a -> [a]

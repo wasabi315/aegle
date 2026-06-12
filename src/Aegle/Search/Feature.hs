@@ -23,13 +23,17 @@ import Aegle.Prelude
 
 --------------------------------------------------------------------------------
 
+-- | Search feature with a compatibility relation.
 class Feature a where
+  -- | @compatible query db@ means that a definition with feature @db@ is a
+  -- possible candidate for a search query with feature @query@.
+  -- Expected to be a preorder.
   compatible :: "query" :! a -> "db" :! a -> Bool
   compatible = matchesCompat . toCompat
   {-# INLINE compatible #-}
 
   -- | Reified compatibility condition produced from a query feature.
-  -- Backend code can compile this e.g. to SQL.
+  -- Backend code can compile this, e.g. to SQL.
   type Compat a
 
   toCompat :: "query" :! a -> Compat a

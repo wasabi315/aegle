@@ -179,7 +179,11 @@ executables:
 
 tests:
   aegle-test:
-    main: Spec.hs
+    main: Main.hs
     source-dirs: test
     dependencies:
       - aegle
+      - tasty
+      - hedgehog
+      - tasty-hedgehog
+      - tasty-hunit
