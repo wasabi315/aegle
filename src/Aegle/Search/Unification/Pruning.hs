@@ -12,7 +12,7 @@ where
 
 import Aegle.Core.Evaluation
 import Aegle.Core.Name
-import Aegle.Core.Term hiding (rename)
+import Aegle.Core.Term
 import Aegle.Prelude
 import Data.IntMap.Strict qualified as IM
 import Data.Text qualified as T

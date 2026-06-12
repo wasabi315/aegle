@@ -6,7 +6,7 @@ where
 
 import Aegle.Core.Evaluation
 import Aegle.Core.Name
-import Aegle.Core.Term hiding (rename)
+import Aegle.Core.Term
 import Aegle.Prelude
 import Aegle.Search.Unification.Pruning
 import Data.IntMap.Strict qualified as IM

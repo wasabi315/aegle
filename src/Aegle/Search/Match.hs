@@ -7,7 +7,7 @@ where
 import Aegle.Core.Evaluation
 import Aegle.Core.Isomorphism
 import Aegle.Core.Name
-import Aegle.Core.Term hiding (rename)
+import Aegle.Core.Term
 import Aegle.Prelude
 import Aegle.Search.Unification.ModuloIso
 import Data.ImmatureStream qualified as IStr

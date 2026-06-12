@@ -5,8 +5,6 @@ module Aegle.Core.Term
     RevPruning (..),
     revPruning,
     freeVars,
-    subst,
-    rename,
     weakenBy,
     TeleView (..),
     teleView,
@@ -77,31 +75,25 @@ freeVars = \case
   where
     freeVarBind t = S.mapMonotonic (subtract 1) $ S.filter (> 0) $ freeVars t
 
-subst :: (Index -> Term) -> Term -> Term
-subst s = \case
-  Var i -> s i
-  t@Meta {} -> t
-  t@Top {} -> t
-  t@TopAmb {} -> t
-  U -> U
-  Pi x a b -> Pi x (subst s a) (substBind s b)
-  Lam x t -> Lam x (substBind s t)
-  App t u -> App (subst s t) (subst s u)
-  Sigma x a b -> Sigma x (subst s a) (substBind s b)
-  Pair t u -> Pair (subst s t) (subst s u)
-  Proj1 t -> Proj1 (subst s t)
-  Proj2 t -> Proj2 (subst s t)
-  AppPruning {} -> error "subst: substitution on AppPruning is not supported yet"
-  where
-    substBind s = subst \case
-      0 -> Var 0
-      i -> weakenBy 1 $ s (i - 1)
-
-rename :: (Index -> Index) -> Term -> Term
-rename r = subst (Var . r)
-
 weakenBy :: Int -> Term -> Term
-weakenBy n = rename (coerce n +)
+weakenBy n = go 0
+  where
+    go d = \case
+      Var i
+        | i < d -> Var i
+        | otherwise -> Var (i + coerce n)
+      t@Meta {} -> t
+      t@Top {} -> t
+      t@TopAmb {} -> t
+      U -> U
+      Pi x a b -> Pi x (go d a) (go (d + 1) b)
+      Lam x t -> Lam x (go (d + 1) t)
+      App t u -> App (go d t) (go d u)
+      Sigma x a b -> Sigma x (go d a) (go (d + 1) b)
+      Pair t u -> Pair (go d t) (go d u)
+      Proj1 t -> Proj1 (go d t)
+      Proj2 t -> Proj2 (go d t)
+      AppPruning {} -> error "weakenBy: weakening on AppPruning is not supported yet"
 
 data TeleView a = TeleView
   { tele :: [(Name, a)],
