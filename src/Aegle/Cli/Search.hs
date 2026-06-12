@@ -85,8 +85,7 @@ putResult Result {..} =
           indent 2
             $ vsep
             $ catMaybes
-              [ Just $ "◦ module         :" <+> pretty moduleName,
-                case reexportedAs of
+              [ case reexportedAs of
                   [] -> Nothing
                   _ -> Just $ "◦ re-exported as :" <+> hsep (punctuate comma $ pretty <$> reexportedAs),
                 case iso of

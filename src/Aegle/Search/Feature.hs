@@ -26,6 +26,7 @@ import Aegle.Prelude
 class Feature a where
   compatible :: "query" :! a -> "db" :! a -> Bool
   compatible = matchesCompat . toCompat
+  {-# INLINE compatible #-}
 
   -- | Reified compatibility condition produced from a query feature.
   -- Backend code can compile this e.g. to SQL.
@@ -89,6 +90,7 @@ instance (Eq n) => Feature (ResultHead n) where
     Arg RHProj1 -> IsVarOrProj1
     Arg RHProj2 -> IsVarOrProj2
     Arg RHUnknown -> AnyResult
+  {-# INLINE toCompat #-}
 
   matchesCompat = \cases
     AnyResult _ -> True
@@ -98,6 +100,7 @@ instance (Eq n) => Feature (ResultHead n) where
     IsVarOrSigma (Arg rh) -> rh `elem` [RHVar, RHSigma]
     IsVarOrProj1 (Arg rh) -> rh `elem` [RHVar, RHProj1]
     IsVarOrProj2 (Arg rh) -> rh `elem` [RHVar, RHProj2]
+  {-# INLINE matchesCompat #-}
 
 --------------------------------------------------------------------------------
 
@@ -123,10 +126,12 @@ instance Feature Polymorphic where
   toCompat = \case
     Arg Polymorphic -> IsPoly
     Arg Monomorphic -> AnyPoly
+  {-# INLINE toCompat #-}
 
   matchesCompat = \cases
     IsPoly (Arg poly) -> poly == Polymorphic
     AnyPoly _ -> True
+  {-# INLINE matchesCompat #-}
 
 --------------------------------------------------------------------------------
 
@@ -161,10 +166,12 @@ instance Feature Arity where
 
   toCompat (Arg Arity {..}) =
     if hasVar then HasVar else HasVarOrGe arity
+  {-# INLINE toCompat #-}
 
   matchesCompat compat (Arg Arity {..}) = case compat of
     HasVar -> hasVar
     HasVarOrGe arity' -> hasVar || arity >= arity'
+  {-# INLINE matchesCompat #-}
 
 --------------------------------------------------------------------------------
 
@@ -209,8 +216,10 @@ instance (Eq n) => Feature (AllFeature n) where
         polymorphic = toCompat (Arg polymorphic),
         arity = toCompat (Arg arity)
       }
+  {-# INLINE toCompat #-}
 
   matchesCompat compat (Arg feat) =
     matchesCompat compat.resultHead (Arg feat.resultHead)
       && matchesCompat compat.polymorphic (Arg feat.polymorphic)
       && matchesCompat compat.arity (Arg feat.arity)
+  {-# INLINE matchesCompat #-}
