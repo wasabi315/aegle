@@ -72,6 +72,7 @@ library
       Aegle.Search.Query
       Aegle.Search.Unification
       Aegle.Search.Unification.ModuloIso
+      Aegle.Search.Unification.Pruning
       Aegle.Web
       Data.ImmatureStream
       Data.Set.NonEmpty.Extra

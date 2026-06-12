@@ -1,4 +1,21 @@
-module Aegle.Search.Feature where
+module Aegle.Search.Feature
+  ( Feature (..),
+    ResultHead (..),
+    resultHead,
+    resultHeadQ,
+    ResultHeadCompat (..),
+    Polymorphic (..),
+    polymorphic,
+    PolymorphicCompat (..),
+    Arity (..),
+    arity,
+    ArityCompat (..),
+    AllFeature (..),
+    allFeature,
+    allFeatureQ,
+    AllFeatureCompat (..),
+  )
+where
 
 import Aegle.Core.Name
 import Aegle.Core.Term

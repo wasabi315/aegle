@@ -72,5 +72,5 @@ constructDefinition ::
   TS.Definition
 constructDefinition name signature body moduleName position = TS.Definition {..}
   where
-    (signature', _) = TS.normalise0 (TS.emptyMetaCtx mempty) mempty signature
+    (signature', _) = TS.normalise0 mempty (TS.emptyMetaCtx mempty) signature
     feature = TS.allFeature signature'

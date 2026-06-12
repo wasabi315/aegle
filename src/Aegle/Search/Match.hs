@@ -1,11 +1,14 @@
-module Aegle.Search.Match where
+module Aegle.Search.Match
+  ( check0,
+    check,
+  )
+where
 
 import Aegle.Core.Evaluation
 import Aegle.Core.Isomorphism
 import Aegle.Core.Name
 import Aegle.Core.Term hiding (rename)
 import Aegle.Prelude
-import Aegle.Search.Unification
 import Aegle.Search.Unification.ModuloIso
 import Data.ImmatureStream qualified as IStr
 import Prettyprinter
@@ -35,7 +38,7 @@ bind :: MetaCtx -> Ctx -> Name -> VType -> Ctx
 bind mctx ctx@Ctx {..} x ~a =
   ctx
     { level = level + 1,
-      locals = Bind locals x (quote mctx topEnv level a)
+      locals = Bind locals x (quote topEnv mctx level a)
     }
 
 --------------------------------------------------------------------------------
@@ -54,8 +57,8 @@ check0 :: TopEnv -> Resol -> Term -> QName -> Term -> IStr.Stream (Iso, Term)
 check0 tenv resol query itemName item = do
   let ctx = initCtx tenv
       mctx = emptyMetaCtx resol
-      query' = eval mctx tenv [] query
-      item' = eval mctx tenv [] item
+      query' = eval tenv mctx [] query
+      item' = eval tenv mctx [] item
   check mctx ctx query' itemName item'
 
 -- FIXME: currently not considering pi permutation
@@ -65,13 +68,13 @@ check mctx ctx query itemName item =
   asum
     [ do
         (item, inst, mctx) <- possibleInstantiation mctx ctx item (VTop itemName SNil)
-        (i, i', mctx) <- IStr.maybeToStream $ listToMaybe $ unifyIso mctx ctx.topEnv ctx.level query item
+        (i, i', mctx) <- IStr.maybeToStream $ listToMaybe $ unifyIso ctx.topEnv mctx ctx.level query item
         guard $ allMetaSolved mctx
         let j = i <> sym i'
-            ~sol = closeTm ctx.locals $ quote mctx ctx.topEnv ctx.level $ transportInv j inst
+            ~sol = closeTm ctx.locals $ quote ctx.topEnv mctx ctx.level $ transportInv j inst
         pure (j, sol),
       IStr.Later do
-        (query, mctx) <- choose $ forceNondet mctx ctx.topEnv query
+        (query, mctx) <- choose $ forceNondet ctx.topEnv mctx query
         case query of
           VPi "_" _ _ -> empty
           VPi x a b -> do
@@ -85,11 +88,11 @@ possibleInstantiation mctx ctx a ~_ | tracePossibleInstantiation mctx ctx a = un
 possibleInstantiation mctx ctx a ~inst =
   asum
     [ pure (a, inst, mctx),
-      IStr.Later case force mctx ctx.topEnv a of
+      IStr.Later case force ctx.topEnv mctx a of
         VPi "_" _ _ -> empty
         VPi _ a b -> do
           (m, mctx) <- pure $ freshMeta mctx ctx a
-          let mv = eval mctx ctx.topEnv (idEnv ctx.level) m
+          let mv = eval ctx.topEnv mctx (idEnv ctx.level) m
           possibleInstantiation mctx ctx (b mv) (inst $$ mv)
         _ -> empty
     ]
@@ -99,7 +102,7 @@ idPruning l = replicate (coerce l) True
 
 freshMeta :: MetaCtx -> Ctx -> Value -> (Term, MetaCtx)
 freshMeta mctx ctx a = do
-  let ~closed = eval mctx ctx.topEnv [] $ closeTy ctx.locals (quote mctx ctx.topEnv ctx.level a)
+  let ~closed = eval ctx.topEnv mctx [] $ closeTy ctx.locals (quote ctx.topEnv mctx ctx.level a)
       (m, mctx') = newMeta mctx closed
   (AppPruning (Meta m) (idPruning ctx.level), mctx')
 

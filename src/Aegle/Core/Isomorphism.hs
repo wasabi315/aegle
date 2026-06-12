@@ -150,44 +150,44 @@ transportInv i v = case i of
 --------------------------------------------------------------------------------
 
 -- | Curry until the first domain becomes non-sigma.
-curry :: MetaCtx -> TopEnv -> Quant -> (Quant, Iso)
-curry mctx tenv = go Refl
+curry :: TopEnv -> MetaCtx -> Quant -> (Quant, Iso)
+curry tenv mctx = go Refl
   where
-    go i (Quant x a b) = case force mctx tenv a of
+    go i (Quant x a b) = case force tenv mctx a of
       VSigma y a1 a2 ->
         go (i <> Curry) $ Quant y a1 \ ~u -> VPi x (a2 u) \ ~v -> b (VPair u v)
       a -> (Quant x a b, i)
 
 -- | Right-nest until the first projection becomes non-sigma.
-assoc :: MetaCtx -> TopEnv -> Quant -> (Quant, Iso)
-assoc mctx tenv = go Refl
+assoc :: TopEnv -> MetaCtx -> Quant -> (Quant, Iso)
+assoc tenv mctx = go Refl
   where
-    go i (Quant x a b) = case force mctx tenv a of
+    go i (Quant x a b) = case force tenv mctx a of
       VSigma y a1 a2 ->
         go (i <> Assoc) $ Quant y a1 \ ~u -> VSigma x (a2 u) \ ~v -> b (VPair u v)
       a -> (Quant x a b, i)
 
-normalise0 :: MetaCtx -> TopEnv -> Term -> (Term, Iso)
-normalise0 mctx tenv t = normalise mctx tenv 0 (eval mctx tenv [] t)
+normalise0 :: TopEnv -> MetaCtx -> Term -> (Term, Iso)
+normalise0 tenv mctx t = normalise tenv mctx 0 (eval tenv mctx [] t)
 
-normalise :: MetaCtx -> TopEnv -> Level -> Value -> (Term, Iso)
-normalise mctx tenv l = \case
-  VPi x a b -> normalisePi mctx tenv l (Quant x a b)
-  VSigma x a b -> normaliseSigma mctx tenv l (Quant x a b)
-  v -> quote mctx tenv l v // mempty
+normalise :: TopEnv -> MetaCtx -> Level -> Value -> (Term, Iso)
+normalise tenv mctx l = \case
+  VPi x a b -> normalisePi tenv mctx l (Quant x a b)
+  VSigma x a b -> normaliseSigma tenv mctx l (Quant x a b)
+  v -> quote tenv mctx l v // mempty
 
-normalisePi :: MetaCtx -> TopEnv -> Level -> Quant -> (Term, Iso)
-normalisePi mctx tenv l q = do
-  let (Quant x a b, i) = curry mctx tenv q
-      (ta, ia) = normalise mctx tenv l a
-      (tb, ib) = normalise mctx tenv (l + 1) $ b (transportInv ia (VVar l))
+normalisePi :: TopEnv -> MetaCtx -> Level -> Quant -> (Term, Iso)
+normalisePi tenv mctx l q = do
+  let (Quant x a b, i) = curry tenv mctx q
+      (ta, ia) = normalise tenv mctx l a
+      (tb, ib) = normalise tenv mctx (l + 1) $ b (transportInv ia (VVar l))
   Pi x ta tb // i <> piCongL ia <> piCongR ib
 
-normaliseSigma :: MetaCtx -> TopEnv -> Level -> Quant -> (Term, Iso)
-normaliseSigma mctx tenv l q = do
-  let (Quant x a b, i) = assoc mctx tenv q
-      (ta, ia) = normalise mctx tenv l a
-      (tb, ib) = normalise mctx tenv (l + 1) $ b (transportInv ia (VVar l))
+normaliseSigma :: TopEnv -> MetaCtx -> Level -> Quant -> (Term, Iso)
+normaliseSigma tenv mctx l q = do
+  let (Quant x a b, i) = assoc tenv mctx q
+      (ta, ia) = normalise tenv mctx l a
+      (tb, ib) = normalise tenv mctx (l + 1) $ b (transportInv ia (VVar l))
   Sigma x ta tb // i <> sigmaCongL ia <> sigmaCongR ib
 
 --------------------------------------------------------------------------------

@@ -83,12 +83,12 @@ search config query = onTimeout config.timeout (Left Timeout) $ runExceptT do
         tenv = flip foldMap (Compose refMap) \Referent {..} ->
           maybe
             mempty
-            (ML.singleton canonicalName . eval mctx mempty [])
+            (ML.singleton canonicalName . eval mempty mctx [])
             body
 
     -- 3. Speculatively normalise the query type and compute possible features
     let typ' = Q.toTerm typ
-        typs = quoteNondet mctx tenv 0 (eval mctx mempty [] typ')
+        typs = quoteNondet tenv mctx 0 (eval mempty mctx [] typ')
         feats = nubOrd $ mapMaybe (allFeatureQ . fst) typs
         compats = feats <&> \feat -> toCompat ! #query feat
 

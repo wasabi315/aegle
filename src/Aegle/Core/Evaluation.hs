@@ -1,4 +1,7 @@
-module Aegle.Core.Evaluation where
+module Aegle.Core.Evaluation
+  ( module Aegle.Core.Evaluation,
+  )
+where
 
 import Aegle.Core.Name
 import Aegle.Core.Term
@@ -57,8 +60,8 @@ data MetaCtx = MetaCtx
   }
 
 data MetaEntry
-  = Unsolved ~Value
-  | Solved Value ~Value
+  = Unsolved ~VType
+  | Solved Value ~VType
 
 -- | Unresolved name → set of canonical names may denoted
 type Resol = M.Map PQName (S1.NESet QName)
@@ -69,10 +72,29 @@ type Resol = M.Map PQName (S1.NESet QName)
 emptyMetaCtx :: Resol -> MetaCtx
 emptyMetaCtx = MetaCtx 0 mempty
 
+newMeta :: MetaCtx -> VType -> (MetaVar, MetaCtx)
+newMeta mctx ~mty = do
+  let m' = mctx.nextMeta
+      mctx' =
+        mctx
+          { nextMeta = mctx.nextMeta + 1,
+            metaCtx = IM.insert (coerce m') (Unsolved mty) mctx.metaCtx
+          }
+  (m', mctx')
+
 allMetaSolved :: MetaCtx -> Bool
 allMetaSolved mctx = flip all mctx.metaCtx \case
   Unsolved {} -> False
   Solved {} -> True
+
+lookupUnsolved :: MetaCtx -> MetaVar -> Value
+lookupUnsolved mctx m = case mctx.metaCtx IM.! coerce m of
+  Unsolved a -> a
+  Solved {} -> error "lookupUnsolved"
+
+writeMeta :: MetaCtx -> MetaVar -> Value -> VType -> MetaCtx
+writeMeta mctx m t ~a =
+  mctx {metaCtx = IM.insert (coerce m) (Solved t a) mctx.metaCtx}
 
 lookupResol :: MetaCtx -> PQName -> S1.NESet QName
 lookupResol mctx n = mctx.resol M.! n
@@ -93,27 +115,30 @@ unsafeRestrict mctx n ns = mctx {resol = M.insert n ns mctx.resol}
 --------------------------------------------------------------------------------
 -- Evaluation
 
-eval :: MetaCtx -> TopEnv -> Env -> Term -> Value
-eval mctx tenv env = \case
+idEnv :: Level -> Env
+idEnv l = VVar <$> (l - 1) `down` 0
+
+eval :: TopEnv -> MetaCtx -> Env -> Term -> Value
+eval tenv mctx env = \case
   Var (Index x) -> env !! x
   Meta m -> vMeta mctx m
   Top x -> vTop tenv x
-  TopAmb x -> vTopAmb mctx tenv x
+  TopAmb x -> vTopAmb tenv mctx x
   U -> VU
-  Pi x a b -> VPi x (eval mctx tenv env a) (evalBind mctx tenv env b)
-  Lam x t -> VLam x (evalBind' mctx tenv env t)
-  App t u -> eval mctx tenv env t $$ eval mctx tenv env u
-  Sigma x a b -> VSigma x (eval mctx tenv env a) (evalBind mctx tenv env b)
-  Pair t u -> VPair (eval mctx tenv env t) (eval mctx tenv env u)
-  Proj1 t -> vProj1 (eval mctx tenv env t)
-  Proj2 t -> vProj2 (eval mctx tenv env t)
-  AppPruning t pr -> vAppPruning env (eval mctx tenv env t) pr
+  Pi x a b -> VPi x (eval tenv mctx env a) (evalBind tenv mctx env b)
+  Lam x t -> VLam x (evalBind' tenv mctx env t)
+  App t u -> eval tenv mctx env t $$ eval tenv mctx env u
+  Sigma x a b -> VSigma x (eval tenv mctx env a) (evalBind tenv mctx env b)
+  Pair t u -> VPair (eval tenv mctx env t) (eval tenv mctx env u)
+  Proj1 t -> vProj1 (eval tenv mctx env t)
+  Proj2 t -> vProj2 (eval tenv mctx env t)
+  AppPruning t pr -> vAppPruning env (eval tenv mctx env t) pr
 
-evalBind :: MetaCtx -> TopEnv -> Env -> Term -> (Value -> Value)
-evalBind mctx tenv env t ~u = eval mctx tenv (u : env) t
+evalBind :: TopEnv -> MetaCtx -> Env -> Term -> (Value -> Value)
+evalBind tenv mctx env t ~u = eval tenv mctx (u : env) t
 
-evalBind' :: MetaCtx -> TopEnv -> Env -> Term -> (Value -> Value)
-evalBind' mctx tenv env t u = eval mctx tenv (u : env) t
+evalBind' :: TopEnv -> MetaCtx -> Env -> Term -> (Value -> Value)
+evalBind' tenv mctx env t u = eval tenv mctx (u : env) t
 
 vMeta :: MetaCtx -> MetaVar -> Value
 vMeta mctx m = case mctx.metaCtx IM.! coerce m of
@@ -124,8 +149,8 @@ vTop :: TopEnv -> QName -> Value
 vTop tenv n = ML.findWithDefault (VTop n SNil) n tenv
 
 -- Reduce only when the name has been resolved
-vTopAmb :: MetaCtx -> TopEnv -> PQName -> Value
-vTopAmb mctx tenv n = case mctx.resol M.! n of
+vTopAmb :: TopEnv -> MetaCtx -> PQName -> Value
+vTopAmb tenv mctx n = case mctx.resol M.! n of
   S1.Singleton n' -> vTop tenv n'
   _ -> VTopAmb n SNil
 
@@ -173,29 +198,29 @@ vAppSpine t = \case
   SProj1 sp -> vProj1 $ vAppSpine t sp
   SProj2 sp -> vProj2 $ vAppSpine t sp
 
-force :: MetaCtx -> TopEnv -> Value -> Value
-force mctx tenv = \case
+force :: TopEnv -> MetaCtx -> Value -> Value
+force tenv mctx = \case
   VFlex m sp
     | Solved t _ <- mctx.metaCtx IM.! coerce m ->
-        force mctx tenv (vAppSpine t sp)
+        force tenv mctx (vAppSpine t sp)
   VTopAmb n sp
     | S1.Singleton n' <- mctx.resol M.! n ->
-        force mctx tenv (vAppSpine (vTop tenv n') sp)
+        force tenv mctx (vAppSpine (vTop tenv n') sp)
   t -> t
 
-expandNondet :: MetaCtx -> TopEnv -> PQName -> Spine -> [(Value, MetaCtx)]
-expandNondet mctx tenv n sp = do
+expandNondet :: TopEnv -> MetaCtx -> PQName -> Spine -> [(Value, MetaCtx)]
+expandNondet tenv mctx n sp = do
   n' <- toList $ lookupResol mctx n
   Just t <- pure $ ML.lookup n' tenv
   let mctx' = unsafeResolve mctx n n'
       v = vAppSpine t sp
   pure (v, mctx')
 
-forceNondet :: MetaCtx -> TopEnv -> Value -> [(Value, MetaCtx)]
-forceNondet mctx tenv = \case
+forceNondet :: TopEnv -> MetaCtx -> Value -> [(Value, MetaCtx)]
+forceNondet tenv mctx = \case
   VFlex m sp
     | Solved t _ <- mctx.metaCtx IM.! coerce m ->
-        forceNondet mctx tenv (vAppSpine t sp)
+        forceNondet tenv mctx (vAppSpine t sp)
   VTopAmb n sp -> do
     asum
       [ do
@@ -203,7 +228,7 @@ forceNondet mctx tenv = \case
             S1.filter (`ML.notMember` tenv) (lookupResol mctx n)
           let mctx' = unsafeRestrict mctx n ns
           pure (VTopAmb n sp, mctx'),
-        expandNondet mctx tenv n sp
+        expandNondet tenv mctx n sp
       ]
   t -> pure (t, mctx)
 
@@ -213,70 +238,70 @@ forceNondet mctx tenv = \case
 levelToIndex :: Level -> Level -> Index
 levelToIndex (Level l) (Level x) = Index (l - x - 1)
 
-quote :: MetaCtx -> TopEnv -> Level -> Value -> Term
-quote mctx tenv l t = case force mctx tenv t of
-  VRigid x sp -> quoteSpine mctx tenv l (Var (levelToIndex l x)) sp
-  VFlex m sp -> quoteSpine mctx tenv l (Meta m) sp
-  VTop x sp -> quoteSpine mctx tenv l (Top x) sp
-  VTopAmb x sp -> quoteSpine mctx tenv l (TopAmb x) sp
+quote :: TopEnv -> MetaCtx -> Level -> Value -> Term
+quote tenv mctx l t = case force tenv mctx t of
+  VRigid x sp -> quoteSpine tenv mctx l (Var (levelToIndex l x)) sp
+  VFlex m sp -> quoteSpine tenv mctx l (Meta m) sp
+  VTop x sp -> quoteSpine tenv mctx l (Top x) sp
+  VTopAmb x sp -> quoteSpine tenv mctx l (TopAmb x) sp
   VU -> U
-  VPi x a b -> Pi x (quote mctx tenv l a) (quoteBind mctx tenv l b)
-  VLam x t -> Lam x (quoteBind mctx tenv l t)
-  VSigma x a b -> Sigma x (quote mctx tenv l a) (quoteBind mctx tenv l b)
-  VPair t u -> Pair (quote mctx tenv l t) (quote mctx tenv l u)
-  VBrave t sp -> quoteSpine mctx tenv l (quote mctx tenv l t) sp
+  VPi x a b -> Pi x (quote tenv mctx l a) (quoteBind tenv mctx l b)
+  VLam x t -> Lam x (quoteBind tenv mctx l t)
+  VSigma x a b -> Sigma x (quote tenv mctx l a) (quoteBind tenv mctx l b)
+  VPair t u -> Pair (quote tenv mctx l t) (quote tenv mctx l u)
+  VBrave t sp -> quoteSpine tenv mctx l (quote tenv mctx l t) sp
 
-quoteBind :: MetaCtx -> TopEnv -> Level -> (Value -> Value) -> Term
-quoteBind mctx tenv l b = quote mctx tenv (l + 1) (b $ VVar l)
+quoteBind :: TopEnv -> MetaCtx -> Level -> (Value -> Value) -> Term
+quoteBind tenv mctx l b = quote tenv mctx (l + 1) (b $ VVar l)
 
-quoteSpine :: MetaCtx -> TopEnv -> Level -> Term -> Spine -> Term
-quoteSpine mctx tenv l h = \case
+quoteSpine :: TopEnv -> MetaCtx -> Level -> Term -> Spine -> Term
+quoteSpine tenv mctx l h = \case
   SNil -> h
-  SApp sp u -> quoteSpine mctx tenv l h sp `App` quote mctx tenv l u
-  SProj1 sp -> Proj1 $ quoteSpine mctx tenv l h sp
-  SProj2 sp -> Proj2 $ quoteSpine mctx tenv l h sp
+  SApp sp u -> quoteSpine tenv mctx l h sp `App` quote tenv mctx l u
+  SProj1 sp -> Proj1 $ quoteSpine tenv mctx l h sp
+  SProj2 sp -> Proj2 $ quoteSpine tenv mctx l h sp
 
-quoteNondet :: MetaCtx -> TopEnv -> Level -> Value -> [(Term, MetaCtx)]
-quoteNondet mctx tenv l t = do
-  (t, mctx) <- forceNondet mctx tenv t
+quoteNondet :: TopEnv -> MetaCtx -> Level -> Value -> [(Term, MetaCtx)]
+quoteNondet tenv mctx l t = do
+  (t, mctx) <- forceNondet tenv mctx t
   case t of
-    VRigid x sp -> quoteSpineNondet mctx tenv l (Var (levelToIndex l x)) sp
-    VFlex m sp -> quoteSpineNondet mctx tenv l (Meta m) sp
-    VTop x sp -> quoteSpineNondet mctx tenv l (Top x) sp
-    VTopAmb x sp -> quoteSpineNondet mctx tenv l (TopAmb x) sp
+    VRigid x sp -> quoteSpineNondet tenv mctx l (Var (levelToIndex l x)) sp
+    VFlex m sp -> quoteSpineNondet tenv mctx l (Meta m) sp
+    VTop x sp -> quoteSpineNondet tenv mctx l (Top x) sp
+    VTopAmb x sp -> quoteSpineNondet tenv mctx l (TopAmb x) sp
     VU -> pure (U, mctx)
     VPi x a b -> do
-      (a, mctx) <- quoteNondet mctx tenv l a
-      (b, mctx) <- quoteBindNondet mctx tenv l b
+      (a, mctx) <- quoteNondet tenv mctx l a
+      (b, mctx) <- quoteBindNondet tenv mctx l b
       pure (Pi x a b, mctx)
     VLam x t -> do
-      (t, mctx) <- quoteBindNondet mctx tenv l t
+      (t, mctx) <- quoteBindNondet tenv mctx l t
       pure (Lam x t, mctx)
     VSigma x a b -> do
-      (a, mctx) <- quoteNondet mctx tenv l a
-      (b, mctx) <- quoteBindNondet mctx tenv l b
+      (a, mctx) <- quoteNondet tenv mctx l a
+      (b, mctx) <- quoteBindNondet tenv mctx l b
       pure (Sigma x a b, mctx)
     VPair t u -> do
-      (t, mctx) <- quoteNondet mctx tenv l t
-      (u, mctx) <- quoteNondet mctx tenv l u
+      (t, mctx) <- quoteNondet tenv mctx l t
+      (u, mctx) <- quoteNondet tenv mctx l u
       pure (Pair t u, mctx)
     VBrave {} -> []
 
-quoteBindNondet :: MetaCtx -> TopEnv -> Level -> (Value -> Value) -> [(Term, MetaCtx)]
-quoteBindNondet mctx tenv l b = quoteNondet mctx tenv (l + 1) (b $ VVar l)
+quoteBindNondet :: TopEnv -> MetaCtx -> Level -> (Value -> Value) -> [(Term, MetaCtx)]
+quoteBindNondet tenv mctx l b = quoteNondet tenv mctx (l + 1) (b $ VVar l)
 
-quoteSpineNondet :: MetaCtx -> TopEnv -> Level -> Term -> Spine -> [(Term, MetaCtx)]
-quoteSpineNondet mctx tenv l h = \case
+quoteSpineNondet :: TopEnv -> MetaCtx -> Level -> Term -> Spine -> [(Term, MetaCtx)]
+quoteSpineNondet tenv mctx l h = \case
   SNil -> pure (h, mctx)
   SApp sp u -> do
-    (t, mctx) <- quoteSpineNondet mctx tenv l h sp
-    (u, mctx) <- quoteNondet mctx tenv l u
+    (t, mctx) <- quoteSpineNondet tenv mctx l h sp
+    (u, mctx) <- quoteNondet tenv mctx l u
     pure (App t u, mctx)
   SProj1 sp -> do
-    (t, mctx) <- quoteSpineNondet mctx tenv l h sp
+    (t, mctx) <- quoteSpineNondet tenv mctx l h sp
     pure (Proj1 t, mctx)
   SProj2 sp -> do
-    (t, mctx) <- quoteSpineNondet mctx tenv l h sp
+    (t, mctx) <- quoteSpineNondet tenv mctx l h sp
     pure (Proj2 t, mctx)
 
 --------------------------------------------------------------------------------
@@ -311,7 +336,7 @@ instance Pretty (TopEnv ⊢ MetaCtx) where
          ]
 
 instance Pretty ((TopEnv, MetaCtx, Level) ⊢ Value) where
-  pretty ((tenv, mctx, lvl) :⊢ v) = pretty $ quote mctx tenv lvl v
+  pretty ((tenv, mctx, lvl) :⊢ v) = pretty $ quote tenv mctx lvl v
 
 instance Pretty ((TopEnv, MetaCtx, [Name]) ⊢ Value) where
-  pretty ((tenv, mctx, ns) :⊢ v) = pretty (ns :⊢ quote mctx tenv (coerce $ length ns) v)
+  pretty ((tenv, mctx, ns) :⊢ v) = pretty (ns :⊢ quote tenv mctx (coerce $ length ns) v)

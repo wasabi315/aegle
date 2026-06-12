@@ -17,6 +17,7 @@ module Aegle.Core.Term
     headTerm,
     termSize,
     Unqualified (..),
+    subscript,
   )
 where
 
