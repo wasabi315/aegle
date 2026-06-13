@@ -194,7 +194,7 @@ searchUI dbReader = \query -> do
           li_ do
             exampleHtml
               "Type alias expansion"
-              "Commutative Nat (_≡_ Nat) _+_"
+              "(m n : Nat) → _≡_ Nat (_+_ m n) (_+_ n m)"
       where
         exampleHtml label query = do
           toHtml @T.Text label
@@ -222,7 +222,7 @@ searchUI dbReader = \query -> do
             a_ [hrefDefSite moduleName position] do
               strong_ $ prettyHtml canonicalName
             " : "
-            prettyHtml $ Unqualified signature
+            prettyHtml $ Unqualified originalSignature
           div_ [class_ "match-details"] do
             unless (null reexportedAs) do
               p_ [class_ "detail-row"] do

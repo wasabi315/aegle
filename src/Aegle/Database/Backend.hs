@@ -11,11 +11,11 @@ module Aegle.Database.Backend
   )
 where
 
-import Control.Foldl qualified as Foldl
 import Aegle.Core.Name
 import Aegle.Core.Term
 import Aegle.Prelude
 import Aegle.Search.Feature
+import Control.Foldl qualified as Foldl
 
 --------------------------------------------------------------------------------
 -- Build operation
@@ -23,6 +23,7 @@ import Aegle.Search.Feature
 data Definition = Definition
   { name :: QName,
     signature :: Type,
+    originalSignature :: Type,
     feature :: AllFeature QName,
     body :: Maybe Term,
     moduleName :: ModuleName,
@@ -60,6 +61,7 @@ data LibraryItem = LibraryItem
   { canonicalName :: QName,
     reexportedAs :: [QName],
     signature :: Type,
+    originalSignature :: Type,
     moduleName :: ModuleName,
     position :: Int
   }

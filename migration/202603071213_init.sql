@@ -18,6 +18,7 @@ CREATE TABLE library_items (
 
     canonical_name       text              NOT NULL,  -- Can't be UNIQUE because we have overloaded record constructors
     signature            bytea             NOT NULL,
+    original_signature   bytea             NOT NULL,
     body                 bytea,                       -- NULL for opaque definitions
 
     -- Features

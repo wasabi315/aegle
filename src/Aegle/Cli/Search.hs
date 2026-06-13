@@ -5,6 +5,12 @@ module Aegle.Cli.Search
   )
 where
 
+import Aegle.Core.Isomorphism
+import Aegle.Core.Term
+import Aegle.Database.Backend
+import Aegle.Database.Backend.PostgreSQL
+import Aegle.Prelude
+import Aegle.Search as Search
 import Control.Exception
 import Data.Text qualified as T
 import Hasql.Connection
@@ -14,12 +20,6 @@ import Prettyprinter.Render.Terminal
 import Prettyprinter.Util
 import System.Exit
 import System.IO
-import Aegle.Core.Isomorphism
-import Aegle.Core.Term
-import Aegle.Database.Backend
-import Aegle.Database.Backend.PostgreSQL
-import Aegle.Prelude
-import Aegle.Search as Search
 
 --------------------------------------------------------------------------------
 
@@ -81,7 +81,7 @@ putResult Result {..} =
     matchDoc Match {item = LibraryItem {..}, ..} =
       vsep
         [ annotate (bold <> color Green) do
-            "∙" <+> pretty canonicalName <+> colon <+> pretty (Unqualified signature),
+            "∙" <+> pretty canonicalName <+> colon <+> pretty (Unqualified originalSignature),
           indent 2
             $ vsep
             $ catMaybes

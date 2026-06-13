@@ -53,6 +53,7 @@ migrate conn = void do
 data DbLibraryItemRow = DbLibraryItemRow
   { canonicalName :: T.Text,
     signature :: BS.ByteString,
+    originalSignature :: BS.ByteString,
     body :: Maybe BS.ByteString,
     arity :: Int16,
     arityHasVar :: Bool,
@@ -151,6 +152,7 @@ insertManyDefinitions = lmap encodeDefinitions do
     INSERT INTO "library_items"
       ( canonical_name
       , signature
+      , original_signature
       , body
       , arity
       , arity_has_var
@@ -162,20 +164,22 @@ insertManyDefinitions = lmap encodeDefinitions do
     SELECT * FROM UNNEST
       ( $1 :: text[]
       , $2 :: bytea[]
-      , $3 :: bytea?[]
-      , $4 :: int2[]
-      , $5 :: boolean[]
-      , $6 :: text[] :: polymorphic[]
-      , $7 :: text[] :: result_head[]
-      , $8 :: text?[]
-      , $9 :: text[]
-      , $10 :: int[] )
+      , $3 :: bytea[]
+      , $4 :: bytea?[]
+      , $5 :: int2[]
+      , $6 :: boolean[]
+      , $7 :: text[] :: polymorphic[]
+      , $8 :: text[] :: result_head[]
+      , $9 :: text?[]
+      , $10 :: text[]
+      , $11 :: int[] )
   |]
   where
-    encodeDefinitions = unzip10 . V.map (adapt . encodeDefinition) . V.fromList
+    encodeDefinitions = unzip11 . V.map (adapt . encodeDefinition) . V.fromList
     adapt DbLibraryItemRow {..} =
       ( canonicalName,
         signature,
+        originalSignature,
         body,
         arity,
         arityHasVar,
@@ -211,6 +215,7 @@ encodeDefinition def = DbLibraryItemRow {..}
   where
     canonicalName = encodeQName def.name
     signature = encodeTerm def.signature
+    originalSignature = encodeTerm def.originalSignature
     body = encodeTerm <$> def.body
     arity = fromIntegral def.feature.arity.arity
     arityHasVar = def.feature.arity.hasVar
@@ -317,6 +322,7 @@ loadByAnyFeatureNE a compats =
       SELECT
         i.canonical_name,
         i.signature,
+        i.original_signature,
         COALESCE (e.reexported_as, '{}') :: text[] AS reexported_as,
         i.module_name,
         i.position
@@ -408,6 +414,7 @@ loadByAnyFeatureNE a compats =
     decoder = Decoders.rowList do
       canonicalName <- Decoders.column nonNullQNameDec
       signature <- Decoders.column nonNullTermDec
+      originalSignature <- Decoders.column nonNullTermDec
       reexportedAs <- Decoders.column $ Decoders.nonNullable $ Decoders.listArray nonNullQNameDec
       moduleName <- Decoders.column $ Decoders.nonNullable $ coerce Decoders.text
       position <- Decoders.column $ Decoders.nonNullable $ fromIntegral <$> Decoders.int4
@@ -438,8 +445,8 @@ pqNameToEither = \case
   Qual m x -> Left (QName m x)
   Unqual x -> Right x
 
-unzip10 ::
-  V.Vector (a, b, c, d, e, f, g, h, i, j) ->
+unzip11 ::
+  V.Vector (a, b, c, d, e, f, g, h, i, j, k) ->
   ( V.Vector a,
     V.Vector b,
     V.Vector c,
@@ -449,18 +456,20 @@ unzip10 ::
     V.Vector g,
     V.Vector h,
     V.Vector i,
-    V.Vector j
+    V.Vector j,
+    V.Vector k
   )
-unzip10 xs =
-  ( V.map (\(a, _, _, _, _, _, _, _, _, _) -> a) xs,
-    V.map (\(_, b, _, _, _, _, _, _, _, _) -> b) xs,
-    V.map (\(_, _, c, _, _, _, _, _, _, _) -> c) xs,
-    V.map (\(_, _, _, d, _, _, _, _, _, _) -> d) xs,
-    V.map (\(_, _, _, _, e, _, _, _, _, _) -> e) xs,
-    V.map (\(_, _, _, _, _, f, _, _, _, _) -> f) xs,
-    V.map (\(_, _, _, _, _, _, g, _, _, _) -> g) xs,
-    V.map (\(_, _, _, _, _, _, _, h, _, _) -> h) xs,
-    V.map (\(_, _, _, _, _, _, _, _, i, _) -> i) xs,
-    V.map (\(_, _, _, _, _, _, _, _, _, j) -> j) xs
+unzip11 xs =
+  ( V.map (\(a, _, _, _, _, _, _, _, _, _, _) -> a) xs,
+    V.map (\(_, b, _, _, _, _, _, _, _, _, _) -> b) xs,
+    V.map (\(_, _, c, _, _, _, _, _, _, _, _) -> c) xs,
+    V.map (\(_, _, _, d, _, _, _, _, _, _, _) -> d) xs,
+    V.map (\(_, _, _, _, e, _, _, _, _, _, _) -> e) xs,
+    V.map (\(_, _, _, _, _, f, _, _, _, _, _) -> f) xs,
+    V.map (\(_, _, _, _, _, _, g, _, _, _, _) -> g) xs,
+    V.map (\(_, _, _, _, _, _, _, h, _, _, _) -> h) xs,
+    V.map (\(_, _, _, _, _, _, _, _, i, _, _) -> i) xs,
+    V.map (\(_, _, _, _, _, _, _, _, _, j, _) -> j) xs,
+    V.map (\(_, _, _, _, _, _, _, _, _, _, k) -> k) xs
   )
-{-# INLINE unzip10 #-}
+{-# INLINE unzip11 #-}

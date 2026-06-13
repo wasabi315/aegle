@@ -42,18 +42,20 @@ translateToAxiom def = do
   let name' = translateQName def.defName
       (moduleName, position) = bindingSite def.defName
   signature <- translateType def.defType
-  pure $! constructDefinition name' signature Nothing moduleName position
+  originalSignature <- withAllDefsOpaque $ translateType def.defType
+  pure $! constructDefinition name' signature originalSignature Nothing moduleName position
 
 translateFunDef :: Definition -> Transl TS.Definition
 translateFunDef def = do
   let name = translateQName def.defName
       (moduleName, position) = bindingSite def.defName
   signature <- translateType def.defType
+  originalSignature <- withAllDefsOpaque $ translateType def.defType
   body <- ifM
     (isTransparentDef def.defName)
     do Just <$> translateTransparentDefBody def
     do pure Nothing
-  pure $! constructDefinition name signature body moduleName position
+  pure $! constructDefinition name signature originalSignature body moduleName position
 
 bindingSite :: QName -> (TS.ModuleName, Int)
 bindingSite qname = (moduleName, position)
@@ -66,11 +68,12 @@ bindingSite qname = (moduleName, position)
 constructDefinition ::
   TS.QName ->
   TS.Type ->
+  TS.Type ->
   Maybe TS.Term ->
   TS.ModuleName ->
   Int ->
   TS.Definition
-constructDefinition name signature body moduleName position = TS.Definition {..}
+constructDefinition name signature originalSignature body moduleName position = TS.Definition {..}
   where
     (signature', _) = TS.normalise0 mempty (TS.emptyMetaCtx mempty) signature
     feature = TS.allFeature signature'

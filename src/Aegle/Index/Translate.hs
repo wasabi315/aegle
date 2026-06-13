@@ -4,6 +4,7 @@ module Aegle.Index.Translate
     runTransl,
     addContextAndRenaming,
     translateDBVar,
+    withAllDefsOpaque,
     isTransparentDef,
     reduceTransparentDef,
     isErasable,
@@ -77,6 +78,9 @@ translateDBVar ix = do
         lvl' = IM.findWithDefault __IMPOSSIBLE__ lvl env.renaming
         ix' = env.contextSizeAfterErasure - lvl' - 1
     TS.Index ix'
+
+withAllDefsOpaque :: Transl a -> Transl a
+withAllDefsOpaque = local \Env {..} -> Env {transparentDefNames = mempty, ..}
 
 isTransparentDef :: QName -> Transl Bool
 isTransparentDef x = asks \env -> x `S.member` env.transparentDefNames
