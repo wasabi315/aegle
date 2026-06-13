@@ -41,7 +41,7 @@ searchWith dbReader query = do
   let config =
         Search.Config
           { querySrc = "<interactive>",
-            timeout = 3000000,
+            timeout = 10000000,
             ..
           }
   result <- Search.search config query
