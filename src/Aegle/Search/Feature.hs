@@ -49,7 +49,6 @@ data ResultHead n
   | RHSigma
   | RHProj1
   | RHProj2
-  | RHUnknown
   deriving stock (Eq, Ord, Show, Generic, Functor, Foldable, Traversable)
   deriving anyclass (ToJSON, FromJSON)
 
@@ -80,7 +79,6 @@ data ResultHeadCompat n
   | IsVarOrSigma
   | IsVarOrProj1
   | IsVarOrProj2
-  | AnyResult
   deriving stock (Eq, Ord, Show, Generic, Functor, Foldable, Traversable)
 
 instance (Eq n) => Feature (ResultHead n) where
@@ -93,11 +91,9 @@ instance (Eq n) => Feature (ResultHead n) where
     Arg RHSigma -> IsVarOrSigma
     Arg RHProj1 -> IsVarOrProj1
     Arg RHProj2 -> IsVarOrProj2
-    Arg RHUnknown -> AnyResult
   {-# INLINE toCompat #-}
 
   matchesCompat = \cases
-    AnyResult _ -> True
     IsVar (Arg rh) -> rh == RHVar
     IsVarOrU (Arg rh) -> rh `elem` [RHVar, RHU]
     (IsVarOrTop n) (Arg rh) -> rh `elem` [RHVar, RHTop n]

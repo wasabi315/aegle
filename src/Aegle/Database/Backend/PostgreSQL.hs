@@ -116,7 +116,6 @@ encodeResultHeadTag = \case
   RHSigma -> "Sigma"
   RHProj1 -> "Proj1"
   RHProj2 -> "Proj2"
-  RHUnknown -> "Unknown"
 
 encodeResultHeadTop :: ResultHead QName -> Maybe T.Text
 encodeResultHeadTop = \case
@@ -373,7 +372,6 @@ loadByAnyFeatureNE a compats =
           ]
 
     resultHeadSnippet = \case
-      AnyResult -> Nothing
       IsVar -> Just isVar
       IsVarOrU -> Just $ isVarOr RHU
       IsVarOrSigma -> Just $ isVarOr RHSigma

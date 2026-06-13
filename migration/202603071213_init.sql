@@ -4,8 +4,7 @@ CREATE TYPE result_head AS ENUM (
     'Top',
     'Sigma',
     'Proj1',
-    'Proj2',
-    'Unknown'
+    'Proj2'
 );
 
 CREATE TYPE polymorphic AS ENUM (

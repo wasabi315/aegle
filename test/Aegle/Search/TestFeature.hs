@@ -75,8 +75,7 @@ genResultHead gen =
       RHTop <$> gen,
       pure RHSigma,
       pure RHProj1,
-      pure RHProj2,
-      pure RHUnknown
+      pure RHProj2
     ]
 
 genPolymorphic :: Gen Polymorphic
