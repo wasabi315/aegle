@@ -31,13 +31,13 @@ Aegle also synthesises code that makes a matched definition fit the query type.
 For query type `(A B : U) → (A → B) → A → B`, Aegle can suggest:
 
 ```agda
-Function.Base._|>_ : (A : U) (B : A → U) (x : A) → ((x : A) → B x) → B x
+Function.Base._|>_ : (A : Set) (B : A → Set) (x : A) → ((x : A) → B x) → B x
 ```
 
 with synthesised code:
 
 ```agda
-(λ A B x y. _|>_ A (λ z. B) y x) : (A B : U) → (A → B) → A → B
+(λ A B x y. _|>_ A (λ z. B) y x) : (A B : Set) → (A → B) → A → B
 ```
 
 ## Usage
@@ -111,7 +111,6 @@ Then open <http://localhost:8080> in your browser.
 
 Queries use an Agda-like syntax with restrictions:
 
-- Use `U` instead of `Set` or `Type`.
 - Write all arguments explicitly; implicit arguments are not supported.
 - Use prefix names instead of operators.
 - Give a domain type for every pi binder.

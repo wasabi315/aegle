@@ -149,7 +149,7 @@ pretty' qual = goPair
       Var (Qual m n)
         | qual -> pretty (Qual m n)
         | otherwise -> pretty n
-      U -> "U"
+      U -> "Set"
       t -> parens (goPair t)
 
     piBind n a = parens $ pretty n <+> colon <+> goPair a

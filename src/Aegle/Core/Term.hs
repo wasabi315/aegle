@@ -225,7 +225,7 @@ pretty' qual = goPair
       TopAmb (Qual m x)
         | qual -> pretty (Qual m x)
         | otherwise -> pretty x
-      U -> "U"
+      U -> "Set"
       t -> parens (goPair ns t)
 
     piBind n ns a = parens $ pretty n <+> colon <+> goPair ns a

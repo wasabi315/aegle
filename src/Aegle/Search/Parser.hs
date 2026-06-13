@@ -51,7 +51,7 @@ pBind = pName <|> (Name <$> symbol "_")
 keyword :: T.Text -> Bool
 keyword x =
   (x == "λ")
-    || (x == "U")
+    || (x == "Set")
     || (x == ":")
     || (x == "->")
     || (x == "→")
@@ -100,7 +100,7 @@ pNatLit = do
 pAtom :: Parser Term
 pAtom =
   (Var <$> pPQName)
-    <|> (U <$ pKeyword "U")
+    <|> (U <$ pKeyword "Set")
     <|> pNatLit
     <|> parens pTerm
 

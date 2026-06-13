@@ -190,7 +190,7 @@ searchUI dbReader = \query -> do
           li_ do
             exampleHtml
               "Isomorphism and instantiation"
-              "(A B : U) → (A → B) → A → B"
+              "(A B : Set) → (A → B) → A → B"
           li_ do
             exampleHtml
               "Type alias expansion"
