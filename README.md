@@ -2,6 +2,8 @@
 
 A prototype type-based library search tool for Agda.
 
+![Search using Aegle](./assets/aegle.gif)
+
 ## What It Does
 
 Aegle searches Agda definitions by type, beyond syntactic equality:
