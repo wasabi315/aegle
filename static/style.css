@@ -71,13 +71,16 @@ pre {
   font-size: inherit;
 }
 
-.match-heading {
-  font-size: 1.1em;
+.match-list {
+  list-style: none;
 }
 
-.match-heading > a {
-  color: inherit;
-  text-decoration: none;
+.match-heading {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  column-gap: 0.5ch;
+  align-items: baseline;
+  font-size: 1.1em;
 }
 
 .match-heading strong {
@@ -88,14 +91,28 @@ pre {
   background-color: #e6e6e6;
 }
 
-.match > .match-heading > a:hover strong,
-.match > .match-heading > a:focus strong {
+.match-heading a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.match > .match-heading a:hover strong,
+.match > .match-heading a:focus strong {
   background-color: #d0d0d0;
   border-bottom: 2px solid #0066cc;
 }
 
+.def-kind {
+  color: #555;
+  white-space: nowrap;
+}
+
+.match-main {
+  min-width: 0;
+}
+
 .match-details {
-  margin-left: 1.75rem;
+  margin-left: 1.5rem;
 }
 
 .detail-row {

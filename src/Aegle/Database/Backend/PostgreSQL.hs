@@ -52,6 +52,7 @@ migrate conn = void do
 
 data DbLibraryItemRow = DbLibraryItemRow
   { canonicalName :: T.Text,
+    kind :: T.Text,
     signature :: BS.ByteString,
     originalSignature :: BS.ByteString,
     body :: Maybe BS.ByteString,
@@ -88,6 +89,28 @@ nonNullQNameEnc = Encoders.nonNullable $ encodeQName >$< Encoders.text
 
 nonNullQNameDec :: Decoders.NullableOrNot Decoders.Value QName
 nonNullQNameDec = Decoders.nonNullable $ Decoders.refine decodeQName Decoders.text
+
+encodeDefKind :: DefKind -> T.Text
+encodeDefKind = \case
+  DKPostulate -> "Postulate"
+  DKFunction -> "Function"
+  DKDatatype -> "Datatype"
+  DKRecord -> "Record"
+  DKConstructor -> "Constructor"
+  DKPrimitive -> "Primitive"
+
+decodeDefKind :: T.Text -> Either T.Text DefKind
+decodeDefKind = \case
+  "Postulate" -> pure DKPostulate
+  "Function" -> pure DKFunction
+  "Datatype" -> pure DKDatatype
+  "Record" -> pure DKRecord
+  "Constructor" -> pure DKConstructor
+  "Primitive" -> pure DKPrimitive
+  txt -> throwError $ "Bad DefKind: " <> txt
+
+nonNullDefKindDec :: Decoders.NullableOrNot Decoders.Value DefKind
+nonNullDefKindDec = Decoders.nonNullable $ Decoders.refine decodeDefKind Decoders.text
 
 encodeTerm :: Term -> BS.ByteString
 encodeTerm = flat
@@ -150,6 +173,7 @@ insertManyDefinitions = lmap encodeDefinitions do
   [resultlessStatement|
     INSERT INTO "library_items"
       ( canonical_name
+      , kind
       , signature
       , original_signature
       , body
@@ -162,21 +186,23 @@ insertManyDefinitions = lmap encodeDefinitions do
       , position )
     SELECT * FROM UNNEST
       ( $1 :: text[]
-      , $2 :: bytea[]
+      , $2 :: text[] :: kind[]
       , $3 :: bytea[]
-      , $4 :: bytea?[]
-      , $5 :: int2[]
-      , $6 :: boolean[]
-      , $7 :: text[] :: polymorphic[]
-      , $8 :: text[] :: result_head[]
-      , $9 :: text?[]
-      , $10 :: text[]
-      , $11 :: int[] )
+      , $4 :: bytea[]
+      , $5 :: bytea?[]
+      , $6 :: int2[]
+      , $7 :: boolean[]
+      , $8 :: text[] :: polymorphic[]
+      , $9 :: text[] :: result_head[]
+      , $10 :: text?[]
+      , $11 :: text[]
+      , $12 :: int[] )
   |]
   where
-    encodeDefinitions = unzip11 . V.map (adapt . encodeDefinition) . V.fromList
+    encodeDefinitions = unzip12 . V.map (adapt . encodeDefinition) . V.fromList
     adapt DbLibraryItemRow {..} =
       ( canonicalName,
+        kind,
         signature,
         originalSignature,
         body,
@@ -213,6 +239,7 @@ encodeDefinition :: Definition -> DbLibraryItemRow
 encodeDefinition def = DbLibraryItemRow {..}
   where
     canonicalName = encodeQName def.name
+    kind = encodeDefKind def.kind
     signature = encodeTerm def.signature
     originalSignature = encodeTerm def.originalSignature
     body = encodeTerm <$> def.body
@@ -320,6 +347,7 @@ loadByAnyFeatureNE a compats =
       """
       SELECT
         i.canonical_name,
+        i.kind,
         i.signature,
         i.original_signature,
         COALESCE (e.reexported_as, '{}') :: text[] AS reexported_as,
@@ -411,6 +439,7 @@ loadByAnyFeatureNE a compats =
 
     decoder = Decoders.rowList do
       canonicalName <- Decoders.column nonNullQNameDec
+      kind <- Decoders.column nonNullDefKindDec
       signature <- Decoders.column nonNullTermDec
       originalSignature <- Decoders.column nonNullTermDec
       reexportedAs <- Decoders.column $ Decoders.nonNullable $ Decoders.listArray nonNullQNameDec
@@ -443,8 +472,8 @@ pqNameToEither = \case
   Qual m x -> Left (QName m x)
   Unqual x -> Right x
 
-unzip11 ::
-  V.Vector (a, b, c, d, e, f, g, h, i, j, k) ->
+unzip12 ::
+  V.Vector (a, b, c, d, e, f, g, h, i, j, k, l) ->
   ( V.Vector a,
     V.Vector b,
     V.Vector c,
@@ -455,19 +484,21 @@ unzip11 ::
     V.Vector h,
     V.Vector i,
     V.Vector j,
-    V.Vector k
+    V.Vector k,
+    V.Vector l
   )
-unzip11 xs =
-  ( V.map (\(a, _, _, _, _, _, _, _, _, _, _) -> a) xs,
-    V.map (\(_, b, _, _, _, _, _, _, _, _, _) -> b) xs,
-    V.map (\(_, _, c, _, _, _, _, _, _, _, _) -> c) xs,
-    V.map (\(_, _, _, d, _, _, _, _, _, _, _) -> d) xs,
-    V.map (\(_, _, _, _, e, _, _, _, _, _, _) -> e) xs,
-    V.map (\(_, _, _, _, _, f, _, _, _, _, _) -> f) xs,
-    V.map (\(_, _, _, _, _, _, g, _, _, _, _) -> g) xs,
-    V.map (\(_, _, _, _, _, _, _, h, _, _, _) -> h) xs,
-    V.map (\(_, _, _, _, _, _, _, _, i, _, _) -> i) xs,
-    V.map (\(_, _, _, _, _, _, _, _, _, j, _) -> j) xs,
-    V.map (\(_, _, _, _, _, _, _, _, _, _, k) -> k) xs
+unzip12 xs =
+  ( V.map (\(a, _, _, _, _, _, _, _, _, _, _, _) -> a) xs,
+    V.map (\(_, b, _, _, _, _, _, _, _, _, _, _) -> b) xs,
+    V.map (\(_, _, c, _, _, _, _, _, _, _, _, _) -> c) xs,
+    V.map (\(_, _, _, d, _, _, _, _, _, _, _, _) -> d) xs,
+    V.map (\(_, _, _, _, e, _, _, _, _, _, _, _) -> e) xs,
+    V.map (\(_, _, _, _, _, f, _, _, _, _, _, _) -> f) xs,
+    V.map (\(_, _, _, _, _, _, g, _, _, _, _, _) -> g) xs,
+    V.map (\(_, _, _, _, _, _, _, h, _, _, _, _) -> h) xs,
+    V.map (\(_, _, _, _, _, _, _, _, i, _, _, _) -> i) xs,
+    V.map (\(_, _, _, _, _, _, _, _, _, j, _, _) -> j) xs,
+    V.map (\(_, _, _, _, _, _, _, _, _, _, k, _) -> k) xs,
+    V.map (\(_, _, _, _, _, _, _, _, _, _, _, l) -> l) xs
   )
-{-# INLINE unzip11 #-}
+{-# INLINE unzip12 #-}

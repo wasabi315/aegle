@@ -120,4 +120,4 @@ match' tenv resol query item@LibraryItem {..} = do
 --------------------------------------------------------------------------------
 
 onTimeout :: Int -> a -> IO a -> IO a
-onTimeout s x m = maybe (pure x) pure =<< timeout s m
+onTimeout s x m = fromMaybe x <$> timeout s m

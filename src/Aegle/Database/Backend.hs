@@ -1,6 +1,7 @@
 module Aegle.Database.Backend
   ( Referent (..),
     LibraryItem (..),
+    DefKind (..),
     DbReader (..),
     resolveNames,
     loadByAnyFeature,
@@ -22,6 +23,7 @@ import Control.Foldl qualified as Foldl
 
 data Definition = Definition
   { name :: QName,
+    kind :: DefKind,
     signature :: Type,
     originalSignature :: Type,
     feature :: AllFeature QName,
@@ -30,6 +32,16 @@ data Definition = Definition
     position :: Int
   }
   deriving stock (Show, Generic)
+
+data DefKind
+  = DKPostulate
+  | DKFunction
+  | DKDatatype
+  | DKRecord
+  | DKConstructor
+  | DKPrimitive
+  deriving stock (Eq, Ord, Show, Enum, Bounded, Generic)
+  deriving anyclass (NFData)
 
 data Export = Export
   { canonicalName :: QName,
@@ -59,6 +71,7 @@ data Referent = Referent
 
 data LibraryItem = LibraryItem
   { canonicalName :: QName,
+    kind :: DefKind,
     reexportedAs :: [QName],
     signature :: Type,
     originalSignature :: Type,

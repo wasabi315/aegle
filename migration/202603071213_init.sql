@@ -12,10 +12,20 @@ CREATE TYPE polymorphic AS ENUM (
     'Polymorphic'
 );
 
+CREATE TYPE kind AS ENUM (
+    'Postulate',
+    'Function',
+    'Datatype',
+    'Record',
+    'Constructor',
+    'Primitive'
+);
+
 CREATE TABLE library_items (
     id                   bigint            GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
 
     canonical_name       text              NOT NULL,  -- Can't be UNIQUE because we have overloaded record constructors
+    kind                 kind              NOT NULL,
     signature            bytea             NOT NULL,
     original_signature   bytea             NOT NULL,
     body                 bytea,                       -- NULL for opaque definitions
