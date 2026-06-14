@@ -83,12 +83,12 @@ stack build
 
 Nix builds are not supported yet.
 
-### Index a library
+### Index libraries
 
-Index an Agda library into database. The second argument lists definitions to treat as type aliases.
+Index Agda libraries listed in a JSON config file.
 
 ```sh
-stack exec aegle -- index vendor/agda-stdlib data/transparent_defs.json
+stack exec aegle -- index index_config.json
 ```
 
 ### Search from the CLI
