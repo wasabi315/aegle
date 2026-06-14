@@ -85,9 +85,11 @@ data Result = Result
 
 data Match = Match
   { canonicalName :: QName,
+    kind :: T.Text,
     reexportedAs :: [QName],
     -- return prettyprinted terms for now
     signature :: T.Text,
+    originalSignature :: T.Text,
     iso :: T.Text,
     solution :: T.Text,
     moduleName :: ModuleName,
@@ -118,11 +120,21 @@ search dbReader = \query -> do
 
     convertMatch Search.Match {item = LibraryItem {..}, ..} =
       Match
-        { signature = T.show $ pretty $ Unqualified signature,
+        { kind = convertDefKind kind,
+          signature = T.show $ pretty $ Unqualified signature,
+          originalSignature = T.show $ pretty $ Unqualified originalSignature,
           iso = T.show $ pretty iso,
           solution = T.show $ pretty $ Unqualified solution,
           ..
         }
+
+    convertDefKind = \case
+      DKPostulate -> "postulate"
+      DKFunction -> "function"
+      DKDatatype -> "data"
+      DKRecord -> "record"
+      DKConstructor -> "constructor"
+      DKPrimitive -> "primitive"
 
     convertError e = case e of
       Search.ParseError {} -> err400 {errBody = fromString $ displayException e}
@@ -160,7 +172,7 @@ searchUI dbReader = \query -> do
     config =
       Search.Config
         { querySrc = "<query param>",
-          timeout = 10000000,
+          timeout = -1,
           ..
         }
 
@@ -203,6 +215,15 @@ searchUI dbReader = \query -> do
             code_ [class_ "example-query"] do
               toHtml @T.Text query
 
+    kindHtml :: DefKind -> Html ()
+    kindHtml = \case
+      DKPostulate -> "postulate"
+      DKFunction -> "function"
+      DKDatatype -> "data"
+      DKRecord -> "record"
+      DKConstructor -> "constructor"
+      DKPrimitive -> "primitive"
+
     resultHtml :: Search.Result -> Html ()
     resultHtml Search.Result {..} = do
       let numMatches = length matches
@@ -217,32 +238,39 @@ searchUI dbReader = \query -> do
         "."
       case matches of
         [] -> p_ "No matches."
-        _ -> ul_ $ for_ sorted \Search.Match {item = LibraryItem {..}, ..} -> li_ [class_ "match"] do
-          code_ [class_ "match-heading"] do
-            a_ [hrefDefSite moduleName position] do
-              strong_ $ prettyHtml canonicalName
-            " : "
-            prettyHtml $ Unqualified originalSignature
-          div_ [class_ "match-details"] do
-            unless (null reexportedAs) do
-              p_ [class_ "detail-row"] do
-                strong_ "Re-exported as: "
-                sequence_ $ intersperse ", " do
-                  code_ . prettyHtml <$> reexportedAs
-            case (iso, solution) of
-              (Refl, Top {}) -> pure ()
-              (Refl, _) -> details_ do
-                summary_ "Solution"
+        _ -> ul_ [class_ "match-list"] do
+          for_ sorted \Search.Match {item = LibraryItem {..}, ..} -> li_ [class_ "match"] do
+            code_ [class_ "match-heading"] do
+              span_ [class_ "def-kind"] do
+                kindHtml kind
+                " "
+              span_ [class_ "match-main"] do
+                a_ [hrefDefSite moduleName position] do
+                  strong_ $ prettyHtml canonicalName
+                " :"
+                wbr_ []
+                " "
+                prettyHtml $ Unqualified originalSignature
+            div_ [class_ "match-details"] do
+              unless (null reexportedAs) do
                 p_ [class_ "detail-row"] do
-                  code_ $ prettyHtml $ Unqualified solution
-              _ -> details_ do
-                summary_ "Isomorphism and solution"
-                p_ [class_ "detail-row"] do
-                  strong_ "Isomorphism: "
-                  code_ $ prettyHtml iso
-                p_ [class_ "detail-row"] do
-                  strong_ "Solution: "
-                  code_ $ prettyHtml $ Unqualified solution
+                  strong_ "Re-exported as: "
+                  sequence_ $ intersperse ", " do
+                    code_ . prettyHtml <$> reexportedAs
+              case (iso, solution) of
+                (Refl, Top {}) -> pure ()
+                (Refl, _) -> details_ do
+                  summary_ "Solution"
+                  p_ [class_ "detail-row"] do
+                    code_ $ prettyHtml $ Unqualified solution
+                _ -> details_ do
+                  summary_ "Isomorphism and solution"
+                  p_ [class_ "detail-row"] do
+                    strong_ "Isomorphism: "
+                    code_ $ prettyHtml iso
+                  p_ [class_ "detail-row"] do
+                    strong_ "Solution: "
+                    code_ $ prettyHtml $ Unqualified solution
 
 layoutHtml :: Html () -> Html ()
 layoutHtml content = doctypehtml_ do

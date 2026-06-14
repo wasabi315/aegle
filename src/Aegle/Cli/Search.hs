@@ -85,7 +85,8 @@ putResult Result {..} =
           indent 2
             $ vsep
             $ catMaybes
-              [ case reexportedAs of
+              [ Just $ "◦ kind           :" <+> kindDoc kind,
+                case reexportedAs of
                   [] -> Nothing
                   _ -> Just $ "◦ re-exported as :" <+> hsep (punctuate comma $ pretty <$> reexportedAs),
                 case iso of
@@ -96,6 +97,14 @@ putResult Result {..} =
                   _ -> Just $ "◦ solution       :" <+> pretty (Unqualified solution)
               ]
         ]
+
+    kindDoc = \case
+      DKPostulate -> "postulate"
+      DKFunction -> "function"
+      DKDatatype -> "data"
+      DKRecord -> "record"
+      DKConstructor -> "constructor"
+      DKPrimitive -> "primitive"
 
 putError :: Error -> IO ()
 putError = hPutStrLn stderr . displayException

@@ -37,13 +37,26 @@ translateDefinition def = setCurrentRangeQ def.defName do
     GeneralizableVar {} -> pure Nothing
     PrimitiveSortDefn {} -> pure Nothing
 
+getKind :: Defn -> TS.DefKind
+getKind = \case
+  AbstractDefn defn -> getKind defn
+  AxiomDefn {} -> TS.DKPostulate
+  FunctionDefn {} -> TS.DKFunction
+  DatatypeDefn {} -> TS.DKDatatype
+  RecordDefn {} -> TS.DKRecord
+  ConstructorDefn {} -> TS.DKConstructor
+  PrimitiveDefn {} -> TS.DKPrimitive
+  (DataOrRecSigDefn {}; GeneralizableVar {}; PrimitiveSortDefn {}) ->
+    error "getKind: unsupported definition kind"
+
 translateToAxiom :: Definition -> Transl TS.Definition
 translateToAxiom def = do
-  let name' = translateQName def.defName
+  let name = translateQName def.defName
+      kind = getKind def.theDef
       (moduleName, position) = bindingSite def.defName
   signature <- translateType def.defType
   originalSignature <- withAllDefsOpaque $ translateType def.defType
-  pure $! constructDefinition name' signature originalSignature Nothing moduleName position
+  pure $! constructDefinition Definition' {body = Nothing, ..}
 
 translateFunDef :: Definition -> Transl TS.Definition
 translateFunDef def = do
@@ -55,7 +68,7 @@ translateFunDef def = do
     (isTransparentDef def.defName)
     do Just <$> translateTransparentDefBody def
     do pure Nothing
-  pure $! constructDefinition name signature originalSignature body moduleName position
+  pure $! constructDefinition Definition' {kind = TS.DKFunction, ..}
 
 bindingSite :: QName -> (TS.ModuleName, Int)
 bindingSite qname = (moduleName, position)
@@ -65,15 +78,20 @@ bindingSite qname = (moduleName, position)
     -- Ref: Agda.Interaction.Highlighting.HTML.Base.annotate
     position = fromIntegral $ posPos $ fromJust $ rStart range
 
+data Definition' = Definition'
+  { name :: TS.QName,
+    kind :: TS.DefKind,
+    signature :: TS.Type,
+    originalSignature :: TS.Type,
+    body :: Maybe TS.Term,
+    moduleName :: TS.ModuleName,
+    position :: Int
+  }
+
 constructDefinition ::
-  TS.QName ->
-  TS.Type ->
-  TS.Type ->
-  Maybe TS.Term ->
-  TS.ModuleName ->
-  Int ->
+  Definition' ->
   TS.Definition
-constructDefinition name signature originalSignature body moduleName position = TS.Definition {..}
+constructDefinition Definition' {..} = TS.Definition {..}
   where
     (signature', _) = TS.normalise0 mempty (TS.emptyMetaCtx mempty) signature
     feature = TS.allFeature signature'
