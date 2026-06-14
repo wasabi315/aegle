@@ -1,8 +1,9 @@
 {-# OPTIONS_GHC -Wno-incomplete-uni-patterns #-}
 
 module Aegle.Index
-  ( indexLibrary,
+  ( index,
     Config (..),
+    LibraryConfig (..),
     TransparentDefName (..),
   )
 where
@@ -26,16 +27,22 @@ import Agda.Utils.IO.Directory
 import Agda.Utils.Impossible (__IMPOSSIBLE__)
 import Agda.Utils.Maybe (ifJustM)
 import Control.Foldl qualified as Foldl
+import Data.Aeson (eitherDecodeFileStrict)
 import Data.Map.Strict qualified as M
 import Data.Set qualified as S
 import Data.Text qualified as T
+import Paths_aegle
 import System.Directory
 import System.FilePath.Find qualified as Find
 
 --------------------------------------------------------------------------------
--- Entrypoint
+-- Config
 
-data Config = Config
+newtype Config = Config
+  { libraryConfigs :: [LibraryConfig]
+  }
+
+data LibraryConfig = LibraryConfig
   { -- | Set of fully-qualified definition names subject to definition unfolding during search.
     transparentDefNames :: S.Set TransparentDefName,
     -- | Path to Agda library.
@@ -49,11 +56,35 @@ data TransparentDefName = TransparentDefName
   deriving stock (Eq, Ord, Show, Generic)
   deriving anyclass (FromJSON)
 
+--------------------------------------------------------------------------------
+
 -- TODO: make indexer an Agda backend when Agda supports --build-library for arbitrary backend
 
-indexLibrary :: Config -> TS.DbBuilder IO a -> IO a
-indexLibrary config builder = do
-  setCurrentDirectory config.libraryDir
+-- Entrypoint
+index :: Config -> TS.DbBuilder IO a -> IO a
+index Config {..} builder0 = do
+  primLibConfig <- loadPrimLibConfig
+  builderN <-
+    foldM
+      -- NOTE: 'duplicateM' allows to continue feeding 'DbBuilder'
+      (\builder config -> indexOne config (Foldl.duplicateM builder))
+      builder0
+      (primLibConfig : libraryConfigs)
+  Foldl.foldM builderN []
+
+loadPrimLibConfig :: IO LibraryConfig
+loadPrimLibConfig = do
+  libraryDir <- filePath <$> getPrimitiveLibDir
+  transparentDefsFile <- getDataFileName "data/prim_transparent_defs.json"
+  transparentDefNames <-
+    eitherDecodeFileStrict transparentDefsFile
+      <&> either
+        (\e -> error $ "Failed to load " ++ transparentDefsFile ++ ": " ++ e)
+        id
+  pure LibraryConfig {..}
+
+indexOne :: LibraryConfig -> TS.DbBuilder IO a -> IO a
+indexOne config builder = withCurrentDirectory config.libraryDir do
   (Right (_, opts), _) <- pure $ runOptM $ parseBackendOptions [] [] defaultOptions
   runTCMTop' do
     opts <- addTrustedExecutables opts
@@ -70,13 +101,12 @@ indexLibrary config builder = do
     checkAndSetOptionsFromPragma libOpts
     importPrimitiveModules
 
-    libDirPrim <- useTC stPrimitiveLibDir
     files <-
       liftIO
         $ sort
         . map Find.infoPath
         . concat
-        <$> forM (filePath libDirPrim : paths) (findWithInfo (pure True) (hasAgdaExtension <$> Find.filePath))
+        <$> forM paths (findWithInfo (pure True) (hasAgdaExtension <$> Find.filePath))
 
     srcs <-
       M.fromDistinctAscList <$> for files \file -> do
@@ -102,7 +132,7 @@ resolveTransparentDefNames srcs transparentDefNames = do
   flip M.foldMapWithKey grouped \modName names -> do
     src <- case M.lookup modName srcs of
       Just src -> pure src
-      Nothing -> indexError $ "Could not find module " <> pretty modName
+      Nothing -> aegleError $ "Could not find module " <> pretty modName
     resolved <- resolveNamesIn src names
     pure $! S.fromList resolved
 
@@ -117,7 +147,7 @@ resolveNamesIn src names = do
         for names \name ->
           resolveDefinedName (T.unpack name) >>= \case
             Just resolved -> pure resolved
-            Nothing -> indexError do
+            Nothing -> aegleError do
               "Could not find definition " <> pretty modName <> "." <> pretty name
 
 extractFragment :: S.Set QName -> Source -> TCM TS.LibraryFragment

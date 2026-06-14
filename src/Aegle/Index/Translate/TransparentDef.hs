@@ -45,7 +45,7 @@ translateTransparentDefBody def = do
   let Function {..} = def.theDef
 
   -- validation
-  let bad x = indexError $ vsep [prettyTCM def.defName, x]
+  let bad x = aegleError $ vsep [prettyTCM def.defName, x]
   whenM (hasLocalDefs def) do
     void $ bad "Not supported: transparentDef with where clause"
   whenM (isProjectionLike def) do
@@ -71,4 +71,4 @@ translatePatternArgs = \cases
         addContextAndRenaming ctxElt
           $ TS.Lam (fromString varName)
           <$> translatePatternArgs (absBody cod) ps k
-  _ _ _ -> indexError "Not supported: transparent definition by pattern-matching"
+  _ _ _ -> aegleError "Not supported: transparent definition by pattern-matching"

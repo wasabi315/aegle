@@ -21,8 +21,8 @@ import Data.Text qualified as T
 
 --------------------------------------------------------------------------------
 
-indexError :: (HasCallStack, MonadTCError m) => m Doc -> m a
-indexError msg = typeError . CustomBackendError "translation" =<< msg
+aegleError :: (HasCallStack, MonadTCError m) => m Doc -> m a
+aegleError msg = typeError . CustomBackendError "aegle" =<< msg
 
 setCurrentRangeQ :: (MonadTrace m) => QName -> m a -> m a
 setCurrentRangeQ = setCurrentRange . nameBindingSite . qnameName

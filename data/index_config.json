@@ -1,0 +1,8 @@
+{
+  "libs": [
+    {
+      "dir": "../vendor/agda-stdlib",
+      "transparentDefs": "./stdlib_transparent_defs.json"
+    }
+  ]
+}

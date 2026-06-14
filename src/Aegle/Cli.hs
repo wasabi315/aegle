@@ -33,10 +33,9 @@ instance HasParser Command where
         serve
       ]
     where
-      index = command "index" "Index an Agda library" do
+      index = command "index" "Index Agda libraries" do
         connSetting <- connectionSetting
-        libraryDir <- argSetting "LIBRARY_DIR" "Directory containing the Agda library to index" str
-        transparentDefsFile <- argSetting "TRANSPARENT_DEFS_FILE" "JSON file listing transparent definitions" str
+        configFile <- argSetting "CONFIG_FILE" "JSON file listing Agda libraries to index" str
         pure $ Index Index.Command {..}
 
       search = command "search" "Search within indexed library" do

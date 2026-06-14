@@ -1,17 +1,5 @@
 [
   {
-    "toplevelModuleName": "Agda.Builtin.Reflection",
-    "name": "Telescope"
-  },
-  {
-    "toplevelModuleName": "Agda.Builtin.Reflection",
-    "name": "Type"
-  },
-  {
-    "toplevelModuleName": "Agda.Builtin.Size",
-    "name": "SizeUniv"
-  },
-  {
     "toplevelModuleName": "Algebra.Bundles",
     "name": "BoundedLattice"
   },
