@@ -91,10 +91,7 @@ indexOne config builder = withCurrentDirectory config.libraryDir do
     setCommandLineOptions opts
     cwd <- liftIO getCurrentDirectory
     ls <- libToTCM $ getAgdaLibFile cwd
-    AgdaLibFile
-      { _libIncludes = paths,
-        _libPragmas = libOpts
-      } <- case ls of
+    AgdaLibFile {_libIncludes = paths, _libPragmas = libOpts} <- case ls of
       [l] -> pure l
       [] -> throwError $ GenericException "No library found to build"
       _ -> __IMPOSSIBLE__
@@ -108,47 +105,60 @@ indexOne config builder = withCurrentDirectory config.libraryDir do
         . concat
         <$> forM paths (findWithInfo (pure True) (hasAgdaExtension <$> Find.filePath))
 
-    srcs <-
-      M.fromDistinctAscList <$> for files \file -> do
-        path <- liftIO $ absolute file
-        sf <- srcFromPath path
-        src <- parseSource sf
-        let modName = T.show $ P.pretty src.srcModuleName
-        pure (modName, src)
+    -- Files are parsed twice, but 30% lower memory residency
 
-    transparentDefNames <- resolveTransparentDefNames srcs config.transparentDefNames
+    transparentDefNames <- resolveTransparentDefNames config.transparentDefNames files
 
-    flip Foldl.foldM srcs
-      $ Foldl.premapM (extractFragment transparentDefNames)
-      $ Foldl.hoists liftIO builder
+    buildDb transparentDefNames files builder
 
-resolveTransparentDefNames ::
-  M.Map T.Text Source -> S.Set TransparentDefName -> TCM (S.Set QName)
-resolveTransparentDefNames srcs transparentDefNames = do
+--------------------------------------------------------------------------------
+-- Resolve names
+
+resolveTransparentDefNames :: S.Set TransparentDefName -> [FilePath] -> TCM (S.Set QName)
+resolveTransparentDefNames (S.null -> True) _ = pure mempty
+resolveTransparentDefNames transparentDefNames files = do
   let grouped =
         S.toAscList transparentDefNames
-          & map (\TransparentDefName {..} -> (toplevelModuleName, [name]))
-          & M.fromAscListWith (++)
-  flip M.foldMapWithKey grouped \modName names -> do
-    src <- case M.lookup modName srcs of
-      Just src -> pure src
-      Nothing -> aegleError $ "Could not find module " <> pretty modName
-    resolved <- resolveNamesIn src names
-    pure $! S.fromList resolved
+          & map (\TransparentDefName {..} -> (toplevelModuleName, S.singleton name))
+          & M.fromAscListWith (<>)
 
-resolveNamesIn :: (Traversable t) => Source -> t T.Text -> TCM (t QName)
-resolveNamesIn src names = do
+  let step (!resolved, !unvisited) file = do
+        src <- parseFile file
+        let modName = T.show $ P.pretty src.srcModuleName
+        resolved <- (resolved <>) <$> resolveNames grouped src
+        unvisited <- pure $ S.delete modName unvisited
+        pure (resolved, unvisited)
+
+  (resolved, unvisited) <- foldM step (mempty, M.keysSet grouped) files
+
+  unless (S.null unvisited) do
+    aegleError $ "Could not find modules " <> pretty unvisited
+
+  pure resolved
+
+resolveNames :: M.Map T.Text (S.Set T.Text) -> Source -> TCM (S.Set QName)
+resolveNames grouped src = do
   let modName = src.srcModuleName
-  withCurrentModule noModuleName do
+      names = M.lookup (T.show $ P.pretty modName) grouped
+  flip foldMap names \names -> withCurrentModule noModuleName do
     withTopLevelModule modName do
       modInfo <- getNonMainModuleInfo modName (Just src)
       setInterface modInfo.miInterface
       withScope_ modInfo.miInterface.iInsideScope do
-        for names \name ->
+        S.fromList <$> for (S.toList names) \name ->
           resolveDefinedName (T.unpack name) >>= \case
             Just resolved -> pure resolved
             Nothing -> aegleError do
               "Could not find definition " <> pretty modName <> "." <> pretty name
+
+--------------------------------------------------------------------------------
+-- Indexing
+
+buildDb :: S.Set QName -> [FilePath] -> TS.DbBuilder IO a -> TCM a
+buildDb transparentDefNames files builder =
+  flip Foldl.foldM files
+    $ Foldl.premapM (parseFile >=> extractFragment transparentDefNames)
+    $ Foldl.hoists liftIO builder
 
 extractFragment :: S.Set QName -> Source -> TCM TS.LibraryFragment
 extractFragment transparentDefNames src = do
@@ -161,3 +171,11 @@ extractFragment transparentDefNames src = do
       ifJustM (useTC (stPragmaOptions . lensOptCubical)) (\_ -> pure mempty) do
         runTransl Transl.Config {..} do
           translateScope modInfo.miInterface.iInsideScope
+
+--------------------------------------------------------------------------------
+
+parseFile :: FilePath -> TCM Source
+parseFile file = do
+  path <- liftIO $ absolute file
+  sf <- srcFromPath path
+  parseSource sf
