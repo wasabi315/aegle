@@ -43,7 +43,7 @@ translateTerm ty v = do
   v <- reduceTransparentDef =<< instantiate v
 
   let bad s t =
-        indexError
+        aegleError
           $ vcat
             [ "cannot compile" <+> text (s ++ ":"),
               nest 2 $ prettyTCM t
@@ -106,7 +106,7 @@ translateSigma ty args =
     [a] -> pure $ TS.Lam "B" $ TS.Sigma "x" a (TS.Var 0)
     -- unapplied
     [] -> pure $ TS.Lam "A" $ TS.Lam "B" $ TS.Sigma "x" (TS.Var 1) (TS.Var 0)
-    _ -> indexError "Ill-formed sigma"
+    _ -> aegleError "Ill-formed sigma"
 
 translatePair :: Type -> [Term] -> Transl TS.Term
 translatePair ty args =
@@ -117,7 +117,7 @@ translatePair ty args =
     [a] -> pure $ TS.Lam "x" $ TS.Pair a (TS.Var 0)
     -- unapplied
     [] -> pure $ TS.Lam "x" $ TS.Lam "y" $ TS.Pair (TS.Var 1) (TS.Var 0)
-    _ -> indexError "Ill-formed pair construction"
+    _ -> aegleError "Ill-formed pair construction"
 
 translateFst :: Type -> [Term] -> Transl TS.Term
 translateFst ty args =
@@ -167,7 +167,7 @@ translateSpined c tm ty = \case
     (_, b) <- mustBePi ty
     translateSpined (c . (x :)) (tm . (e :)) (absApp b x) es
   e@IApply {} : _ ->
-    indexError
+    aegleError
       $ vcat ["cannot compile interval application:", nest 2 $ prettyTCM e]
 
 translateProj ::
@@ -223,4 +223,4 @@ translateLit = \case
     zero <- translateQName <$> getBuiltinName_ BuiltinZero
     suc <- translateQName <$> getBuiltinName_ BuiltinSuc
     pure $ iterate' n (TS.Top suc `TS.App`) (TS.Top zero)
-  x -> indexError $ vcat ["cannot compile literal:", nest 2 $ prettyTCM x]
+  x -> aegleError $ vcat ["cannot compile literal:", nest 2 $ prettyTCM x]
