@@ -1,0 +1,6 @@
+- module: Agda.Builtin.Reflection
+  name: Telescope
+- module: Agda.Builtin.Reflection
+  name: Type
+- module: Agda.Builtin.Size
+  name: SizeUniv

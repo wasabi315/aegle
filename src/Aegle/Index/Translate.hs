@@ -36,12 +36,12 @@ data Env = Env
     -- | De Bruijn level → De Bruijn level after erasure
     renaming :: IM.IntMap Int,
     -- | Set of transparent definitions (already resolved)
-    transparentDefNames :: S.Set QName
+    transparentDefs :: S.Set QName
   }
 
 newtype Config = Config
   { -- | Set of transparent definitions (already resolved)
-    transparentDefNames :: S.Set QName
+    transparentDefs :: S.Set QName
   }
 
 runTransl :: Config -> Transl a -> TCM a
@@ -80,14 +80,14 @@ translateDBVar ix = do
     TS.Index ix'
 
 withAllDefsOpaque :: Transl a -> Transl a
-withAllDefsOpaque = local \Env {..} -> Env {transparentDefNames = mempty, ..}
+withAllDefsOpaque = local \Env {..} -> Env {transparentDefs = mempty, ..}
 
 isTransparentDef :: QName -> Transl Bool
-isTransparentDef x = asks \env -> x `S.member` env.transparentDefNames
+isTransparentDef x = asks \env -> x `S.member` env.transparentDefs
 
 reduceTransparentDef :: Term -> Transl Term
 reduceTransparentDef t = do
-  ds <- asks \env -> OnlyReduceDefs env.transparentDefNames
+  ds <- asks \env -> OnlyReduceDefs env.transparentDefs
   locallyReduceDefs ds $ reduce t
 
 --------------------------------------------------------------------------------
