@@ -35,7 +35,7 @@ instance HasParser Command where
     where
       index = command "index" "Index Agda libraries" do
         connSetting <- connectionSetting
-        configFile <- argSetting "CONFIG_FILE" "JSON file listing Agda libraries to index" str
+        configFile <- argSetting "CONFIG_FILE" "YAML file listing Agda libraries to index" str
         pure $ Index Index.Command {..}
 
       search = command "search" "Search within indexed library" do

@@ -44,7 +44,12 @@ data RawLibraryConfig = RawLibraryConfig
     transparentDefsFile :: Maybe FilePath
   }
   deriving stock (Generic)
-  deriving anyclass (FromJSON)
+
+instance FromJSON RawLibraryConfig where
+  parseJSON = withObject "RawLibraryConfig" \o ->
+    RawLibraryConfig
+      <$> (o .: "path")
+      <*> (o .:? "transparent_defs_file")
 
 loadConfigFile :: FilePath -> IO Index.Config
 loadConfigFile configFile = do
