@@ -62,15 +62,11 @@ data TransparentDefName = TransparentDefName
 
 -- Entrypoint
 index :: Config -> TS.DbBuilder IO a -> IO a
-index Config {..} builder0 = do
+index Config {..} builder = do
   primLibConfig <- loadPrimLibConfig
-  builderN <-
-    foldM
-      -- NOTE: 'duplicateM' allows to continue feeding 'DbBuilder'
-      (\builder config -> indexOne config (Foldl.duplicateM builder))
-      builder0
-      (primLibConfig : libraryConfigs)
-  Foldl.foldM builderN []
+  Foldl.foldM
+    (builder `inStagesM` flip indexOne)
+    (primLibConfig : libraryConfigs)
 
 loadPrimLibConfig :: IO LibraryConfig
 loadPrimLibConfig = do
@@ -112,7 +108,7 @@ indexOne config builder = withCurrentDirectory config.libraryDir do
     buildDb transparentDefNames files builder
 
 --------------------------------------------------------------------------------
--- Resolve names
+-- Name resolution
 
 resolveTransparentDefNames :: S.Set TransparentDefName -> [FilePath] -> TCM (S.Set QName)
 resolveTransparentDefNames (S.null -> True) _ = pure mempty
@@ -179,3 +175,11 @@ parseFile file = do
   path <- liftIO $ absolute file
   sf <- srcFromPath path
   parseSource sf
+
+inStagesM ::
+  (Applicative m) =>
+  Foldl.FoldM m a r ->
+  (forall x. Foldl.FoldM m a x -> b -> m x) ->
+  Foldl.FoldM m b r
+Foldl.FoldM step begin done `inStagesM` runStage =
+  Foldl.FoldM (\x -> runStage (Foldl.FoldM step (pure x) pure)) begin done
