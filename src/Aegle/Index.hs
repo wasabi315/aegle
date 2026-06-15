@@ -27,10 +27,10 @@ import Agda.Utils.IO.Directory
 import Agda.Utils.Impossible (__IMPOSSIBLE__)
 import Agda.Utils.Maybe (ifJustM)
 import Control.Foldl qualified as Foldl
-import Data.Aeson (eitherDecodeFileStrict)
 import Data.Map.Strict qualified as M
 import Data.Set qualified as S
 import Data.Text qualified as T
+import Data.Yaml
 import Paths_aegle
 import System.Directory
 import System.FilePath.Find qualified as Find
@@ -44,17 +44,22 @@ newtype Config = Config
 
 data LibraryConfig = LibraryConfig
   { -- | Set of fully-qualified definition names subject to definition unfolding during search.
-    transparentDefNames :: S.Set TransparentDefName,
+    transparentDefs :: S.Set TransparentDefName,
     -- | Path to Agda library.
-    libraryDir :: FilePath
+    path :: FilePath
   }
 
 data TransparentDefName = TransparentDefName
-  { toplevelModuleName :: T.Text,
+  { modName :: T.Text,
     name :: T.Text
   }
   deriving stock (Eq, Ord, Show, Generic)
-  deriving anyclass (FromJSON)
+
+instance FromJSON TransparentDefName where
+  parseJSON = withObject "TransparentDefName" \o ->
+    TransparentDefName
+      <$> (o .: "module")
+      <*> (o .: "name")
 
 --------------------------------------------------------------------------------
 
@@ -70,17 +75,13 @@ index Config {..} builder = do
 
 loadPrimLibConfig :: IO LibraryConfig
 loadPrimLibConfig = do
-  libraryDir <- filePath <$> getPrimitiveLibDir
-  transparentDefsFile <- getDataFileName "data/prim_transparent_defs.json"
-  transparentDefNames <-
-    eitherDecodeFileStrict transparentDefsFile
-      <&> either
-        (\e -> error $ "Failed to load " ++ transparentDefsFile ++ ": " ++ e)
-        id
+  path <- filePath <$> getPrimitiveLibDir
+  transparentDefsFile <- getDataFileName "data/prim_transparent_defs.yaml"
+  transparentDefs <- decodeFileThrow transparentDefsFile
   pure LibraryConfig {..}
 
 indexOne :: LibraryConfig -> TS.DbBuilder IO a -> IO a
-indexOne config builder = withCurrentDirectory config.libraryDir do
+indexOne config builder = withCurrentDirectory config.path do
   (Right (_, opts), _) <- pure $ runOptM $ parseBackendOptions [] [] defaultOptions
   runTCMTop' do
     opts <- addTrustedExecutables opts
@@ -103,19 +104,19 @@ indexOne config builder = withCurrentDirectory config.libraryDir do
 
     -- Files are parsed twice, but 30% lower memory residency
 
-    transparentDefNames <- resolveTransparentDefNames config.transparentDefNames files
+    transparentDefs <- resolveTransparentDefs config.transparentDefs files
 
-    buildDb transparentDefNames files builder
+    buildDb transparentDefs files builder
 
 --------------------------------------------------------------------------------
 -- Name resolution
 
-resolveTransparentDefNames :: S.Set TransparentDefName -> [FilePath] -> TCM (S.Set QName)
-resolveTransparentDefNames (S.null -> True) _ = pure mempty
-resolveTransparentDefNames transparentDefNames files = do
+resolveTransparentDefs :: S.Set TransparentDefName -> [FilePath] -> TCM (S.Set QName)
+resolveTransparentDefs (S.null -> True) _ = pure mempty
+resolveTransparentDefs transparentDefs files = do
   let grouped =
-        S.toAscList transparentDefNames
-          & map (\TransparentDefName {..} -> (toplevelModuleName, S.singleton name))
+        S.toAscList transparentDefs
+          & map (\TransparentDefName {..} -> (modName, S.singleton name))
           & M.fromAscListWith (<>)
 
   let step (!resolved, !unvisited) file = do
@@ -151,13 +152,13 @@ resolveNames grouped src = do
 -- Indexing
 
 buildDb :: S.Set QName -> [FilePath] -> TS.DbBuilder IO a -> TCM a
-buildDb transparentDefNames files builder =
+buildDb transparentDefs files builder =
   flip Foldl.foldM files
-    $ Foldl.premapM (parseFile >=> extractFragment transparentDefNames)
+    $ Foldl.premapM (parseFile >=> extractFragment transparentDefs)
     $ Foldl.hoists liftIO builder
 
 extractFragment :: S.Set QName -> Source -> TCM TS.LibraryFragment
-extractFragment transparentDefNames src = do
+extractFragment transparentDefs src = do
   let modName = src.srcModuleName
   withCurrentModule noModuleName do
     withTopLevelModule modName do

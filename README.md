@@ -85,10 +85,10 @@ Nix builds are not supported yet.
 
 ### Index libraries
 
-Index Agda libraries listed in a JSON config file.
+Index Agda libraries listed in a YAML config file.
 
 ```sh
-stack exec aegle -- index index_config.json
+stack exec aegle -- index aegle_config.yaml
 ```
 
 ### Search from the CLI

@@ -8,7 +8,7 @@ import Aegle.Database.Backend.PostgreSQL
 import Aegle.Index qualified as Index
 import Aegle.Prelude
 import Control.Exception
-import Data.Aeson (eitherDecodeFileStrict)
+import Data.Yaml
 import Hasql.Connection
 import Hasql.Connection.Setting
 import System.Directory
@@ -34,14 +34,14 @@ index Command {..} = do
     Index.index config dbBuilder
 
 newtype RawConfig = RawConfig
-  { libs :: [RawLibraryConfig]
+  { libraries :: [RawLibraryConfig]
   }
   deriving stock (Generic)
   deriving anyclass (FromJSON)
 
 data RawLibraryConfig = RawLibraryConfig
-  { dir :: FilePath,
-    transparentDefs :: Maybe FilePath
+  { path :: FilePath,
+    transparentDefsFile :: Maybe FilePath
   }
   deriving stock (Generic)
   deriving anyclass (FromJSON)
@@ -50,17 +50,17 @@ loadConfigFile :: FilePath -> IO Index.Config
 loadConfigFile configFile = do
   configFile' <- makeAbsolute configFile
   let configDir = takeDirectory configFile'
-  rawConfig <- orDie $ eitherDecodeFileStrict @RawConfig configFile'
-  libraryConfigs <- traverse (loadLibraryConfig configDir) rawConfig.libs
+  rawConfig <- decodeFileThrow @_ @RawConfig configFile'
+  libraryConfigs <- traverse (loadLibraryConfig configDir) rawConfig.libraries
   pure Index.Config {..}
 
 loadLibraryConfig :: FilePath -> RawLibraryConfig -> IO Index.LibraryConfig
-loadLibraryConfig absConfigDir RawLibraryConfig {..} = do
-  let libraryDir = resolvePath absConfigDir dir
-  transparentDefNames <-
-    fromMaybe mempty <$> for transparentDefs \path -> orDie do
+loadLibraryConfig absConfigDir config = do
+  let path = resolvePath absConfigDir config.path
+  transparentDefs <-
+    fromMaybe mempty <$> for config.transparentDefsFile \path -> do
       let absPath = resolvePath absConfigDir path
-      eitherDecodeFileStrict absPath
+      decodeFileThrow absPath
   pure Index.LibraryConfig {..}
 
 resolvePath :: FilePath -> FilePath -> FilePath
