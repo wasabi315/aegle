@@ -84,25 +84,20 @@ indexOne :: LibraryConfig -> TS.DbBuilder IO a -> IO a
 indexOne config builder = withCurrentDirectory config.path do
   (Right (_, opts), _) <- pure $ runOptM $ parseBackendOptions [] [] defaultOptions
   runTCMTop' do
-    opts <- addTrustedExecutables opts
-    setCommandLineOptions opts
-    cwd <- liftIO getCurrentDirectory
-    ls <- libToTCM $ getAgdaLibFile cwd
-    AgdaLibFile {_libIncludes = paths, _libPragmas = libOpts} <- case ls of
-      [l] -> pure l
-      [] -> throwError $ GenericException "No library found to build"
-      _ -> __IMPOSSIBLE__
+    setCommandLineOptions =<< addTrustedExecutables opts
+    AgdaLibFile {_libIncludes = paths, _libPragmas = libOpts} <-
+      libToTCM (getAgdaLibFile config.path) >>= \case
+        [file] -> pure file
+        [] -> aegleError "No libraries found to index"
+        _ -> __IMPOSSIBLE__
     checkAndSetOptionsFromPragma libOpts
     importPrimitiveModules
 
     files <-
-      liftIO
-        $ sort
-        . map Find.infoPath
-        . concat
-        <$> forM paths (findWithInfo (pure True) (hasAgdaExtension <$> Find.filePath))
+      liftIO $ sort . map Find.infoPath <$> do
+        foldMap (findWithInfo (pure True) (hasAgdaExtension <$> Find.filePath)) paths
 
-    -- Files are parsed twice, but 30% lower memory residency
+    -- Files are parsed twice, but this lowers peak memory residency
 
     transparentDefs <- resolveTransparentDefs config.transparentDefs files
 
@@ -115,16 +110,15 @@ resolveTransparentDefs :: S.Set TransparentDefName -> [FilePath] -> TCM (S.Set Q
 resolveTransparentDefs (S.null -> True) _ = pure mempty
 resolveTransparentDefs transparentDefs files = do
   let grouped =
-        S.toAscList transparentDefs
-          & map (\TransparentDefName {..} -> (modName, S.singleton name))
-          & M.fromAscListWith (<>)
+        M.fromSet (S.singleton . (.name)) transparentDefs
+          & M.mapKeysWith (<>) (.modName)
 
   let step (!resolved, !unvisited) file = do
         src <- parseFile file
         let modName = T.show $ P.pretty src.srcModuleName
-        resolved <- (resolved <>) <$> resolveNames grouped src
-        unvisited <- pure $ S.delete modName unvisited
-        pure (resolved, unvisited)
+            names = M.lookup modName grouped
+        resolved' <- foldMap (resolveNamesIn src) names
+        pure $! resolved <> resolved' // S.delete modName unvisited
 
   (resolved, unvisited) <- foldM step (mempty, M.keysSet grouped) files
 
@@ -133,11 +127,10 @@ resolveTransparentDefs transparentDefs files = do
 
   pure resolved
 
-resolveNames :: M.Map T.Text (S.Set T.Text) -> Source -> TCM (S.Set QName)
-resolveNames grouped src = do
+resolveNamesIn :: Source -> S.Set T.Text -> TCM (S.Set QName)
+resolveNamesIn src names = do
   let modName = src.srcModuleName
-      names = M.lookup (T.show $ P.pretty modName) grouped
-  flip foldMap names \names -> withCurrentModule noModuleName do
+  withCurrentModule noModuleName do
     withTopLevelModule modName do
       modInfo <- getNonMainModuleInfo modName (Just src)
       setInterface modInfo.miInterface
