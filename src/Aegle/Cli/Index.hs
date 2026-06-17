@@ -8,6 +8,7 @@ import Aegle.Database.Backend.PostgreSQL
 import Aegle.Index qualified as Index
 import Aegle.Prelude
 import Control.Exception
+import Control.Foldl qualified as Foldl
 import Data.Yaml
 import Hasql.Connection
 import Hasql.Connection.Setting
@@ -31,7 +32,7 @@ index Command {..} = do
   withConnect connSetting \conn -> do
     migrate conn
     let dbBuilder = newDbBuilder conn
-    Index.index config dbBuilder
+    Index.index config (Foldl.hoists liftIO dbBuilder)
 
 newtype RawConfig = RawConfig
   { libraries :: [RawLibraryConfig]
