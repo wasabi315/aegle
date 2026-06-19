@@ -58,6 +58,7 @@ library
       Aegle.Database.Backend
       Aegle.Database.Backend.PostgreSQL
       Aegle.Index
+      Aegle.Index.Statistics
       Aegle.Index.Translate
       Aegle.Index.Translate.Definition
       Aegle.Index.Translate.Name
@@ -143,6 +144,7 @@ library
     , filepath
     , flat
     , foldl
+    , generic-lens
     , hashable
     , haskeline
     , hasql
@@ -252,6 +254,7 @@ executable aegle
     , filepath
     , flat
     , foldl
+    , generic-lens
     , hashable
     , haskeline
     , hasql
@@ -368,6 +371,7 @@ test-suite aegle-test
     , filepath
     , flat
     , foldl
+    , generic-lens
     , hashable
     , haskeline
     , hasql

@@ -6,11 +6,18 @@ where
 
 import Aegle.Database.Backend.PostgreSQL
 import Aegle.Index qualified as Index
+import Aegle.Index.Statistics
 import Aegle.Prelude
+import Aegle.Search.Feature
 import Control.Exception
+import Control.Foldl qualified as Foldl
+import Data.Map.Strict qualified as M
+import Data.Ord
 import Data.Yaml
 import Hasql.Connection
 import Hasql.Connection.Setting
+import Prettyprinter
+import Prettyprinter.Render.Terminal
 import System.Directory
 import System.Exit
 import System.FilePath
@@ -20,7 +27,8 @@ import System.FilePath
 
 data Command = Command
   { connSetting :: Setting,
-    configFile :: FilePath
+    configFile :: FilePath,
+    enableStatistics :: Bool
   }
 
 --------------------------------------------------------------------------------
@@ -30,8 +38,16 @@ index Command {..} = do
   config <- loadConfigFile configFile
   withConnect connSetting \conn -> do
     migrate conn
-    let dbBuilder = newDbBuilder conn
-    Index.index config dbBuilder
+    let builder =
+          Foldl.hoists liftIO (newDbBuilder conn)
+            *> if enableStatistics
+              then Just <$> Foldl.generalize statisticsBuilder
+              else pure Nothing
+    stats <- Index.index config builder
+    traverse_ putStatistics stats
+
+--------------------------------------------------------------------------------
+-- Load config
 
 newtype RawConfig = RawConfig
   { libraries :: [RawLibraryConfig]
@@ -72,6 +88,97 @@ resolvePath :: FilePath -> FilePath -> FilePath
 resolvePath base path
   | isAbsolute path = normalise path
   | otherwise = normalise $ base </> path
+
+--------------------------------------------------------------------------------
+-- Statistics
+
+putStatistics :: Statistics -> IO ()
+putStatistics Statistics {..} = putDoc statsDoc
+  where
+    statsDoc =
+      vsep
+        [ "Statistics",
+          numItemDoc,
+          numItemPerFeatureShapeDoc,
+          numItemPerArityDoc,
+          numItemPerRHTopDoc,
+          numCanonicalNamePerUnqualNameDoc,
+          emptyDoc
+        ]
+
+    numItemDoc = "Total items" <+> colon <+> pretty numItem
+
+    numItemPerFeatureShapeDoc =
+      "Total items per feature shape"
+        <+> colon
+        <+> nest
+          4
+          ( vsep
+              $ punctuate
+                comma
+                [ featureDoc feat <+> "→" <+> pretty num
+                | (feat, num) <- M.toList numItemPerFeatureShape
+                ]
+          )
+
+    numItemPerArityDoc =
+      "Total items per arity"
+        <+> colon
+        <+> nest
+          4
+          ( vsep
+              $ punctuate
+                comma
+                [ arityDoc arity <+> "→" <+> pretty num
+                | (arity, num) <- M.toList numItemPerArity
+                ]
+          )
+
+    numItemPerRHTopDoc =
+      "Total items per result head top name"
+        <+> colon
+        <+> nest
+          4
+          ( vsep
+              $ punctuate
+                comma
+                [ pretty name <+> "→" <+> pretty num
+                | (name, num) <- sortOn (Down . snd) $ M.toList numItemPerRHTop
+                ]
+          )
+
+    numCanonicalNamePerUnqualNameDoc =
+      "Total canonical names per colliding unqualified name"
+        <+> colon
+        <+> nest
+          4
+          ( vsep
+              $ punctuate
+                comma
+                [ pretty name <+> "→" <+> pretty num
+                | (name, num) <- sortOn (Down . snd) $ M.toList numCanonicalNamePerUnqualName,
+                  num > 1
+                ]
+          )
+
+    featureDoc FeatureShape {..} =
+      tupled
+        [ case resultHead of
+            RHU -> "U"
+            RHVar -> "Var"
+            RHTop {} -> "Top"
+            RHSigma -> "Σ"
+            RHProj1 -> ".1"
+            RHProj2 -> ".2",
+          case polymorphic of
+            Monomorphic -> "Mono"
+            Polymorphic -> "Poly",
+          if arityHasVar then "≧" else "="
+        ]
+
+    arityDoc Arity {..}
+      | hasVar = "≧" <> pretty arity
+      | otherwise = "=" <> pretty arity
 
 --------------------------------------------------------------------------------
 
