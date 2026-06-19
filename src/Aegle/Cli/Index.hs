@@ -96,15 +96,17 @@ putStatistics Statistics {..} = putDoc statsDoc
       vsep
         [ "Statistics",
           numItemDoc,
-          numItemPerFeatureDoc,
+          numItemPerFeatureShapeDoc,
+          numItemPerArityDoc,
           numItemPerRHTopDoc,
+          numCanonicalNamePerUnqualNameDoc,
           emptyDoc
         ]
 
     numItemDoc = "Total items" <+> colon <+> pretty numItem
 
-    numItemPerFeatureDoc =
-      "Total items per feature"
+    numItemPerFeatureShapeDoc =
+      "Total items per feature shape"
         <+> colon
         <+> nest
           4
@@ -112,7 +114,20 @@ putStatistics Statistics {..} = putDoc statsDoc
               $ punctuate
                 comma
                 [ featureDoc feat <+> "→" <+> pretty num
-                | (feat, num) <- M.toList numItemPerFeature
+                | (feat, num) <- M.toList numItemPerFeatureShape
+                ]
+          )
+
+    numItemPerArityDoc =
+      "Total items per arity"
+        <+> colon
+        <+> nest
+          4
+          ( vsep
+              $ punctuate
+                comma
+                [ arityDoc arity <+> "→" <+> pretty num
+                | (arity, num) <- M.toList numItemPerArity
                 ]
           )
 
@@ -126,6 +141,20 @@ putStatistics Statistics {..} = putDoc statsDoc
                 comma
                 [ pretty name <+> "→" <+> pretty num
                 | (name, num) <- sortOn (Down . snd) $ M.toList numItemPerRHTop
+                ]
+          )
+
+    numCanonicalNamePerUnqualNameDoc =
+      "Total canonical names per colliding unqualified name"
+        <+> colon
+        <+> nest
+          4
+          ( vsep
+              $ punctuate
+                comma
+                [ pretty name <+> "→" <+> pretty num
+                | (name, num) <- sortOn (Down . snd) $ M.toList numCanonicalNamePerUnqualName,
+                  num > 1
                 ]
           )
 
@@ -143,6 +172,10 @@ putStatistics Statistics {..} = putDoc statsDoc
             Polymorphic -> "Poly",
           if arityHasVar then "≧" else "="
         ]
+
+    arityDoc Arity {..}
+      | hasVar = "≧" <> pretty arity
+      | otherwise = "=" <> pretty arity
 
 --------------------------------------------------------------------------------
 
