@@ -27,7 +27,8 @@ import System.FilePath
 
 data Command = Command
   { connSetting :: Setting,
-    configFile :: FilePath
+    configFile :: FilePath,
+    enableStatistics :: Bool
   }
 
 --------------------------------------------------------------------------------
@@ -39,9 +40,11 @@ index Command {..} = do
     migrate conn
     let builder =
           Foldl.hoists liftIO (newDbBuilder conn)
-            *> Foldl.generalize statisticsBuilder
+            *> if enableStatistics
+              then Just <$> Foldl.generalize statisticsBuilder
+              else pure Nothing
     stats <- Index.index config builder
-    putStatistics stats
+    traverse_ putStatistics stats
 
 --------------------------------------------------------------------------------
 -- Load config
