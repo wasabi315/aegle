@@ -6,12 +6,18 @@ where
 
 import Aegle.Database.Backend.PostgreSQL
 import Aegle.Index qualified as Index
+import Aegle.Index.Statistics
 import Aegle.Prelude
+import Aegle.Search.Feature
 import Control.Exception
 import Control.Foldl qualified as Foldl
+import Data.Map.Strict qualified as M
+import Data.Ord
 import Data.Yaml
 import Hasql.Connection
 import Hasql.Connection.Setting
+import Prettyprinter
+import Prettyprinter.Render.Terminal
 import System.Directory
 import System.Exit
 import System.FilePath
@@ -31,8 +37,14 @@ index Command {..} = do
   config <- loadConfigFile configFile
   withConnect connSetting \conn -> do
     migrate conn
-    let dbBuilder = newDbBuilder conn
-    Index.index config (Foldl.hoists liftIO dbBuilder)
+    let builder =
+          Foldl.hoists liftIO (newDbBuilder conn)
+            *> Foldl.generalize statisticsBuilder
+    stats <- Index.index config builder
+    putStatistics stats
+
+--------------------------------------------------------------------------------
+-- Load config
 
 newtype RawConfig = RawConfig
   { libraries :: [RawLibraryConfig]
@@ -73,6 +85,64 @@ resolvePath :: FilePath -> FilePath -> FilePath
 resolvePath base path
   | isAbsolute path = normalise path
   | otherwise = normalise $ base </> path
+
+--------------------------------------------------------------------------------
+-- Statistics
+
+putStatistics :: Statistics -> IO ()
+putStatistics Statistics {..} = putDoc statsDoc
+  where
+    statsDoc =
+      vsep
+        [ "Statistics",
+          numItemDoc,
+          numItemPerFeatureDoc,
+          numItemPerRHTopDoc,
+          emptyDoc
+        ]
+
+    numItemDoc = "Total items" <+> colon <+> pretty numItem
+
+    numItemPerFeatureDoc =
+      "Total items per feature"
+        <+> colon
+        <+> nest
+          4
+          ( vsep
+              $ punctuate
+                comma
+                [ featureDoc feat <+> "→" <+> pretty num
+                | (feat, num) <- M.toList numItemPerFeature
+                ]
+          )
+
+    numItemPerRHTopDoc =
+      "Total items per result head top name"
+        <+> colon
+        <+> nest
+          4
+          ( vsep
+              $ punctuate
+                comma
+                [ pretty name <+> "→" <+> pretty num
+                | (name, num) <- sortOn (Down . snd) $ M.toList numItemPerRHTop
+                ]
+          )
+
+    featureDoc FeatureShape {..} =
+      tupled
+        [ case resultHead of
+            RHU -> "U"
+            RHVar -> "Var"
+            RHTop {} -> "Top"
+            RHSigma -> "Σ"
+            RHProj1 -> ".1"
+            RHProj2 -> ".2",
+          case polymorphic of
+            Monomorphic -> "Mono"
+            Polymorphic -> "Poly",
+          if arityHasVar then "≧" else "="
+        ]
 
 --------------------------------------------------------------------------------
 
