@@ -128,8 +128,6 @@ library
       TypeFamilies
       TypeFamilyDependencies
       UndecidableInstances
-      UnboxedTuples
-      UnboxedSums
       ViewPatterns
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-deriving-strategies -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -Wno-name-shadowing -O2 -funbox-strict-fields -optP-Wno-nonportable-include-path
   build-depends:
@@ -153,6 +151,7 @@ library
     , hasql-pool
     , hasql-th
     , hasql-transaction
+    , lens
     , lucid
     , megaparsec
     , mtl
@@ -237,8 +236,6 @@ executable aegle
       TypeFamilies
       TypeFamilyDependencies
       UndecidableInstances
-      UnboxedTuples
-      UnboxedSums
       ViewPatterns
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-deriving-strategies -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -Wno-name-shadowing -O2 -funbox-strict-fields -optP-Wno-nonportable-include-path
   build-depends:
@@ -263,6 +260,7 @@ executable aegle
     , hasql-pool
     , hasql-th
     , hasql-transaction
+    , lens
     , lucid
     , megaparsec
     , mtl
@@ -354,8 +352,6 @@ test-suite aegle-test
       TypeFamilies
       TypeFamilyDependencies
       UndecidableInstances
-      UnboxedTuples
-      UnboxedSums
       ViewPatterns
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-deriving-strategies -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -Wno-name-shadowing -O2 -funbox-strict-fields -optP-Wno-nonportable-include-path
   build-depends:
@@ -381,6 +377,7 @@ test-suite aegle-test
     , hasql-th
     , hasql-transaction
     , hedgehog
+    , lens
     , lucid
     , megaparsec
     , mtl

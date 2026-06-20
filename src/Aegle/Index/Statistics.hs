@@ -38,20 +38,18 @@ data FeatureShape = FeatureShape
 
 statisticsBuilder :: Foldl.Fold LibraryFragment Statistics
 statisticsBuilder = do
-  numItem <- Foldl.handles ( #definitions . Foldl.folded) Foldl.length
+  numItem <-
+    countOf (#definitions . traverse)
   numItemPerFeatureShape <-
-    Foldl.handles ( #definitions . Foldl.folded . #feature) do
-      Foldl.groupBy toFeatureShape Foldl.length
+    histogramOf (#definitions . traverse . #feature . to toFeatureShape)
   numItemPerArity <-
-    Foldl.handles ( #definitions . Foldl.folded . #feature . #arity) do
-      Foldl.groupBy id Foldl.length
+    histogramOf (#definitions . traverse . #feature . #arity)
   numItemPerRHTop <-
-    Foldl.handles ( #definitions . Foldl.folded . #feature . #resultHead . #_RHTop) do
-      Foldl.groupBy id Foldl.length
+    histogramOf (#definitions . traverse . #feature . #resultHead . #_RHTop)
   numCanonicalNamePerUnqualName <-
-      Foldl.handles ( #exports . Foldl.folded) do
-        Foldl.groupBy (.exportAs.name) do
-          dimap (.canonicalName) S.size Foldl.set
+    Foldl.handles (#exports . traverse) do
+      Foldl.groupBy (.exportAs.name) do
+        distinctCountOf #canonicalName
   pure Statistics {..}
 
 toFeatureShape :: AllFeature n -> FeatureShape
@@ -61,3 +59,14 @@ toFeatureShape AllFeature {..} =
       polymorphic,
       arityHasVar = arity.hasVar
     }
+
+--------------------------------------------------------------------------------
+
+countOf :: Foldl.Handler a b -> Foldl.Fold a Int
+countOf h = Foldl.handles h Foldl.length
+
+distinctCountOf :: (Ord b) => Foldl.Handler a b -> Foldl.Fold a Int
+distinctCountOf h = Foldl.handles h (S.size <$> Foldl.set)
+
+histogramOf :: (Ord b) => Foldl.Handler a b -> Foldl.Fold a (M.Map b Int)
+histogramOf h = Foldl.handles h (Foldl.groupBy id Foldl.length)

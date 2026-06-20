@@ -66,8 +66,8 @@ instance FromJSON TransparentDefName where
 -- TODO: make indexer an Agda backend when Agda supports --build-library for arbitrary backend
 
 -- Entrypoint
-index :: Config -> TS.DbBuilder TCM a -> IO a
-index Config {..} builder = runTCMTop' do
+index :: Config -> TS.DbBuilder IO a -> IO a
+index Config {..} builder = do
   primLibConfig <- liftIO loadPrimLibConfig
   Foldl.foldM
     (builder `inStagesM` flip indexOne)
@@ -80,29 +80,28 @@ loadPrimLibConfig = do
   transparentDefs <- decodeFileThrow transparentDefsFile
   pure LibraryConfig {..}
 
-indexOne :: LibraryConfig -> TS.DbBuilder TCM a -> TCM a
-indexOne config builder = do
-  resetAllState -- is this necessary?
-  liftIO $ setCurrentDirectory config.path
+indexOne :: LibraryConfig -> TS.DbBuilder IO a -> IO a
+indexOne config builder = withCurrentDirectory config.path do
   (Right (_, opts), _) <- pure $ runOptM $ parseBackendOptions [] [] defaultOptions
-  setCommandLineOptions =<< addTrustedExecutables opts
-  AgdaLibFile {_libIncludes = paths, _libPragmas = libOpts} <-
-    libToTCM (getAgdaLibFile config.path) >>= \case
-      [file] -> pure file
-      [] -> aegleError "No libraries found to index"
-      _ -> __IMPOSSIBLE__
-  checkAndSetOptionsFromPragma libOpts
-  importPrimitiveModules
+  runTCMTop' do
+    setCommandLineOptions =<< addTrustedExecutables opts
+    AgdaLibFile {_libIncludes = paths, _libPragmas = libOpts} <-
+      libToTCM (getAgdaLibFile config.path) >>= \case
+        [file] -> pure file
+        [] -> aegleError "No libraries found to index"
+        _ -> __IMPOSSIBLE__
+    checkAndSetOptionsFromPragma libOpts
+    importPrimitiveModules
 
-  files <-
-    liftIO $ sort . map Find.infoPath <$> do
-      foldMap (findWithInfo (pure True) (hasAgdaExtension <$> Find.filePath)) paths
+    files <-
+      liftIO $ sort . map Find.infoPath <$> do
+        foldMap (findWithInfo (pure True) (hasAgdaExtension <$> Find.filePath)) paths
 
-  -- Files are parsed twice, but this lowers peak memory residency
+    -- Files are parsed twice, but this lowers peak memory residency
 
-  transparentDefs <- resolveTransparentDefs config.transparentDefs files
+    transparentDefs <- resolveTransparentDefs config.transparentDefs files
 
-  buildDb transparentDefs files builder
+    buildDb transparentDefs files builder
 
 --------------------------------------------------------------------------------
 -- Name resolution
@@ -145,10 +144,11 @@ resolveNamesIn src names = do
 --------------------------------------------------------------------------------
 -- Indexing
 
-buildDb :: S.Set QName -> [FilePath] -> TS.DbBuilder TCM a -> TCM a
+buildDb :: S.Set QName -> [FilePath] -> TS.DbBuilder IO a -> TCM a
 buildDb transparentDefs files builder =
   flip Foldl.foldM files
-    $ Foldl.premapM (parseFile >=> extractFragment transparentDefs) builder
+    $ Foldl.premapM (parseFile >=> extractFragment transparentDefs)
+    $ Foldl.hoists liftIO builder
 
 extractFragment :: S.Set QName -> Source -> TCM TS.LibraryFragment
 extractFragment transparentDefs src = do

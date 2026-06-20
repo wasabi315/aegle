@@ -1,3 +1,5 @@
+{-# LANGUAGE ApplicativeDo #-}
+
 module Aegle.Cli.Index
   ( index,
     Command (..),
@@ -38,13 +40,12 @@ index Command {..} = do
   config <- loadConfigFile configFile
   withConnect connSetting \conn -> do
     migrate conn
-    let builder =
-          Foldl.hoists liftIO (newDbBuilder conn)
-            *> if enableStatistics
-              then Just <$> Foldl.generalize statisticsBuilder
-              else pure Nothing
-    stats <- Index.index config builder
-    traverse_ putStatistics stats
+    let builder = do
+          newDbBuilder conn
+          when enableStatistics do
+            Foldl.postmapM putStatistics $ Foldl.generalize statisticsBuilder
+          pure ()
+    Index.index config builder
 
 --------------------------------------------------------------------------------
 -- Load config

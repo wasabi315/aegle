@@ -41,6 +41,7 @@ dependencies:
   - hasql-pool
   - hasql-th
   - hasql-transaction
+  - lens
   - lucid
   - megaparsec
   - mtl
@@ -112,8 +113,6 @@ default-extensions:
   - TypeFamilies
   - TypeFamilyDependencies
   - UndecidableInstances
-  - UnboxedTuples
-  - UnboxedSums
   - ViewPatterns
 
 ghc-options:
