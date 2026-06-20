@@ -34,6 +34,8 @@ import Hasql.Statement
 import Hasql.TH
 import Hasql.Transaction.Sessions
 import Paths_aegle
+import Prettyprinter
+import Prettyprinter.Render.Terminal
 import System.FilePath
 
 --------------------------------------------------------------------------------
@@ -167,11 +169,12 @@ newDbBuilder conn = Foldl.FoldM step begin done
         REFRESH MATERIALIZED VIEW exports_unqual;
         REFRESH MATERIALIZED VIEW exports_qual;
         """
+      healthCheck
 
 insertManyDefinitions :: Statement [Definition] ()
 insertManyDefinitions = lmap encodeDefinitions do
   [resultlessStatement|
-    INSERT INTO "library_items"
+    INSERT INTO library_items
       ( canonical_name
       , kind
       , signature
@@ -218,7 +221,7 @@ insertManyDefinitions = lmap encodeDefinitions do
 insertManyExports :: Statement [Export] ()
 insertManyExports = lmap encodeExports do
   [resultlessStatement|
-    INSERT INTO "exports"
+    INSERT INTO exports
       ( canonical_name
       , export_as_qual
       , export_as_unqual )
@@ -257,6 +260,48 @@ encodeExport export = DbExportRow {..}
     canonicalName = encodeQName export.canonicalName
     exportAsQual = encodeQName export.exportAs
     exportAsUnqual = coerce export.exportAs.name
+
+healthCheck :: Session ()
+healthCheck = do
+  danglingExports <- statement () loadDanglingExports
+
+  let danglingExportsOk = V.null danglingExports
+  unless danglingExportsOk do
+    liftIO $ putDanglingExports danglingExports
+
+  let healthy = danglingExportsOk
+  when healthy do
+    liftIO $ putDoc $ annotate (color Green) "No problem found in DB"
+
+data DanglingExport = DanglingExport
+  { exportAsQual :: QName,
+    canonicalName :: QName
+  }
+
+loadDanglingExports :: Statement () (V.Vector DanglingExport)
+loadDanglingExports =
+  refineResult
+    (traverse $ fmap (uncurry DanglingExport) . bitraverse decodeQName decodeQName)
+    [vectorStatement|
+      SELECT e.export_as_qual :: text, e.canonical_name :: text
+      FROM exports e
+      WHERE NOT EXISTS (
+        SELECT 1
+        FROM library_items i
+        WHERE i.canonical_name = e.canonical_name
+      )
+    |]
+
+putDanglingExports :: V.Vector DanglingExport -> IO ()
+putDanglingExports danglingExports =
+  putDoc
+    $ vsep
+    $ ( annotate (color Yellow) do
+          "WARNING: Dangling exports found (Total" <+> pretty (V.length danglingExports) <> ")"
+      )
+    : [ "・" <+> pretty exportAsQual <+> "→" <+> pretty canonicalName
+      | DanglingExport {..} <- V.toList danglingExports
+      ]
 
 --------------------------------------------------------------------------------
 -- Read operation
