@@ -1,5 +1,3 @@
-{-# LANGUAGE ApplicativeDo #-}
-
 module Aegle.Cli.Index
   ( index,
     Command (..),
@@ -17,24 +15,25 @@ import Data.Map.Strict qualified as M
 import Data.Ord
 import Data.Set qualified as S
 import Data.Text qualified as T
-import Data.Text.IO qualified as T
+import Data.Vector qualified as V
 import Data.Yaml
 import Deriving.Aeson
 import Hasql.Connection
 import Hasql.Connection.Setting
 import Prettyprinter
 import Prettyprinter.Render.Terminal
+import Prettyprinter.Render.Text
 import System.Directory
 import System.Exit
 import System.FilePath
+import System.IO
 
 --------------------------------------------------------------------------------
 -- Options
 
 data Command = Command
   { connSetting :: Setting,
-    configFile :: FilePath,
-    enableStatistics :: Bool
+    configFile :: FilePath
   }
 
 --------------------------------------------------------------------------------
@@ -42,18 +41,30 @@ data Command = Command
 index :: Command -> IO ()
 index Command {..} = do
   config <- loadConfigFile configFile
-  cwd <- getCurrentDirectory
-  createDirectoryIfMissing True (cwd </> ".aegle-work")
-  withConnect connSetting \conn -> do
+  logger <- createLogger
+  (health, stats) <- withConnect connSetting \conn -> do
     migrate conn
-    let builder = do
-          newDbBuilder conn
-          when enableStatistics do
-            Foldl.postmapM putStatistics $ Foldl.generalize statisticsBuilder
-          pure ()
-        logger (arg #module -> mod) (arg #log -> log) =
-          T.appendFile (cwd </> ".aegle-work" </> T.unpack mod <.> "log") log
-    Index.index config logger builder
+    Index.index config logger do
+      liftA2 (,) (newDbBuilder conn) (Foldl.generalize statisticsBuilder)
+  logHealth logger health
+  logStats logger stats
+
+type Logger = "logName" :? T.Text -> Doc AnsiStyle -> IO ()
+
+createLogger :: IO Logger
+createLogger = do
+  cwd <- getCurrentDirectory
+  let logDir = cwd </> ".aegle-log"
+  removePathForcibly logDir
+  createDirectory logDir
+  pure \(ArgF logName) msg -> case logName of
+    Nothing -> Prettyprinter.Render.Terminal.hPutDoc stderr (msg <> line)
+    Just logName -> do
+      let logFile = logDir </> T.unpack logName <.> "log"
+          logDir' = takeDirectory logFile
+      createDirectoryIfMissing True logDir'
+      withFile logFile AppendMode \hdl ->
+        Prettyprinter.Render.Text.hPutDoc hdl (msg <> line)
 
 --------------------------------------------------------------------------------
 -- Load config
@@ -102,15 +113,34 @@ resolvePath base path
   | otherwise = normalise $ base </> path
 
 --------------------------------------------------------------------------------
--- Statistics
+-- Log
 
-putStatistics :: Statistics -> IO ()
-putStatistics Statistics {..} = putDoc statsDoc
+logHealth :: Logger -> HealthCheck -> IO ()
+logHealth logger HealthCheck {..} = do
+  let danglingExportsOk = V.null danglingExports
+  unless danglingExportsOk do
+    logger ! defaults $ danglingExportsDoc danglingExports
+
+  let healthy = danglingExportsOk
+  when healthy do
+    logger ! defaults $ annotate (color Green) "No problem found in DB"
+  where
+    danglingExportsDoc danglingExports =
+      vsep
+        $ ( annotate (color Yellow) do
+              "WARNING: Dangling exports found (Total" <+> pretty (V.length danglingExports) <> ")"
+          )
+        : [ "・" <+> pretty exportAsQual <+> "→" <+> pretty canonicalName
+          | DanglingExport {..} <- V.toList danglingExports
+          ]
+
+logStats :: Logger -> Statistics -> IO ()
+logStats logger Statistics {..} =
+  logger ! paramF #logName (Just "stats") $ statsDoc
   where
     statsDoc =
       vsep
-        [ "Statistics",
-          numItemDoc,
+        [ numItemDoc,
           numItemPerFeatureShapeDoc,
           numItemPerArityDoc,
           numItemPerRHTopDoc,

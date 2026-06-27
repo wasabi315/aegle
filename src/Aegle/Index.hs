@@ -22,7 +22,7 @@ import Agda.Interaction.FindFile
 import Agda.Interaction.Imports
 import Agda.Interaction.Library
 import Agda.Interaction.Options
-import Agda.Syntax.Common.Pretty qualified as P
+import Agda.Syntax.Common.Pretty (prettyShow)
 import Agda.Utils.FileName
 import Agda.Utils.IO.Directory
 import Agda.Utils.Impossible (__IMPOSSIBLE__)
@@ -30,6 +30,8 @@ import Agda.Utils.Maybe (ifJustM)
 import Control.Foldl qualified as Foldl
 import Data.Set qualified as S
 import Data.Text qualified as T
+import Prettyprinter
+import Prettyprinter.Render.Terminal
 import System.Directory
 import System.FilePath.Find qualified as Find
 
@@ -46,9 +48,9 @@ data LibraryConfig = LibraryConfig
   }
 
 --------------------------------------------------------------------------------
--- Log
+-- Logger
 
-type Logger = "module" :! T.Text -> "log" :! T.Text -> IO ()
+type Logger = "logName" :? T.Text -> Doc AnsiStyle -> IO ()
 
 --------------------------------------------------------------------------------
 
@@ -98,10 +100,17 @@ collectTransparentDefs :: Logger -> TransparentDefPolicy -> [FilePath] -> TCM (S
 collectTransparentDefs logger = \cases
   None _ -> pure mempty
   policy@(AllExcept exc) files -> do
-    (transps, excluded) <- foldMap (parseFile >=> decideAllTransparency logger policy) files
-    -- TODO: log unmatched
-    let _unmatched = exc S.\\ S.map (T.pack . P.prettyShow) excluded
+    (transps, excluded) <-
+      foldMap (parseFile >=> decideAllTransparency logger policy) files
+    let unmatched = exc S.\\ S.map (T.pack . prettyShow) excluded
+    liftIO $ logUnmatched unmatched
     pure transps
+  where
+    logUnmatched :: S.Set T.Text -> IO ()
+    logUnmatched (S.null -> True) = pure ()
+    logUnmatched unmatched = do
+      logger ! defaults $ annotate (color Yellow) do
+        "WARNING: Unmatched exclusions found" <+> list (pretty <$> S.toList unmatched)
 
 decideAllTransparency ::
   Logger ->
@@ -114,8 +123,8 @@ decideAllTransparency logger policy src = withModuleInfo src \modInfo -> do
     let pubNames = collectPublicNames modInfo.miInterface.iInsideScope
     flip foldMap pubNames \pubName -> do
       def <- getConstInfo pubName
-      let modName = T.pack $ P.prettyShow modInfo.miInterface.iTopLevelModuleName
-          name = T.pack $ P.prettyShow pubName
+      let modName = T.pack $ prettyShow modInfo.miInterface.iTopLevelModuleName
+          name = T.pack $ prettyShow pubName
       decideTransparency policy def >>= \case
         Right () -> do
           liftIO $ logTransp modName name
@@ -128,19 +137,23 @@ decideAllTransparency logger policy src = withModuleInfo src \modInfo -> do
           pure (mempty, excluded)
   where
     logTransp modName name =
-      logger ! #module modName ! #log (name <> " : transparent\n")
+      logger ! #logName ("transp/" <> modName) $ pretty name <+> colon <+> "transparent"
 
     logOpaque modName name reason =
       logger
-        ! #module modName
-        ! #log
-          ( name <> " : opaque (" <> case reason of
-              NotFunction -> "not a function)\n"
-              ProjectionLike -> "projection-like)\n"
-              HasLocalDefs {} -> "has local definitions)\n"
-              PatternMatching -> "pattern-matching)\n"
-              NoReturnSort -> "no return sort)\n"
-              ExcludedByConfig -> "by config)\n"
+        ! #logName ("transp/" <> modName)
+        $ ( pretty name
+              <+> colon
+              <+> "opaque"
+              <+> parens
+                ( case reason of
+                    NotFunction -> "not a function"
+                    ProjectionLike -> "projection-like"
+                    HasLocalDefs {} -> "has local definitions"
+                    PatternMatching -> "pattern-matching"
+                    NoReturnSort -> "no return sort"
+                    ExcludedByConfig -> "by config"
+                )
           )
 
 --------------------------------------------------------------------------------

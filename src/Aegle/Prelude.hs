@@ -49,9 +49,16 @@ module Aegle.Prelude
     (!?),
     Profunctor (..),
     (:!),
+    (:?),
     (!),
     pattern Arg,
+    pattern ArgF,
     arg,
+    argDef,
+    argF,
+    defaults,
+    param,
+    paramF,
 
     -- * Utils
     impossible,
