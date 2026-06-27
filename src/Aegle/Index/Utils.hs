@@ -16,6 +16,7 @@ import Agda.TypeChecking.Reduce
 import Agda.TypeChecking.Sort
 import Agda.TypeChecking.Substitute as Agda
 import Agda.TypeChecking.Telescope
+import Agda.TypeChecking.Warnings
 import Data.Map.Strict qualified as M
 import Data.Text qualified as T
 
@@ -23,6 +24,9 @@ import Data.Text qualified as T
 
 aegleError :: (HasCallStack, MonadTCError m) => m Doc -> m a
 aegleError msg = typeError . CustomBackendError "aegle" =<< msg
+
+aegleWarning :: (HasCallStack, MonadWarning m) => m Doc -> m ()
+aegleWarning msg = warning . CustomBackendWarning "aegle" =<< msg
 
 setCurrentRangeQ :: (MonadTrace m) => QName -> m a -> m a
 setCurrentRangeQ = setCurrentRange . nameBindingSite . qnameName

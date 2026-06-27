@@ -78,7 +78,7 @@ newtype RawConfig = RawConfig
 data RawLibraryConfig = RawLibraryConfig
   { path :: FilePath,
     transparentDefs :: TransparentDefMode,
-    exclusions :: Maybe (S.Set T.Text)
+    except :: Maybe (S.Set T.Text)
   }
   deriving stock (Generic)
   deriving
@@ -101,7 +101,7 @@ loadConfigFile configFile = do
   let libraryConfigs =
         rawConfig.libraries <&> \config -> do
           let path = resolvePath configDir config.path
-              transparentDefPolicy = case (config.transparentDefs, config.exclusions) of
+              transparentDefPolicy = case (config.transparentDefs, config.except) of
                 (None, _) -> Index.None
                 (Auto, exc) -> Index.AllExcept $ fold exc
           Index.LibraryConfig {..}

@@ -23,6 +23,7 @@ import Agda.Interaction.Imports
 import Agda.Interaction.Library
 import Agda.Interaction.Options
 import Agda.Syntax.Common.Pretty (prettyShow)
+import Agda.TypeChecking.Pretty
 import Agda.Utils.FileName
 import Agda.Utils.IO.Directory
 import Agda.Utils.Impossible (__IMPOSSIBLE__)
@@ -30,8 +31,8 @@ import Agda.Utils.Maybe (ifJustM)
 import Control.Foldl qualified as Foldl
 import Data.Set qualified as S
 import Data.Text qualified as T
-import Prettyprinter
-import Prettyprinter.Render.Terminal
+import Prettyprinter qualified as P
+import Prettyprinter.Render.Terminal qualified as P
 import System.Directory
 import System.FilePath.Find qualified as Find
 
@@ -50,7 +51,7 @@ data LibraryConfig = LibraryConfig
 --------------------------------------------------------------------------------
 -- Logger
 
-type Logger = "logName" :? T.Text -> Doc AnsiStyle -> IO ()
+type Logger = "logName" :? T.Text -> P.Doc P.AnsiStyle -> IO ()
 
 --------------------------------------------------------------------------------
 
@@ -103,14 +104,10 @@ collectTransparentDefs logger = \cases
     (transps, excluded) <-
       foldMap (parseFile >=> decideAllTransparency logger policy) files
     let unmatched = exc S.\\ S.map (T.pack . prettyShow) excluded
-    liftIO $ logUnmatched unmatched
+    unless (S.null unmatched) do
+      aegleWarning
+        $ vsep ["Unmatched exclusions found", prettyList_ (pretty <$> S.toList unmatched)]
     pure transps
-  where
-    logUnmatched :: S.Set T.Text -> IO ()
-    logUnmatched (S.null -> True) = pure ()
-    logUnmatched unmatched = do
-      logger ! defaults $ annotate (color Yellow) do
-        "WARNING: Unmatched exclusions found" <+> list (pretty <$> S.toList unmatched)
 
 decideAllTransparency ::
   Logger ->
@@ -137,15 +134,15 @@ decideAllTransparency logger policy src = withModuleInfo src \modInfo -> do
           pure (mempty, excluded)
   where
     logTransp modName name =
-      logger ! #logName ("transp/" <> modName) $ pretty name <+> colon <+> "transparent"
+      logger ! #logName ("transp/" <> modName) $ P.pretty name P.<+> P.colon P.<+> "transparent"
 
     logOpaque modName name reason =
       logger
         ! #logName ("transp/" <> modName)
-        $ ( pretty name
-              <+> colon
-              <+> "opaque"
-              <+> parens
+        $ ( P.pretty name
+              P.<+> P.colon
+              P.<+> "opaque"
+              P.<+> P.parens
                 ( case reason of
                     NotFunction -> "not a function"
                     ProjectionLike -> "projection-like"
