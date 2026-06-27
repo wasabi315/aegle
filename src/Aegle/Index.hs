@@ -4,7 +4,8 @@ module Aegle.Index
   ( index,
     Config (..),
     LibraryConfig (..),
-    TransparentDefName (..),
+    TransparentDefPolicy (..),
+    Logger,
   )
 where
 
@@ -12,26 +13,25 @@ import Aegle.Database.Backend qualified as TS
 import Aegle.Index.Translate (runTransl)
 import Aegle.Index.Translate qualified as Transl
 import Aegle.Index.Translate.Scope
+import Aegle.Index.TransparentDefs
 import Aegle.Index.Utils
 import Aegle.Prelude
-import Agda.Compiler.Backend
+import Agda.Compiler.Backend hiding (None)
 import Agda.Compiler.Common
 import Agda.Interaction.FindFile
 import Agda.Interaction.Imports
 import Agda.Interaction.Library
 import Agda.Interaction.Options
-import Agda.Syntax.Common.Pretty qualified as P
-import Agda.TypeChecking.Pretty
+import Agda.Syntax.Common.Pretty (prettyShow)
 import Agda.Utils.FileName
 import Agda.Utils.IO.Directory
 import Agda.Utils.Impossible (__IMPOSSIBLE__)
 import Agda.Utils.Maybe (ifJustM)
 import Control.Foldl qualified as Foldl
-import Data.Map.Strict qualified as M
 import Data.Set qualified as S
 import Data.Text qualified as T
-import Data.Yaml
-import Paths_aegle
+import Prettyprinter
+import Prettyprinter.Render.Terminal
 import System.Directory
 import System.FilePath.Find qualified as Find
 
@@ -43,45 +43,35 @@ newtype Config = Config
   }
 
 data LibraryConfig = LibraryConfig
-  { -- | Set of fully-qualified definition names subject to definition unfolding during search.
-    transparentDefs :: S.Set TransparentDefName,
-    -- | Path to Agda library.
+  { transparentDefPolicy :: TransparentDefPolicy,
     path :: FilePath
   }
 
-data TransparentDefName = TransparentDefName
-  { modName :: T.Text,
-    name :: T.Text
-  }
-  deriving stock (Eq, Ord, Show, Generic)
+--------------------------------------------------------------------------------
+-- Logger
 
-instance FromJSON TransparentDefName where
-  parseJSON = withObject "TransparentDefName" \o ->
-    TransparentDefName
-      <$> (o .: "module")
-      <*> (o .: "name")
+type Logger = "logName" :? T.Text -> Doc AnsiStyle -> IO ()
 
 --------------------------------------------------------------------------------
 
 -- TODO: make indexer an Agda backend when Agda supports --build-library for arbitrary backend
 
 -- Entrypoint
-index :: Config -> TS.DbBuilder IO a -> IO a
-index Config {..} builder = do
+index :: Config -> Logger -> TS.DbBuilder IO a -> IO a
+index Config {..} logger builder = do
   primLibConfig <- liftIO loadPrimLibConfig
   Foldl.foldM
-    (builder `inStagesM` flip indexOne)
+    (builder `inStagesM` \b config -> indexOne config logger b)
     (primLibConfig : libraryConfigs)
 
 loadPrimLibConfig :: IO LibraryConfig
 loadPrimLibConfig = do
   path <- filePath <$> getPrimitiveLibDir
-  transparentDefsFile <- getDataFileName "data/prim_transparent_defs.yaml"
-  transparentDefs <- decodeFileThrow transparentDefsFile
+  let transparentDefPolicy = AllExcept mempty
   pure LibraryConfig {..}
 
-indexOne :: LibraryConfig -> TS.DbBuilder IO a -> IO a
-indexOne config builder = withCurrentDirectory config.path do
+indexOne :: LibraryConfig -> Logger -> TS.DbBuilder IO a -> IO a
+indexOne config logger builder = withCurrentDirectory config.path do
   (Right (_, opts), _) <- pure $ runOptM $ parseBackendOptions [] [] defaultOptions
   runTCMTop' do
     setCommandLineOptions =<< addTrustedExecutables opts
@@ -99,47 +89,72 @@ indexOne config builder = withCurrentDirectory config.path do
 
     -- Files are parsed twice, but this lowers peak memory residency
 
-    transparentDefs <- resolveTransparentDefs config.transparentDefs files
+    transparentDefs <- collectTransparentDefs logger config.transparentDefPolicy files
 
     buildDb transparentDefs files builder
 
 --------------------------------------------------------------------------------
--- Name resolution
+-- Transparent definitions
 
-resolveTransparentDefs :: S.Set TransparentDefName -> [FilePath] -> TCM (S.Set QName)
-resolveTransparentDefs (S.null -> True) _ = pure mempty
-resolveTransparentDefs transparentDefs files = do
-  let grouped =
-        M.fromSet (S.singleton . (.name)) transparentDefs
-          & M.mapKeysWith (<>) (.modName)
+collectTransparentDefs :: Logger -> TransparentDefPolicy -> [FilePath] -> TCM (S.Set QName)
+collectTransparentDefs logger = \cases
+  None _ -> pure mempty
+  policy@(AllExcept exc) files -> do
+    (transps, excluded) <-
+      foldMap (parseFile >=> decideAllTransparency logger policy) files
+    let unmatched = exc S.\\ S.map (T.pack . prettyShow) excluded
+    liftIO $ logUnmatched unmatched
+    pure transps
+  where
+    logUnmatched :: S.Set T.Text -> IO ()
+    logUnmatched (S.null -> True) = pure ()
+    logUnmatched unmatched = do
+      logger ! defaults $ annotate (color Yellow) do
+        "WARNING: Unmatched exclusions found" <+> list (pretty <$> S.toList unmatched)
 
-  let step (!resolved, !unvisited) file = do
-        src <- parseFile file
-        let modName = T.show $ P.pretty src.srcModuleName
-            names = M.lookup modName grouped
-        resolved' <- foldMap (resolveNamesIn src) names
-        pure $! resolved <> resolved' // S.delete modName unvisited
+decideAllTransparency ::
+  Logger ->
+  TransparentDefPolicy ->
+  Source ->
+  TCM (S.Set QName, S.Set QName)
+decideAllTransparency logger policy src = withModuleInfo src \modInfo -> do
+  -- cubical is not yet supported
+  ifJustM (useTC (stPragmaOptions . lensOptCubical)) (\_ -> pure mempty) do
+    let pubNames = collectPublicNames modInfo.miInterface.iInsideScope
+    flip foldMap pubNames \pubName -> do
+      def <- getConstInfo pubName
+      let modName = T.pack $ prettyShow modInfo.miInterface.iTopLevelModuleName
+          name = T.pack $ prettyShow pubName
+      decideTransparency policy def >>= \case
+        Right () -> do
+          liftIO $ logTransp modName name
+          pure $! S.singleton pubName // mempty
+        Left reason -> do
+          liftIO $ logOpaque modName name reason
+          let excluded = case reason of
+                ExcludedByConfig -> S.singleton pubName
+                _ -> mempty
+          pure (mempty, excluded)
+  where
+    logTransp modName name =
+      logger ! #logName ("transp/" <> modName) $ pretty name <+> colon <+> "transparent"
 
-  (resolved, unvisited) <- foldM step (mempty, M.keysSet grouped) files
-
-  unless (S.null unvisited) do
-    aegleError $ "Could not find modules " <> pretty unvisited
-
-  pure resolved
-
-resolveNamesIn :: Source -> S.Set T.Text -> TCM (S.Set QName)
-resolveNamesIn src names = do
-  let modName = src.srcModuleName
-  withCurrentModule noModuleName do
-    withTopLevelModule modName do
-      modInfo <- getNonMainModuleInfo modName (Just src)
-      setInterface modInfo.miInterface
-      withScope_ modInfo.miInterface.iInsideScope do
-        S.fromList <$> for (S.toList names) \name ->
-          resolveDefinedName (T.unpack name) >>= \case
-            Just resolved -> pure resolved
-            Nothing -> aegleError do
-              "Could not find definition " <> pretty modName <> "." <> pretty name
+    logOpaque modName name reason =
+      logger
+        ! #logName ("transp/" <> modName)
+        $ ( pretty name
+              <+> colon
+              <+> "opaque"
+              <+> parens
+                ( case reason of
+                    NotFunction -> "not a function"
+                    ProjectionLike -> "projection-like"
+                    HasLocalDefs {} -> "has local definitions"
+                    PatternMatching -> "pattern-matching"
+                    NoReturnSort -> "no return sort"
+                    ExcludedByConfig -> "by config"
+                )
+          )
 
 --------------------------------------------------------------------------------
 -- Indexing
@@ -151,16 +166,11 @@ buildDb transparentDefs files builder =
     $ Foldl.hoists liftIO builder
 
 extractFragment :: S.Set QName -> Source -> TCM TS.LibraryFragment
-extractFragment transparentDefs src = do
-  let modName = src.srcModuleName
-  withCurrentModule noModuleName do
-    withTopLevelModule modName do
-      modInfo <- getNonMainModuleInfo modName (Just src)
-      setInterface modInfo.miInterface
-      -- skip cubical for now
-      ifJustM (useTC (stPragmaOptions . lensOptCubical)) (\_ -> pure mempty) do
-        runTransl Transl.Config {..} do
-          translateScope modInfo.miInterface.iInsideScope
+extractFragment transparentDefs src = withModuleInfo src \modInfo -> do
+  -- cubical is not yet supported
+  ifJustM (useTC (stPragmaOptions . lensOptCubical)) (\_ -> pure mempty) do
+    runTransl Transl.Config {..} do
+      translateScope modInfo.miInterface.iInsideScope
 
 --------------------------------------------------------------------------------
 
@@ -169,6 +179,15 @@ parseFile file = do
   path <- liftIO $ absolute file
   sf <- srcFromPath path
   parseSource sf
+
+withModuleInfo :: Source -> (ModuleInfo -> TCM r) -> TCM r
+withModuleInfo src act = do
+  let modName = src.srcModuleName
+  withCurrentModule noModuleName do
+    withTopLevelModule modName do
+      modInfo <- getNonMainModuleInfo modName (Just src)
+      setInterface modInfo.miInterface
+      act modInfo
 
 inStagesM ::
   (Applicative m) =>

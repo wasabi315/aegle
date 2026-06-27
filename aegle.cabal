@@ -23,7 +23,6 @@ extra-source-files:
 data-files:
     migration/202603071213_init.sql
     static/style.css
-    data/prim_transparent_defs.yaml
 
 source-repository head
   type: git
@@ -65,6 +64,7 @@ library
       Aegle.Index.Translate.Scope
       Aegle.Index.Translate.Term
       Aegle.Index.Translate.TransparentDef
+      Aegle.Index.TransparentDefs
       Aegle.Index.Utils
       Aegle.Prelude
       Aegle.Search
@@ -137,6 +137,7 @@ library
     , bytestring
     , containers
     , deepseq
+    , deriving-aeson
     , directory
     , filemanip
     , filepath
@@ -246,6 +247,7 @@ executable aegle
     , bytestring
     , containers
     , deepseq
+    , deriving-aeson
     , directory
     , filemanip
     , filepath
@@ -362,6 +364,7 @@ test-suite aegle-test
     , bytestring
     , containers
     , deepseq
+    , deriving-aeson
     , directory
     , filemanip
     , filepath

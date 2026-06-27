@@ -1,5 +1,3 @@
-{-# OPTIONS_GHC -Wno-incomplete-uni-patterns #-}
-
 module Aegle.Index.Translate.Definition
   ( translateDefinition,
   )

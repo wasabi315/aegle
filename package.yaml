@@ -13,7 +13,6 @@ extra-source-files:
 data-files:
   - migration/*.sql
   - static/style.css
-  - data/prim_transparent_defs.yaml
 
 synopsis: Type-based library search for Agda
 category: Language
@@ -27,6 +26,7 @@ dependencies:
   - bytestring
   - containers
   - deepseq
+  - deriving-aeson
   - directory
   - filepath
   - filemanip

@@ -3,6 +3,8 @@
 
 module Aegle.Database.Backend.PostgreSQL
   ( newDbBuilder,
+    HealthCheck (..),
+    DanglingExport (..),
     newDbReader,
     migrate,
   )
@@ -34,8 +36,6 @@ import Hasql.Statement
 import Hasql.TH
 import Hasql.Transaction.Sessions
 import Paths_aegle
-import Prettyprinter
-import Prettyprinter.Render.Terminal
 import System.FilePath
 
 --------------------------------------------------------------------------------
@@ -153,7 +153,7 @@ nonNullResultHeadTagEnc = Encoders.nonNullable $ encodeResultHeadTag >$< Encoder
 --------------------------------------------------------------------------------
 -- Build operation
 
-newDbBuilder :: Connection -> DbBuilder IO ()
+newDbBuilder :: Connection -> DbBuilder IO HealthCheck
 newDbBuilder conn = Foldl.FoldM step begin done
   where
     begin = orThrow $ flip run conn do
@@ -261,17 +261,16 @@ encodeExport export = DbExportRow {..}
     exportAsQual = encodeQName export.exportAs
     exportAsUnqual = coerce export.exportAs.name
 
-healthCheck :: Session ()
+-- Health check
+
+healthCheck :: Session HealthCheck
 healthCheck = do
   danglingExports <- statement () loadDanglingExports
+  pure HealthCheck {..}
 
-  let danglingExportsOk = V.null danglingExports
-  unless danglingExportsOk do
-    liftIO $ putDanglingExports danglingExports
-
-  let healthy = danglingExportsOk
-  when healthy do
-    liftIO $ putDoc $ annotate (color Green) "No problem found in DB"
+newtype HealthCheck = HealthCheck
+  { danglingExports :: V.Vector DanglingExport
+  }
 
 data DanglingExport = DanglingExport
   { exportAsQual :: QName,
@@ -291,17 +290,6 @@ loadDanglingExports =
         WHERE i.canonical_name = e.canonical_name
       )
     |]
-
-putDanglingExports :: V.Vector DanglingExport -> IO ()
-putDanglingExports danglingExports =
-  putDoc
-    $ vsep
-    $ ( annotate (color Yellow) do
-          "WARNING: Dangling exports found (Total" <+> pretty (V.length danglingExports) <> ")"
-      )
-    : [ "・" <+> pretty exportAsQual <+> "→" <+> pretty canonicalName
-      | DanglingExport {..} <- V.toList danglingExports
-      ]
 
 --------------------------------------------------------------------------------
 -- Read operation
