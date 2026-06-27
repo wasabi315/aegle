@@ -1,20 +1,21 @@
 module Aegle.Index.Translate.Scope
   ( translateScope,
+    collectPublicNames,
   )
 where
 
-import Agda.Compiler.Backend
-import Agda.Syntax.Concrete.Name qualified as C
-import Agda.Syntax.Scope.Base
-import Data.List.NonEmpty qualified as NE
-import Data.Map qualified as M
-import Data.Set qualified as S
 import Aegle.Database.Backend qualified as TS
 import Aegle.Index.Translate
 import Aegle.Index.Translate.Definition
 import Aegle.Index.Translate.Name
 import Aegle.Index.Utils
 import Aegle.Prelude
+import Agda.Compiler.Backend
+import Agda.Syntax.Concrete.Name qualified as C
+import Agda.Syntax.Scope.Base
+import Data.List.NonEmpty qualified as NE
+import Data.Map qualified as M
+import Data.Set qualified as S
 
 --------------------------------------------------------------------------------
 

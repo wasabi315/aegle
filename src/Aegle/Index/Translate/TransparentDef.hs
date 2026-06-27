@@ -11,10 +11,8 @@ import Aegle.Index.Translate.Term
 import Aegle.Index.Utils
 import Aegle.Prelude
 import Agda.Compiler.Backend
-import Agda.Compiler.Common
 import Agda.Syntax.Common
 import Agda.Syntax.Internal hiding (arity)
-import Agda.TypeChecking.Pretty
 import Agda.TypeChecking.Substitute as Agda
 import Agda.TypeChecking.Telescope
 import Agda.Utils.Impossible (__IMPOSSIBLE__)
@@ -23,36 +21,15 @@ import Agda.Utils.Monad
 --------------------------------------------------------------------------------
 -- Translate transparent definitions
 
-hasLocalDefs :: Definition -> Transl Bool
-hasLocalDefs def = do
-  defs <- curDefs
-  let locals =
-        takeWhile (isAnonymousModuleName . qnameModule)
-          $ dropWhile (<= def.defName)
-          $ map fst
-          $ sortDefs defs
-  pure $! not (null locals)
-
-isProjectionLike :: Definition -> Transl Bool
-isProjectionLike def = do
-  let Function {..} = def.theDef
-  case funProjection of
-    Left {} -> pure False
-    Right {} -> pure True
-
+-- | Expects non-pattern-matching definitions.
 translateTransparentDefBody :: Definition -> Transl TS.Term
 translateTransparentDefBody def = do
   let Function {..} = def.theDef
 
   -- validation
-  let bad x = aegleError $ vsep [prettyTCM def.defName, x]
-  whenM (hasLocalDefs def) do
-    void $ bad "Not supported: transparentDef with where clause"
-  whenM (isProjectionLike def) do
-    void $ bad "Work-in-progress: translate projection-like definition"
   Clause {..} <- case funClauses of
     [cl] -> pure cl
-    _ -> bad "Not supported: transparentDef with several clauses"
+    _ -> __IMPOSSIBLE__
 
   translatePatternArgs def.defType namedClausePats \ty ->
     translateTerm ty (fromMaybe __IMPOSSIBLE__ clauseBody)
@@ -71,4 +48,4 @@ translatePatternArgs = \cases
         addContextAndRenaming ctxElt
           $ TS.Lam (fromString varName)
           <$> translatePatternArgs (absBody cod) ps k
-  _ _ _ -> aegleError "Not supported: transparent definition by pattern-matching"
+  _ _ _ -> __IMPOSSIBLE__

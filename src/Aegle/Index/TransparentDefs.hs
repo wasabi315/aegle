@@ -1,0 +1,100 @@
+module Aegle.Index.TransparentDefs
+  ( decideTransparency,
+    TransparentDefPolicy (..),
+    OpaqueReason (..),
+  )
+where
+
+import Aegle.Index.Utils
+import Aegle.Prelude
+import Agda.Compiler.Backend hiding (None)
+import Agda.Compiler.Common
+import Agda.Syntax.Common hiding (PatternMatching)
+import Agda.Syntax.Common.Pretty qualified as P
+import Agda.Syntax.Internal
+import Agda.TypeChecking.Reduce
+import Agda.TypeChecking.Substitute hiding (sort)
+import Agda.TypeChecking.Telescope
+import Agda.Utils.Monad (unlessM)
+import Data.List.NonEmpty qualified as NE
+import Data.Set qualified as S
+import Data.Text qualified as T
+
+--------------------------------------------------------------------------------
+-- Transparent definition criteria
+
+data TransparentDefPolicy
+  = None
+  | AllExcept (S.Set T.Text)
+  deriving stock (Eq, Ord, Show, Generic)
+
+data OpaqueReason
+  = NotFunction
+  | ProjectionLike
+  | HasLocalDefs (NE.NonEmpty QName)
+  | PatternMatching
+  | NoReturnSort
+  | ExcludedByConfig
+  deriving stock (Eq, Ord, Show, Generic)
+
+decideTransparency :: TransparentDefPolicy -> Definition -> TCM (Either OpaqueReason ())
+decideTransparency policy def = runExceptT do
+  case policy of
+    AllExcept exc
+      | T.pack (P.prettyShow def.defName) `S.notMember` exc ->
+          pure ()
+    None; AllExcept {} -> throwError ExcludedByConfig
+
+  fun <- case def.theDef of
+    FunctionDefn fun -> pure fun
+    _ -> throwError NotFunction
+
+  locals <- lift $ localDefNames def.defName
+  traverse_ (throwError . HasLocalDefs) (NE.nonEmpty locals)
+
+  -- TODO: translate projection-like
+  when (isProjectionLike fun) do
+    throwError ProjectionLike
+
+  when (isPatternMatching fun) do
+    throwError PatternMatching
+
+  -- Is this criterial really needed?
+  unlessM (lift $ mayReturnSort def.defType) do
+    throwError NoReturnSort
+
+localDefNames :: QName -> TCM [QName]
+localDefNames defName = do
+  defs <- curDefs
+  sortDefs defs
+    & map fst
+    & dropWhile (<= defName)
+    & takeWhile (isAnonymousModuleName . qnameModule)
+    & pure
+
+isProjectionLike :: FunctionData -> Bool
+isProjectionLike FunctionData {..} = isRight _funProjection
+
+isPatternMatching :: FunctionData -> Bool
+isPatternMatching FunctionData {..} =
+  case _funClauses of
+    [Clause {..}] ->
+      isNothing clauseBody || flip any namedClausePats \pat -> case namedArg pat of
+        VarP {} -> False
+        _ -> True
+    _ -> True
+
+-- | Check whether a closed type **may** return 'Sort' if instantiated appropriately.
+
+-- FIXME: Consider projections
+mayReturnSort :: Type -> TCM Bool
+mayReturnSort typ = do
+  TelV tel b <- telView typ
+  addContext tel do
+    b <- reduce b
+    case b.unEl of
+      Sort {} -> pure True
+      Var i _ -> do
+        ty <- typeOfBV i
+        endsInSort ty
+      _ -> pure False

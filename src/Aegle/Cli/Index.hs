@@ -15,7 +15,11 @@ import Control.Exception
 import Control.Foldl qualified as Foldl
 import Data.Map.Strict qualified as M
 import Data.Ord
+import Data.Set qualified as S
+import Data.Text qualified as T
+import Data.Text.IO qualified as T
 import Data.Yaml
+import Deriving.Aeson
 import Hasql.Connection
 import Hasql.Connection.Setting
 import Prettyprinter
@@ -38,6 +42,8 @@ data Command = Command
 index :: Command -> IO ()
 index Command {..} = do
   config <- loadConfigFile configFile
+  cwd <- getCurrentDirectory
+  createDirectoryIfMissing True (cwd </> ".aegle-work")
   withConnect connSetting \conn -> do
     migrate conn
     let builder = do
@@ -45,7 +51,9 @@ index Command {..} = do
           when enableStatistics do
             Foldl.postmapM putStatistics $ Foldl.generalize statisticsBuilder
           pure ()
-    Index.index config builder
+        logger (arg #module -> mod) (arg #log -> log) =
+          T.appendFile (cwd </> ".aegle-work" </> T.unpack mod <.> "log") log
+    Index.index config logger builder
 
 --------------------------------------------------------------------------------
 -- Load config
@@ -58,32 +66,35 @@ newtype RawConfig = RawConfig
 
 data RawLibraryConfig = RawLibraryConfig
   { path :: FilePath,
-    transparentDefsFile :: Maybe FilePath
+    transparentDefs :: TransparentDefMode,
+    exclusions :: Maybe (S.Set T.Text)
   }
   deriving stock (Generic)
+  deriving
+    (FromJSON)
+    via CustomJSON '[FieldLabelModifier '[CamelToSnake]] RawLibraryConfig
 
-instance FromJSON RawLibraryConfig where
-  parseJSON = withObject "RawLibraryConfig" \o ->
-    RawLibraryConfig
-      <$> (o .: "path")
-      <*> (o .:? "transparent_defs_file")
+data TransparentDefMode
+  = None
+  | Auto
+  deriving stock (Generic)
+  deriving
+    (FromJSON)
+    via CustomJSON '[ConstructorTagModifier '[CamelToSnake]] TransparentDefMode
 
 loadConfigFile :: FilePath -> IO Index.Config
 loadConfigFile configFile = do
   configFile' <- makeAbsolute configFile
   let configDir = takeDirectory configFile'
   rawConfig <- decodeFileThrow @_ @RawConfig configFile'
-  libraryConfigs <- traverse (loadLibraryConfig configDir) rawConfig.libraries
+  let libraryConfigs =
+        rawConfig.libraries <&> \config -> do
+          let path = resolvePath configDir config.path
+              transparentDefPolicy = case (config.transparentDefs, config.exclusions) of
+                (None, _) -> Index.None
+                (Auto, exc) -> Index.AllExcept $ fold exc
+          Index.LibraryConfig {..}
   pure Index.Config {..}
-
-loadLibraryConfig :: FilePath -> RawLibraryConfig -> IO Index.LibraryConfig
-loadLibraryConfig absConfigDir config = do
-  let path = resolvePath absConfigDir config.path
-  transparentDefs <-
-    fromMaybe mempty <$> for config.transparentDefsFile \path -> do
-      let absPath = resolvePath absConfigDir path
-      decodeFileThrow absPath
-  pure Index.LibraryConfig {..}
 
 resolvePath :: FilePath -> FilePath -> FilePath
 resolvePath base path

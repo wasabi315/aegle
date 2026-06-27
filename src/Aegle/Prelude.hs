@@ -51,6 +51,7 @@ module Aegle.Prelude
     (:!),
     (!),
     pattern Arg,
+    arg,
 
     -- * Utils
     impossible,
@@ -76,7 +77,7 @@ import Control.Applicative
 import Control.Arrow ((&&&), (***))
 import Control.DeepSeq
 import Control.Exception (Exception (..), throwIO)
-import Control.Lens hiding (Index, Iso, Level, Refl, Setting, argument, index, setting)
+import Control.Lens hiding (Index, Iso, Level, Refl, Setting, argument, index, setting, (.=), (<.>))
 import Control.Monad
 import Control.Monad.Except
 import Control.Monad.IO.Class
