@@ -81,7 +81,7 @@ data Result = Result
     matches :: [Match]
   }
   deriving stock (Show, Generic)
-  deriving anyclass (ToJSON)
+  deriving (ToJSON) via Generically Result
 
 data Match = Match
   { canonicalName :: QName,
@@ -96,7 +96,7 @@ data Match = Match
     position :: Int
   }
   deriving stock (Show, Generic)
-  deriving anyclass (ToJSON)
+  deriving (ToJSON) via Generically Match
 
 search :: DbReader IO -> Server SearchAPI
 search dbReader = \query -> do

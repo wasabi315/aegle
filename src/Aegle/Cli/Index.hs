@@ -73,7 +73,7 @@ newtype RawConfig = RawConfig
   { libraries :: [RawLibraryConfig]
   }
   deriving stock (Generic)
-  deriving anyclass (FromJSON)
+  deriving (FromJSON) via Generically RawConfig
 
 data RawLibraryConfig = RawLibraryConfig
   { path :: FilePath,

@@ -9,10 +9,10 @@ module Aegle.Core.Name
   )
 where
 
+import Aegle.Prelude
 import Data.Text qualified as T
 import Flat
 import Prettyprinter
-import Aegle.Prelude
 
 --------------------------------------------------------------------------------
 -- Names
@@ -48,14 +48,16 @@ data QName = QName
     name :: Name
   }
   deriving stock (Eq, Ord, Show, Generic)
-  deriving anyclass (Hashable, Flat, ToJSON, FromJSON, NFData)
+  deriving anyclass (Hashable, Flat, NFData)
+  deriving (ToJSON, FromJSON) via Generically QName
 
 -- | Possibly-qualified names
 data PQName
   = Unqual Name
   | Qual ModuleName Name
   deriving stock (Eq, Ord, Show, Generic)
-  deriving anyclass (ToJSON, FromJSON, Flat, NFData)
+  deriving anyclass (Flat, NFData)
+  deriving (ToJSON, FromJSON) via Generically PQName
 
 instance IsString PQName where
   fromString = Unqual . fromString
