@@ -5,16 +5,17 @@ module Aegle.Index.TransparentDefs
   )
 where
 
-import Aegle.Index.Utils
 import Aegle.Prelude
 import Agda.Compiler.Backend hiding (None)
 import Agda.Compiler.Common
 import Agda.Syntax.Common hiding (PatternMatching)
 import Agda.Syntax.Common.Pretty qualified as P
 import Agda.Syntax.Internal
+import Agda.TypeChecking.ProjectionLike
 import Agda.TypeChecking.Reduce
 import Agda.TypeChecking.Substitute hiding (sort)
 import Agda.TypeChecking.Telescope
+import Agda.Utils.Impossible
 import Agda.Utils.Monad (unlessM)
 import Data.List.NonEmpty qualified as NE
 import Data.Set qualified as S
@@ -85,16 +86,17 @@ isPatternMatching FunctionData {..} =
     _ -> True
 
 -- | Check whether a closed type **may** return 'Sort' if instantiated appropriately.
-
--- FIXME: Consider projections
+-- Does not consider large eliminations and universe levels.
 mayReturnSort :: Type -> TCM Bool
 mayReturnSort typ = do
   TelV tel b <- telView typ
   addContext tel do
-    b <- reduce b
-    case b.unEl of
-      Sort {} -> pure True
-      Var i _ -> do
-        ty <- typeOfBV i
-        endsInSort ty
-      _ -> pure False
+    reduce b.unEl >>= elimView ButLone >>= \case
+      Sort {}; Var {} -> pure True
+      Def {}; DontCare {}; Dummy {} -> pure False
+      -- Not a type
+      Lam {}; Lit {}; Con {}; Level {} -> __IMPOSSIBLE__
+      -- Can't occur after 'telView'
+      Pi {} -> __IMPOSSIBLE__
+      -- Assume no meta
+      MetaV {} -> __IMPOSSIBLE__
