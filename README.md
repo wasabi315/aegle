@@ -94,7 +94,7 @@ stack exec aegle -- index aegle_config.yaml
 ### Search from the CLI
 
 ```sh
-stack exec aegle -- search '(A B : U) → (A → B) → A → B'
+stack exec aegle -- search ': (A B : U) → (A → B) → A → B'
 # For repeated queries:
 stack exec aegle -- interactive
 ```
@@ -111,13 +111,16 @@ Then open <http://localhost:8080> in your browser.
 
 ## Query Syntax
 
-Queries use an Agda-like syntax with restrictions:
+Queries have the form `[NAME ...] : TYPE`. A result must match `TYPE` and have
+an unqualified identifier containing every `NAME` as a case-sensitive substring.
+
+Query types use a restricted Agda-like syntax:
 
 - Write all arguments explicitly; implicit arguments are not supported.
 - Use prefix names instead of operators.
 - Give a domain type for every pi binder.
 
-Example: `Commutative Nat (_≡_ Nat) _+_`
+Examples: `: (A B : U) → (A → B) → A → B` and `+ comm : Commutative Nat (_≡_ Nat) _+_`.
 
 ## Reference
 

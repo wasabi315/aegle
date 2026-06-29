@@ -1,5 +1,6 @@
 module Aegle.Search.Query
-  ( Term (..),
+  ( Query (..),
+    Term (..),
     Type,
     teleView,
     endsInSort,
@@ -17,9 +18,16 @@ import Aegle.Core.Term (AppView (..), TeleView (..))
 import Aegle.Core.Term qualified as C
 import Aegle.Prelude
 import Data.Set qualified as S
+import Data.Text qualified as T
 import Prettyprinter
 
 --------------------------------------------------------------------------------
+
+data Query = Query
+  { names :: [T.Text],
+    typ :: Type
+  }
+  deriving stock (Show)
 
 -- | Query term
 data Term
@@ -97,12 +105,20 @@ toTerm = go []
 --------------------------------------------------------------------------------
 -- Prettyprinting
 
+newtype Unqualified a = Unqualified a
+
+instance Pretty Query where
+  pretty Query {..} =
+    hsep (pretty <$> names) <+> colon <+> pretty typ
+
+instance Pretty (Unqualified Query) where
+  pretty (Unqualified Query {..}) =
+    hsep (pretty <$> names) <+> colon <+> pretty (Unqualified typ)
+
 instance Pretty Term where
   pretty = pretty' True
 
-newtype Unqualified = Unqualified Term
-
-instance Pretty Unqualified where
+instance Pretty (Unqualified Term) where
   pretty = pretty' False . coerce
 
 pretty' :: Bool -> Term -> Doc ann
