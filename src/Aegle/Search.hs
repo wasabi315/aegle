@@ -70,12 +70,11 @@ instance Exception Error where
 search :: Config -> T.Text -> IO (Either Error Result)
 search config query = onTimeout config.timeout (Left Timeout) $ runExceptT do
   ((numCands, matches), time) <- timed do
-    -- 1. parse query type
-    typ <- parseQuery config.querySrc query ??% ParseError
+    -- 1. parse query
+    Q.Query {..} <- parseQuery config.querySrc query ??% ParseError
 
     -- 2. resolve free variables and obtain 'Resol' and 'TopEnv'
-    let names = Q.freeVars typ
-    refMap <- liftIO $ resolveNames config.dbReader $ M.fromSet id names
+    refMap <- liftIO $ resolveNames config.dbReader $ M.fromSet id (Q.freeVars typ)
     resol <- flip M.traverseWithKey refMap \x refs ->
       fmap (S1.fromList . fmap (.canonicalName)) (NE.nonEmpty refs)
         ??: NotFound x
@@ -92,8 +91,8 @@ search config query = onTimeout config.timeout (Left Timeout) $ runExceptT do
         feats = nubOrd $ mapMaybe (allFeatureQ . fst) typs
         compats = feats <&> \feat -> toCompat ! #query feat
 
-    -- 4. Load candidates based on compats
-    cands <- liftIO $ loadByAnyFeature config.dbReader compats
+    -- 4. Load candidates
+    cands <- liftIO $ loadCandidates config.dbReader names compats
 
     -- 4. Try matching
     matches <- liftIO $ match tenv resol typ' cands

@@ -12,7 +12,7 @@ where
 
 import Aegle.Core.Name
 import Aegle.Core.Term
-import Aegle.Database.Backend hiding (loadByAnyFeature, resolveNames)
+import Aegle.Database.Backend hiding (loadCandidates, resolveNames)
 import Aegle.Prelude
 import Aegle.Search.Feature
 import Control.Foldl qualified as Foldl
@@ -300,7 +300,7 @@ newDbReader ::
 newDbReader exe =
   DbReader
     { resolveNames = resolveNames exe,
-      loadByAnyFeature = loadByAnyFeature exe
+      loadCandidates = loadCandidates exe
     }
 
 resolveNames ::
@@ -361,17 +361,17 @@ decodeReferent (canonicalName, body) = do
   body <- traverse decodeTerm body
   pure $! Referent {..}
 
-loadByAnyFeature ::
-  (Foldable t, Exception (Executor.Error a), Executor.Executor a) =>
-  a -> t (Compat (AllFeature PQName)) -> IO [LibraryItem]
-loadByAnyFeature exe feats = case NE.nonEmpty (toList feats) of
-  Nothing -> pure []
-  Just feats -> loadByAnyFeatureNE exe feats
-
-loadByAnyFeatureNE ::
+loadCandidates ::
   (Exception (Executor.Error a), Executor.Executor a) =>
-  a -> NE.NonEmpty (Compat (AllFeature PQName)) -> IO [LibraryItem]
-loadByAnyFeatureNE a compats =
+  a -> [T.Text] -> [Compat (AllFeature PQName)] -> IO [LibraryItem]
+loadCandidates exe names compats = case NE.nonEmpty compats of
+  Nothing -> pure []
+  Just compats -> loadCandidatesNE exe names compats
+
+loadCandidatesNE ::
+  (Exception (Executor.Error a), Executor.Executor a) =>
+  a -> [T.Text] -> NE.NonEmpty (Compat (AllFeature PQName)) -> IO [LibraryItem]
+loadCandidatesNE a names compats =
   -- TODO: Better exception handling
   orThrow $ Executor.execute a do
     statement () $ dynamicallyParameterized snippet decoder False
@@ -401,7 +401,26 @@ loadByAnyFeatureNE a compats =
         ON e.canonical_name = i.canonical_name
       WHERE
       """
-        <> featuresSnippet compats
+        <> parS (featuresSnippet compats)
+        <> namesSnippet names
+
+    namesSnippet names = case NE.nonEmpty names of
+      Nothing -> mempty
+      Just names ->
+        """
+        AND EXISTS (
+          SELECT 1
+          FROM exports_unqual eu
+          WHERE
+            eu.canonical_name = i.canonical_name AND
+        """
+          <> andS (nameSnippet <$> names)
+          <> ")"
+
+    nameSnippet name =
+      "STRPOS(eu.export_as_unqual, "
+        <> Snippet.param @T.Text name
+        <> ") > 0"
 
     featuresSnippet = orS . fmap featureSnippet
 
