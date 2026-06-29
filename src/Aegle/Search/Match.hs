@@ -38,7 +38,7 @@ bind :: MetaCtx -> Ctx -> Name -> VType -> Ctx
 bind mctx ctx@Ctx {..} x ~a =
   ctx
     { level = level + 1,
-      locals = Bind locals x (quote topEnv mctx level a)
+      locals = Bind locals x (quote mctx level a)
     }
 
 --------------------------------------------------------------------------------
@@ -67,14 +67,14 @@ check mctx ctx query itemName item | traceCheck mctx ctx query itemName item = u
 check mctx ctx query itemName item =
   asum
     [ do
-        (item, inst, mctx) <- possibleInstantiation mctx ctx item (VTop itemName SNil)
+        (item, inst, mctx) <- possibleInstantiation mctx ctx item (VOpaque itemName SNil)
         (i, i', mctx) <- IStr.maybeToStream $ listToMaybe $ unifyIso ctx.topEnv mctx ctx.level query item
         guard $ allMetaSolved mctx
         let j = i <> sym i'
-            ~sol = closeTm ctx.locals $ quote ctx.topEnv mctx ctx.level $ transportInv j inst
+            ~sol = closeTm ctx.locals $ quote mctx ctx.level $ transportInv j inst
         pure (j, sol),
       IStr.Later do
-        (query, mctx) <- choose $ forceNondet ctx.topEnv mctx query
+        (query, mctx) <- choose $ forceNondet mctx query
         case query of
           VPi "_" _ _ -> empty
           VPi x a b -> do
@@ -88,7 +88,7 @@ possibleInstantiation mctx ctx a ~_ | tracePossibleInstantiation mctx ctx a = un
 possibleInstantiation mctx ctx a ~inst =
   asum
     [ pure (a, inst, mctx),
-      IStr.Later case force ctx.topEnv mctx a of
+      IStr.Later case force mctx a of
         VPi "_" _ _ -> empty
         VPi _ a b -> do
           (m, mctx) <- pure $ freshMeta mctx ctx a
@@ -102,7 +102,7 @@ idPruning l = replicate (coerce l) True
 
 freshMeta :: MetaCtx -> Ctx -> Value -> (Term, MetaCtx)
 freshMeta mctx ctx a = do
-  let ~closed = eval ctx.topEnv mctx [] $ closeTy ctx.locals (quote ctx.topEnv mctx ctx.level a)
+  let ~closed = eval ctx.topEnv mctx [] $ closeTy ctx.locals (quote mctx ctx.level a)
       (m, mctx') = newMeta mctx closed
   (AppPruning (Meta m) (idPruning ctx.level), mctx')
 
@@ -113,10 +113,10 @@ traceCheck mctx ctx query itemName item = traceFalse $ show do
   vsep
     [ "check" <+> pretty itemName,
       "tenv" <+> colon <+> align (pretty ctx.topEnv),
-      "mctx" <+> colon <+> align (pretty (ctx.topEnv :⊢ mctx)),
+      "mctx" <+> colon <+> align (pretty mctx),
       "ctx size" <+> colon <+> pretty ctx.level,
-      "query" <+> colon <+> pretty ((ctx.topEnv, mctx, ctx.level) :⊢ query),
-      "item" <+> colon <+> pretty ((ctx.topEnv, mctx, ctx.level) :⊢ item)
+      "query" <+> colon <+> pretty ((mctx, ctx.level) :⊢ query),
+      "item" <+> colon <+> pretty ((mctx, ctx.level) :⊢ item)
     ]
 
 tracePossibleInstantiation :: MetaCtx -> Ctx -> Value -> Bool
@@ -124,6 +124,6 @@ tracePossibleInstantiation mctx ctx a = traceFalse $ show do
   vsep
     [ "possibleInstantiation",
       "tenv" <+> colon <+> align (pretty ctx.topEnv),
-      "mctx" <+> colon <+> align (pretty (ctx.topEnv :⊢ mctx)),
-      "a" <+> colon <+> pretty ((ctx.topEnv, mctx, ctx.level) :⊢ a)
+      "mctx" <+> colon <+> align (pretty mctx),
+      "a" <+> colon <+> pretty ((mctx, ctx.level) :⊢ a)
     ]

@@ -25,7 +25,7 @@ pickUpDomain tenv mctx lvl (Quant x a b) = (Quant x a b, Refl, mctx) : go lvl b
     idr = idPRen lvl
     ide = idEnv lvl
 
-    go l c = case force tenv mctx $ c (VVar l) of
+    go l c = case force mctx $ c (VVar l) of
       VPi y c1 c2 ->
         asum
           [ do
@@ -40,7 +40,7 @@ pickUpDomain tenv mctx lvl (Quant x a b) = (Quant x a b, Refl, mctx) : go lvl b
           ]
       _ -> []
 
-    instPiAt i ~v t = case (i, force tenv mctx t) of
+    instPiAt i ~v t = case (i, force mctx t) of
       (0, VPi _ _ b) -> b v
       (i, VPi x a b) -> VPi x a (instPiAt (i - 1) v . b)
       _ -> impossible "pickUpDomain.instPiAt"
@@ -56,7 +56,7 @@ pickUpProjection tenv mctx lvl (Quant x a b) = (Quant x a b, Refl, mctx) : go lv
     idr = idPRen lvl
     ide = idEnv lvl
 
-    go l c = case force tenv mctx $ c (VVar l) of
+    go l c = case force mctx $ c (VVar l) of
       VSigma y c1 c2 ->
         asum
           [ do
@@ -77,12 +77,12 @@ pickUpProjection tenv mctx lvl (Quant x a b) = (Quant x a b, Refl, mctx) : go lv
             s = swaps Comm i
         pure (Quant "_" c' rest, s, mctx)
 
-    instSigmaAt i ~v t = case (i, force tenv mctx t) of
+    instSigmaAt i ~v t = case (i, force mctx t) of
       (0, VSigma _ _ b) -> b v
       (i, VSigma x a b) -> VSigma x a (instSigmaAt (i - 1) v . b)
       _ -> impossible "pickUpProjection.instSigmaAt"
 
-    dropLastProj l t = case force tenv mctx t of
+    dropLastProj l t = case force mctx t of
       VSigma x a b -> case b (VVar l) of
         VSigma {} -> VSigma x a (dropLastProj (l + 1) . b)
         _ -> a
@@ -142,29 +142,29 @@ unifyIso0 tenv mctx t t' = do
 
 unifyIso :: TopEnv -> MetaCtx -> Level -> Value -> Value -> [(Iso, Iso, MetaCtx)]
 unifyIso tenv mctx lvl t t' | traceUnifyIso tenv mctx lvl t t' = undefined
-unifyIso tenv mctx lvl t t' = case (force tenv mctx t, force tenv mctx t') of
+unifyIso tenv mctx lvl t t' = case (force mctx t, force mctx t') of
   (VBrave {}, _) -> []
   (_, VBrave {}) -> []
   (VPi x a b, VPi x' a' b') ->
     unifyPi tenv mctx lvl (Quant x a b) (Quant x' a' b')
   (VSigma x a b, VSigma x' a' b') ->
     unifySigma tenv mctx lvl (Quant x a b) (Quant x' a' b')
-  (VTopAmb x sp, t') ->
+  (VTopAmb tenv' x sp, t') ->
     asum
       [ do
-          (t, mctx) <- expandNondet tenv mctx x sp
+          (t, mctx) <- expandNondet tenv' mctx x sp
           unifyIso tenv mctx lvl t t',
         do
-          mctx <- unify tenv mctx lvl (VTopAmb x sp) t'
+          mctx <- unify tenv mctx lvl (VTopAmb tenv' x sp) t'
           pure (Refl, Refl, mctx)
       ]
-  (t, VTopAmb x' sp') ->
+  (t, VTopAmb tenv' x' sp') ->
     asum
       [ do
-          (t', mctx) <- expandNondet tenv mctx x' sp'
+          (t', mctx) <- expandNondet tenv' mctx x' sp'
           unifyIso tenv mctx lvl t t',
         do
-          mctx <- unify tenv mctx lvl t (VTopAmb x' sp')
+          mctx <- unify tenv mctx lvl t (VTopAmb tenv' x' sp')
           pure (Refl, Refl, mctx)
       ]
   (t, t') -> do
@@ -173,7 +173,7 @@ unifyIso tenv mctx lvl t t' = case (force tenv mctx t, force tenv mctx t') of
 
 unifyPi :: TopEnv -> MetaCtx -> Level -> Quant -> Quant -> [(Iso, Iso, MetaCtx)]
 unifyPi tenv mctx lvl pi pi' = do
-  let (Quant _ a b, i) = curry tenv mctx pi
+  let (Quant _ a b, i) = curry mctx pi
   flip foldMapA (currySwap tenv mctx lvl pi') \(Quant _ a' b', i', mctx) -> do
     (ia, ia', mctx) <- unifyIso tenv mctx lvl a a'
     let v = transportInv ia (VVar lvl)
@@ -185,7 +185,7 @@ unifyPi tenv mctx lvl pi pi' = do
 
 unifySigma :: TopEnv -> MetaCtx -> Level -> Quant -> Quant -> [(Iso, Iso, MetaCtx)]
 unifySigma tenv mctx lvl sig sig' = do
-  let (Quant _ a b, i) = assoc tenv mctx sig
+  let (Quant _ a b, i) = assoc mctx sig
   flip foldMapA (assocSwap tenv mctx lvl sig') \(Quant _ a' b', i', mctx) -> do
     (ia, ia', mctx) <- unifyIso tenv mctx lvl a a'
     let v = transportInv ia (VVar lvl)
@@ -204,9 +204,9 @@ traceUnifyIso tenv mctx l v v' = traceFalse $ show do
       indent 4
         $ vsep
           [ "tenv" <+> colon <+> align (pretty tenv),
-            "mctx" <+> colon <+> align (pretty (tenv :⊢ mctx)),
+            "mctx" <+> colon <+> align (pretty mctx),
             "ctx size" <+> colon <+> pretty l,
-            "lhs" <+> colon <+> pretty ((tenv, mctx, l) :⊢ v),
-            "rhs" <+> colon <+> pretty ((tenv, mctx, l) :⊢ v')
+            "lhs" <+> colon <+> pretty ((mctx, l) :⊢ v),
+            "rhs" <+> colon <+> pretty ((mctx, l) :⊢ v')
           ]
     ]

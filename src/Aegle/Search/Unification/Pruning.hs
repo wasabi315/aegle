@@ -76,8 +76,8 @@ newMetaP :: Value -> Prune MetaVar
 newMetaP ~mty = state $ flip newMeta mty
 {-# INLINE newMetaP #-}
 
-forceP :: TopEnv -> Value -> Prune Value
-forceP tenv t = gets \mctx -> force tenv mctx t
+forceP :: Value -> Prune Value
+forceP t = gets $ flip force t
 {-# INLINE forceP #-}
 
 evalP :: TopEnv -> Env -> Term -> Prune Value
@@ -94,11 +94,10 @@ writeMetaP m t ~a = modify' \mctx -> writeMeta mctx m t a
 
 -- | Remove some arguments from a closed iterated Pi type.
 pruneType :: TopEnv -> RevPruning -> VType -> Prune Term
-pruneType tenv (RevPruning pr) a =
-  go pr (PRen Nothing 0 0 mempty) a
+pruneType tenv (RevPruning pr) a = go pr emptyPRen a
   where
     go pr pren a = do
-      a <- forceP tenv a
+      a <- forceP a
       case (pr, a) of
         ([], a) -> renameP tenv pren a
         (True : pr, VPi x a b) ->
@@ -115,7 +114,7 @@ pruneMeta tenv pr m = do
   mty <- lookupUnsolvedP m
   prunedty <- evalP tenv [] =<< pruneType tenv (revPruning pr) mty
   m' <- newMetaP prunedty
-  solution <- evalP tenv [] =<< lams tenv (Level $ length pr) mty (AppPruning (Meta m') pr)
+  solution <- evalP tenv [] =<< lams (Level $ length pr) mty (AppPruning (Meta m') pr)
   writeMetaP m solution mty
   pure m'
 
@@ -136,7 +135,7 @@ pruneVFlex tenv pren m sp = do
           SNil -> pure ([], OKRenaming)
           SApp sp t -> do
             (sp, status) <- go sp
-            forceP tenv t >>= \case
+            forceP t >>= \case
               VVar x -> case (IM.lookup (coerce x) pren.ren, status) of
                 (Just x, _) -> pure (Just (Var (levelToIndex pren.dom x)) : sp, status)
                 (Nothing, OKNonRenaming) -> empty
@@ -163,15 +162,15 @@ rename tenv mctx pren t = flip runStateT mctx $ renameP tenv pren t
 
 renameP :: TopEnv -> PartialRenaming -> Value -> Prune Term
 renameP tenv pren t =
-  forceP tenv t >>= \case
+  forceP t >>= \case
     VFlex m' sp -> case pren.occ of
       Just m | m == m' -> empty -- occurs check
       _ -> pruneVFlex tenv pren m' sp
     VRigid (Level x) sp -> case IM.lookup x pren.ren of
       Nothing -> empty -- scope error ("escaping variable" error)
       Just x' -> renameSpine tenv pren (Var $ levelToIndex pren.dom x') sp
-    VTop x sp -> renameSpine tenv pren (Top x) sp
-    VTopAmb x sp -> renameSpine tenv pren (TopAmb x) sp
+    VOpaque x sp -> renameSpine tenv pren (Top x) sp
+    VTopAmb _ x sp -> renameSpine tenv pren (TopAmb x) sp
     VU -> pure U
     VPi x a b ->
       Pi x
@@ -196,11 +195,11 @@ renameSpine tenv pren t = \case
 
 -- | Wrap a term in Level number of lambdas. We get the domain info from the Value
 --   argument.
-lams :: TopEnv -> Level -> Value -> Term -> Prune Term
-lams tenv l a t = StateT \mctx -> (,mctx) <$> go mctx a (0 :: Level)
+lams :: Level -> Value -> Term -> Prune Term
+lams l a t = StateT \mctx -> (,mctx) <$> go mctx a (0 :: Level)
   where
     go _ _ (l' :: Level) | l' == l = Just t
-    go mctx a l' = case force tenv mctx a of
+    go mctx a l' = case force mctx a of
       VPi "_" _ b -> do
         let x = coerce $ "x" <> T.map subscript (T.show l')
         Lam x <$> go mctx (b $ VVar l') (l' + 1)
@@ -221,5 +220,5 @@ solveWithPren tenv mctx m (pren, pruneNonLinear) rhs = flip execStateT mctx do
     Nothing -> pure ()
     Just pr -> void $ pruneType tenv (revPruning pr) mty
   rhs <- renameP tenv (pren {occ = Just m}) rhs
-  solution <- evalP tenv [] =<< lams tenv pren.dom mty rhs
+  solution <- evalP tenv [] =<< lams pren.dom mty rhs
   writeMetaP m solution mty
