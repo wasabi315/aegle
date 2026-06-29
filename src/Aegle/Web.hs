@@ -211,8 +211,8 @@ searchUI dbReader = \query -> do
               ": (m n : Nat) → _≡_ Nat (_+_ m n) (_+_ n m)"
           li_ do
             exampleHtml
-              "Search by name substrings and type"
-              "mono : (m n o p : ℕ) → _<_ m n → _<_ o p → _<_ (_*_ m o) (_*_ n p)"
+              "Filtering by name substrings"
+              "* < : (m n o p : ℕ) → _<_ m n → _<_ o p → _<_ (_*_ m o) (_*_ n p)"
       where
         exampleHtml label query = do
           toHtml @T.Text label

@@ -150,7 +150,7 @@ vTop tenv n = ML.findWithDefault (VTop n SNil) n tenv
 
 -- Reduce only when the name has been resolved
 vTopAmb :: TopEnv -> MetaCtx -> PQName -> Value
-vTopAmb tenv mctx n = case mctx.resol M.! n of
+vTopAmb tenv mctx n = case lookupResol mctx n of
   S1.Singleton n' -> vTop tenv n'
   _ -> VTopAmb n SNil
 
@@ -204,7 +204,7 @@ force tenv mctx = \case
     | Solved t _ <- mctx.metaCtx IM.! coerce m ->
         force tenv mctx (vAppSpine t sp)
   VTopAmb n sp
-    | S1.Singleton n' <- mctx.resol M.! n ->
+    | S1.Singleton n' <- lookupResol mctx n ->
         force tenv mctx (vAppSpine (vTop tenv n') sp)
   t -> t
 
@@ -221,6 +221,9 @@ forceNondet tenv mctx = \case
   VFlex m sp
     | Solved t _ <- mctx.metaCtx IM.! coerce m ->
         forceNondet tenv mctx (vAppSpine t sp)
+  VTopAmb n sp
+    | S1.Singleton n' <- lookupResol mctx n ->
+        forceNondet tenv mctx (vAppSpine (vTop tenv n') sp)
   VTopAmb n sp -> do
     asum
       [ do
