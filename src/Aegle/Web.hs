@@ -200,15 +200,19 @@ searchUI dbReader = \query -> do
           li_ do
             exampleHtml
               "Search by type"
-              "(m n : Nat) → _≡_ Nat (_*_ m n) 1 → _≡_ Nat m 1"
+              ": (m n : Nat) → _≡_ Nat (_*_ m n) 1 → _≡_ Nat m 1"
           li_ do
             exampleHtml
               "Isomorphism and instantiation"
-              "(A B : Set) → (A → B) → A → B"
+              ": (A B : Set) → (A → B) → A → B"
           li_ do
             exampleHtml
               "Type alias expansion"
-              "(m n : Nat) → _≡_ Nat (_+_ m n) (_+_ n m)"
+              ": (m n : Nat) → _≡_ Nat (_+_ m n) (_+_ n m)"
+          li_ do
+            exampleHtml
+              "Search by name substrings and type"
+              "mono : (m n o p : ℕ) → _<_ m n → _<_ o p → _<_ (_*_ m o) (_*_ n p)"
       where
         exampleHtml label query = do
           toHtml @T.Text label
