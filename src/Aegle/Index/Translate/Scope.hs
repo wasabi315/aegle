@@ -42,24 +42,16 @@ translateScope scopeInfo = do
 isNameOfTypedThing :: AbstractName -> Bool
 isNameOfTypedThing aname = aname.anameKind /= PatternSynName
 
+-- Ref: Agda.Syntax.Scope.Base.publicNames
 collectPublicNames :: ScopeInfo -> S.Set QName
-collectPublicNames scopeInfo =
-  S.fromList $ go $ getScope scopeInfo._scopeCurrent
-  where
-    getScope m = scopeInfo._scopeModules M.! m
-
-    go scope = names ++ namesInChildren
-      where
-        names = do
-          anames <- M.elems $ namesInScope @AbstractName [PublicNS] scope
-          aname <- NE.toList anames
-          guard $ isNameOfTypedThing aname
-          pure aname.anameName
-
-        namesInChildren = do
-          amods <- M.elems $ namesInScope @AbstractModule [PublicNS] scope
-          amod <- NE.toList amods
-          go (getScope amod.amodName)
+collectPublicNames scope =
+  publicModules scope
+    & M.elems
+    & mergeScopes
+    & namesInScope @AbstractName [PublicNS]
+    & foldMap (S.fromList . NE.toList)
+    & S.filter isNameOfTypedThing
+    & S.mapMonotonic anameName
 
 collectReexportNames :: ScopeInfo -> [(C.QName, QName)]
 collectReexportNames scopeInfo = do
