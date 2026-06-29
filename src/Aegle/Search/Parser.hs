@@ -172,5 +172,12 @@ pTerm = do
   t <- pAbsPi
   (Pair t <$> (char ',' *> pTerm)) <|> pure t
 
-parseQuery :: FilePath -> T.Text -> Either ParserError Term
-parseQuery fname src = parse (ws *> pTerm <* eof) fname src
+pQuery :: Parser Query
+pQuery = do
+  names <- many pIdent
+  _ <- char ':'
+  typ <- pTerm
+  pure Query {..}
+
+parseQuery :: FilePath -> T.Text -> Either ParserError Query
+parseQuery fname src = parse (ws *> pQuery <* eof) fname src
