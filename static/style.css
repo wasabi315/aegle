@@ -40,6 +40,32 @@ button {
   cursor: pointer;
 }
 
+button:disabled {
+  cursor: wait;
+}
+
+.search-spinner {
+  display: none;
+  width: 1em;
+  height: 1em;
+  margin-right: 0.5rem;
+  border: 2px solid currentcolor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  vertical-align: -0.125em;
+  animation: spin 0.75s linear infinite;
+}
+
+#search-form button:disabled .search-spinner {
+  display: inline-block;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 input:focus-visible,
 button:focus-visible,
 summary:focus-visible {

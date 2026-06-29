@@ -153,7 +153,7 @@ searchUI dbReader = \query -> do
     h1_ do
       a_ [hrefTop Nothing] "Aegle 🦅"
 
-    form_ [method_ "get", action_ "/"] do
+    form_ [id_ "search-form", method_ "get", action_ "/"] do
       input_
         [ type_ "search",
           name_ "q",
@@ -161,7 +161,9 @@ searchUI dbReader = \query -> do
           value_ $ fromMaybe "" query,
           autofocus_
         ]
-      button_ [type_ "submit"] "Search"
+      button_ [type_ "submit"] do
+        span_ [class_ "search-spinner"] mempty
+        "Search"
 
     case result of
       Nothing -> introHtml
@@ -278,7 +280,21 @@ layoutHtml content = doctypehtml_ do
     title_ "Aegle 🦅"
     link_ [rel_ "stylesheet", type_ "text/css", href_ "/static/style.css"]
     meta_ [name_ "viewport", content_ "width=device-width, initial-scale=1"]
-  body_ content
+  body_ do
+    content
+    script_
+      """
+      const searchForm = document.querySelector("#search-form");
+      const searchButton = searchForm.querySelector('button[type="submit"]');
+
+      searchForm.addEventListener("submit", () => {
+        searchButton.disabled = true;
+      });
+
+      window.addEventListener("pageshow", () => {
+        searchButton.disabled = false;
+      });
+      """
 
 prettyHtml :: (Pretty a, Monad m) => a -> HtmlT m ()
 prettyHtml = toHtml . T.show . pretty
