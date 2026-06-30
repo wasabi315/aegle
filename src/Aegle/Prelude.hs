@@ -47,6 +47,7 @@ module Aegle.Prelude
     sort,
     sortOn,
     (!?),
+    readMaybe,
     Profunctor (..),
     (:!),
     (:?),
@@ -84,7 +85,7 @@ import Control.Applicative
 import Control.Arrow ((&&&), (***))
 import Control.DeepSeq
 import Control.Exception (Exception (..), throwIO)
-import Control.Lens hiding (Index, Iso, Level, Refl, Setting, argument, index, setting, (.=), (<.>))
+import Control.Lens hiding (Index, Iso, Level, Refl, Setting, argument, index, setting, (<.>))
 import Control.Monad
 import Control.Monad.Except
 import Control.Monad.IO.Class
@@ -118,6 +119,7 @@ import Data.Void
 import GHC.Generics
 import GHC.Stack
 import Named
+import Text.Read
 import Witherable
 import Prelude hiding (curry, filter, foldl1, foldr1, head, last, maximum, minimum, unzip)
 

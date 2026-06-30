@@ -25,6 +25,7 @@ import System.IO
 
 data Command = Command
   { connSetting :: Setting,
+    timeout :: Int,
     query :: T.Text
   }
 
@@ -34,14 +35,13 @@ search :: Command -> IO ()
 search Command {..} =
   withConnect connSetting \conn -> do
     let dbReader = newDbReader conn
-    searchWith dbReader query
+    searchWith dbReader timeout query
 
-searchWith :: DbReader IO -> T.Text -> IO ()
-searchWith dbReader query = do
+searchWith :: DbReader IO -> Int -> T.Text -> IO ()
+searchWith dbReader timeout query = do
   let config =
         Search.Config
           { querySrc = "<interactive>",
-            timeout = 10000000,
             ..
           }
   result <- Search.search config query

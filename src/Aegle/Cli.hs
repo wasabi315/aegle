@@ -41,6 +41,7 @@ instance HasParser Command where
       search = command "search" "Search within indexed library" do
         connSetting <- connectionSetting
         query <- argSetting "QUERY" "Type expression to search for" str
+        timeout <- longSetting "timeout" "TIMEOUT" "Search timeout in μs" auto 10000000
         pure $ Search Search.Command {..}
 
       interactive = command "interactive" "Interactive search shell" do
@@ -50,6 +51,7 @@ instance HasParser Command where
       serve = command "serve" "Run web server" do
         poolConfig <- poolConfig
         port <- envSetting "PORT" "HTTP port to listen on" auto
+        timeout <- longSetting "timeout" "TIMEOUT" "Search timeout in μs" auto 1000000
         agdaHtmlDir <- longSetting "html-dir" "HTML_DIR" "Directory containing generated Agda HTML files" str "html"
         pure $ Serve Serve.Command {..}
 

@@ -5,18 +5,19 @@ module Aegle.Cli.Serve
 where
 
 import Aegle.Database.Backend.PostgreSQL
+import Aegle.Prelude
 import Aegle.Web
 import Control.Exception
 import Hasql.Pool qualified as Pool
 import Hasql.Pool.Config qualified as Pool
 import Network.Wai.Handler.Warp qualified as Warp
-import System.IO
 
 --------------------------------------------------------------------------------
 
 data Command = Command
   { poolConfig :: Pool.Config,
     port :: Warp.Port,
+    timeout :: Int,
     agdaHtmlDir :: FilePath
   }
 

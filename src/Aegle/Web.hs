@@ -15,7 +15,6 @@ import Data.Time.Clock
 import Lucid hiding (for_)
 import Lucid.Servant
 import Network.URI.Encode qualified
-import Network.Wai
 import Network.Wai.Handler.Warp qualified as Warp
 import Network.Wai.Middleware.RequestLogger
 import Paths_aegle
@@ -29,7 +28,8 @@ import System.FilePath
 data Config = Config
   { port :: Warp.Port,
     dbReader :: DbReader IO,
-    agdaHtmlDir :: FilePath
+    agdaHtmlDir :: FilePath,
+    timeout :: Int
   }
 
 runServer :: Config -> IO ()
@@ -37,10 +37,11 @@ runServer Config {..} = do
   dataDir <- getDataDir
   let staticDir = dataDir </> "static"
   putStrLn $ "Listening on port " ++ show port
-  Warp.run port $ middleware $ serve api (server staticDir agdaHtmlDir dbReader)
-
-middleware :: Middleware
-middleware = logStdout
+  let app =
+        server staticDir agdaHtmlDir dbReader timeout
+          & serve api
+          & logStdout
+  Warp.run port app
 
 --------------------------------------------------------------------------------
 -- APIs
@@ -64,10 +65,10 @@ type SearchUI =
 api :: Proxy API
 api = Proxy
 
-server :: FilePath -> FilePath -> DbReader IO -> Server API
-server staticDir agdaHtmlDir dbReader =
-  search dbReader
-    :<|> searchUI dbReader
+server :: FilePath -> FilePath -> DbReader IO -> Int -> Server API
+server staticDir agdaHtmlDir dbReader timeout =
+  search dbReader timeout
+    :<|> searchUI dbReader timeout
     :<|> pure "pong"
     :<|> serveDirectoryFileServer staticDir
     :<|> serveDirectoryFileServer agdaHtmlDir
@@ -98,8 +99,8 @@ data Match = Match
   deriving stock (Show, Generic)
   deriving (ToJSON) via Generically Match
 
-search :: DbReader IO -> Server SearchAPI
-search dbReader = \query -> do
+search :: DbReader IO -> Int -> Server SearchAPI
+search dbReader timeout = \query -> do
   guard (not $ T.null $ T.strip query)
     ??: err400 {errBody = "Query parameter q must not be empty"}
   result <-
@@ -110,7 +111,6 @@ search dbReader = \query -> do
     config =
       Search.Config
         { querySrc = "<query param>",
-          timeout = 10000000,
           ..
         }
 
@@ -144,8 +144,8 @@ search dbReader = \query -> do
 --------------------------------------------------------------------------------
 -- Web interface
 
-searchUI :: DbReader IO -> Server SearchUI
-searchUI dbReader = \query -> do
+searchUI :: DbReader IO -> Int -> Server SearchUI
+searchUI dbReader timeout = \query -> do
   let query' = filter (not . T.null . T.strip) query
   result <- for query' $ liftIO . Search.search config
 
@@ -174,7 +174,6 @@ searchUI dbReader = \query -> do
     config =
       Search.Config
         { querySrc = "<query param>",
-          timeout = -1,
           ..
         }
 
