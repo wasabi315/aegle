@@ -50,7 +50,7 @@ type API =
   SearchAPI
     :<|> SearchUI
     :<|> "ping" :> Get '[PlainText] T.Text
-    :<|> "static" :> Raw -- static assets like css and favicon
+    :<|> "static" :> Raw -- static assets like css/js
     :<|> "agda" :> Raw -- Agda HTML
 
 type SearchAPI =
@@ -280,9 +280,11 @@ searchUI dbReader timeout = \query -> do
 layoutHtml :: Html () -> Html ()
 layoutHtml content = doctypehtml_ do
   head_ do
-    title_ "Aegle 🦅"
+    title_ "Aegle"
     link_ [rel_ "stylesheet", type_ "text/css", href_ "/static/style.css"]
     meta_ [name_ "viewport", content_ "width=device-width, initial-scale=1"]
+    meta_ [charset_ "utf-8"]
+    link_ [rel_ "icon", href_ "data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🦅</text></svg>"]
   body_ do
     content
     script_ [src_ "/static/script.js"] (mempty @(Html ()))
