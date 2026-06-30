@@ -42,9 +42,9 @@ dependencies:
   - hasql-pool
   - hasql-th
   - hasql-transaction
-  - lens
   - lucid
   - megaparsec
+  - microlens-platform
   - mtl
   - named
   - nonempty-containers

@@ -3,7 +3,6 @@ module Aegle.Prelude
     module Prelude,
     module Control.Applicative,
     module Control.Exception,
-    module Control.Lens,
     module Control.Monad,
     module Control.Monad.Except,
     module Control.Monad.IO.Class,
@@ -29,6 +28,7 @@ module Aegle.Prelude
     module Data.String,
     module Data.Traversable,
     module Data.Void,
+    module Lens.Micro.Platform,
     module Witherable,
     (***),
     (&&&),
@@ -83,7 +83,6 @@ import Control.Applicative
 import Control.Arrow ((&&&), (***))
 import Control.DeepSeq
 import Control.Exception (Exception (..), throwIO)
-import Control.Lens hiding (Index, Iso, Level, Refl, Setting, argument, index, setting, (<.>))
 import Control.Monad
 import Control.Monad.Except
 import Control.Monad.IO.Class
@@ -109,6 +108,7 @@ import Data.Hashable
 import Data.List (elemIndex, intersperse, partition, sort, sortOn, (!?))
 import Data.Maybe (fromJust, fromMaybe, isJust, isNothing, listToMaybe, maybe, maybeToList)
 import Data.Monoid hiding (First (..), Last (..))
+import Data.Profunctor
 import Data.Semigroup hiding (Arg (..))
 import Data.String
 import Data.Time.Clock
@@ -117,6 +117,7 @@ import Data.Typeable (Typeable)
 import Data.Void
 import GHC.Generics
 import GHC.Stack
+import Lens.Micro.Platform
 import Named
 import Text.Read
 import Witherable

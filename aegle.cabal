@@ -153,9 +153,9 @@ library
     , hasql-pool
     , hasql-th
     , hasql-transaction
-    , lens
     , lucid
     , megaparsec
+    , microlens-platform
     , mtl
     , named
     , nonempty-containers
@@ -263,9 +263,9 @@ executable aegle
     , hasql-pool
     , hasql-th
     , hasql-transaction
-    , lens
     , lucid
     , megaparsec
+    , microlens-platform
     , mtl
     , named
     , nonempty-containers
@@ -381,9 +381,9 @@ test-suite aegle-test
     , hasql-th
     , hasql-transaction
     , hedgehog
-    , lens
     , lucid
     , megaparsec
+    , microlens-platform
     , mtl
     , named
     , nonempty-containers
