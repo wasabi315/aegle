@@ -12,7 +12,6 @@ import Aegle.Database.Backend
 import Aegle.Prelude
 import Aegle.Search.Feature
 import Control.Foldl qualified as Foldl
-import Data.Generics.Labels ()
 import Data.Map.Strict qualified as M
 import Data.Set qualified as S
 

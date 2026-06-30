@@ -58,8 +58,6 @@ module Aegle.Prelude
     argDef,
     argF,
     defaults,
-    param,
-    paramF,
 
     -- * Utils
     impossible,
@@ -106,6 +104,7 @@ import Data.Functor
 import Data.Functor.Compose
 import Data.Functor.Contravariant
 import Data.Functor.Identity
+import Data.Generics.Labels ()
 import Data.Hashable
 import Data.List (elemIndex, intersperse, partition, sort, sortOn, (!?))
 import Data.Maybe (fromJust, fromMaybe, isJust, isNothing, listToMaybe, maybe, maybeToList)

@@ -136,7 +136,7 @@ logHealth logger HealthCheck {..} = do
 
 logStats :: Logger -> Statistics -> IO ()
 logStats logger Statistics {..} =
-  logger ! paramF #logName (Just "stats") $ statsDoc
+  logger ! #logName "stats" $ statsDoc
   where
     statsDoc =
       vsep
