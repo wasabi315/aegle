@@ -31,6 +31,7 @@ data PartialRenaming = PRen
     -- | mapping from @Δ@ vars to @Γ@ vars.
     ren :: IM.IntMap Level
   }
+  deriving stock (Generic)
 
 emptyPRen :: PartialRenaming
 emptyPRen =
@@ -62,12 +63,10 @@ liftPRen PRen {..} =
 
 -- | @PRen Γ Δ → PRen Γ (Δ, x : A)@.
 skipPRen :: PartialRenaming -> PartialRenaming
-skipPRen PRen {..} =
-  PRen {cod = cod + 1, ..}
+skipPRen = #cod +~ 1
 
 skipPRenN :: Level -> PartialRenaming -> PartialRenaming
-skipPRenN n PRen {..} =
-  PRen {cod = cod + n, ..}
+skipPRenN n = #cod +~ n
 
 -- Monad for pruning
 type Prune = StateT MetaCtx Maybe
