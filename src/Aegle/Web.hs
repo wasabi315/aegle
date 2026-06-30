@@ -285,19 +285,7 @@ layoutHtml content = doctypehtml_ do
     meta_ [name_ "viewport", content_ "width=device-width, initial-scale=1"]
   body_ do
     content
-    script_
-      """
-      const searchForm = document.querySelector("#search-form");
-      const searchButton = searchForm.querySelector('button[type="submit"]');
-
-      searchForm.addEventListener("submit", () => {
-        searchButton.disabled = true;
-      });
-
-      window.addEventListener("pageshow", () => {
-        searchButton.disabled = false;
-      });
-      """
+    script_ [src_ "/static/script.js"] (mempty @(Html ()))
 
 prettyHtml :: (Pretty a, Monad m) => a -> HtmlT m ()
 prettyHtml = toHtml . T.show . pretty

@@ -13,6 +13,7 @@ extra-source-files:
 data-files:
   - migration/*.sql
   - static/style.css
+  - static/script.js
 
 synopsis: Type-based library search for Agda
 category: Language
