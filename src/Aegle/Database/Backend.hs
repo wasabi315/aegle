@@ -88,7 +88,7 @@ data DbReader m = DbReader
       (Traversable t) => t PQName -> m (t [Referent]),
     loadCandidates ::
       [T.Text] ->
-      [Compat (AllFeature PQName)] ->
+      [Compat (FilterFeature PQName)] ->
       m [LibraryItem]
   }
 
@@ -101,5 +101,5 @@ resolveNames DbReader {..} = resolveNames
 --   * whose type signatures match at least one of the given compatibilities.
 --
 -- Note that the compatibilities may contain unresolved names.
-loadCandidates :: DbReader m -> [T.Text] -> [Compat (AllFeature PQName)] -> m [LibraryItem]
+loadCandidates :: DbReader m -> [T.Text] -> [Compat (FilterFeature PQName)] -> m [LibraryItem]
 loadCandidates DbReader {..} = loadCandidates

@@ -363,14 +363,14 @@ decodeReferent (canonicalName, body) = do
 
 loadCandidates ::
   (Exception (Executor.Error a), Executor.Executor a) =>
-  a -> [T.Text] -> [Compat (AllFeature PQName)] -> IO [LibraryItem]
+  a -> [T.Text] -> [Compat (FilterFeature PQName)] -> IO [LibraryItem]
 loadCandidates exe names compats = case NE.nonEmpty compats of
   Nothing -> pure []
   Just compats -> loadCandidatesNE exe names compats
 
 loadCandidatesNE ::
   (Exception (Executor.Error a), Executor.Executor a) =>
-  a -> [T.Text] -> NE.NonEmpty (Compat (AllFeature PQName)) -> IO [LibraryItem]
+  a -> [T.Text] -> NE.NonEmpty (Compat (FilterFeature PQName)) -> IO [LibraryItem]
 loadCandidatesNE a names compats =
   -- TODO: Better exception handling
   orThrow $ Executor.execute a do
@@ -424,7 +424,7 @@ loadCandidatesNE a names compats =
 
     featuresSnippet = orS . fmap featureSnippet
 
-    featureSnippet AllFeatureCompat {..} =
+    featureSnippet FilterFeatureCompat {..} =
       andS
         $ aritySnippet arity
         NE.:| catMaybes

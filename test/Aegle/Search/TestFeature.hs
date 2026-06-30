@@ -39,11 +39,18 @@ tests =
             prop_compatible_transitive genArity
         ],
       testGroup
-        "AllFeatures"
+        "AllFeature"
         [ testPropertyNamed "compatible reflexive" "prop_compatible_reflexive" do
-            prop_compatible_reflexive $ genAllFeatures (pure ()),
+            prop_compatible_reflexive $ genAllFeature (pure ()),
           testPropertyNamed "compatible transitive" "prop_compatible_transitive" do
-            prop_compatible_transitive $ genAllFeatures (pure ())
+            prop_compatible_transitive $ genAllFeature (pure ())
+        ],
+      testGroup
+        "FilterFeature"
+        [ testPropertyNamed "compatible reflexive" "prop_compatible_reflexive" do
+            prop_compatible_reflexive $ genFilterFeature (pure ()),
+          testPropertyNamed "compatible transitive" "prop_compatible_transitive" do
+            prop_compatible_transitive $ genFilterFeature (pure ())
         ]
     ]
 
@@ -87,9 +94,16 @@ genArity = do
   arity <- Gen.int (Range.constant 0 32)
   pure Arity {..}
 
-genAllFeatures :: Gen n -> Gen (AllFeature n)
-genAllFeatures gen = do
+genAllFeature :: Gen n -> Gen (AllFeature n)
+genAllFeature gen = do
   resultHead <- genResultHead gen
   polymorphic <- genPolymorphic
   arity <- genArity
   pure AllFeature {..}
+
+genFilterFeature :: Gen n -> Gen (FilterFeature n)
+genFilterFeature gen = do
+  resultHead <- genResultHead gen
+  polymorphic <- genPolymorphic
+  arity <- genArity
+  pure FilterFeature {..}

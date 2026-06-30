@@ -12,14 +12,17 @@ module Aegle.Search.Feature
     ArityCompat (..),
     AllFeature (..),
     allFeature,
-    allFeatureQ,
     AllFeatureCompat (..),
+    FilterFeature (..),
+    filterFeatureQ,
+    FilterFeatureCompat (..),
   )
 where
 
 import Aegle.Core.Name
 import Aegle.Core.Term
 import Aegle.Prelude
+import Data.Generics.Product.Subtype
 
 --------------------------------------------------------------------------------
 
@@ -190,16 +193,6 @@ allFeature typ =
       arity = arity typ
     }
 
-allFeatureQ :: Type -> Maybe (AllFeature PQName)
-allFeatureQ typ = do
-  resultHead <- resultHeadQ typ
-  pure
-    AllFeature
-      { resultHead,
-        polymorphic = polymorphic typ,
-        arity = arity typ
-      }
-
 data AllFeatureCompat n = AllFeatureCompat
   { resultHead :: ResultHeadCompat n,
     polymorphic :: PolymorphicCompat,
@@ -223,3 +216,49 @@ instance (Eq n) => Feature (AllFeature n) where
       && matchesCompat compat.polymorphic (Arg feat.polymorphic)
       && matchesCompat compat.arity (Arg feat.arity)
   {-# INLINE matchesCompat #-}
+
+--------------------------------------------------------------------------------
+
+data FilterFeature n = FilterFeature
+  { resultHead :: ResultHead n,
+    polymorphic :: Polymorphic,
+    arity :: Arity
+  }
+  deriving stock (Eq, Ord, Show, Generic)
+
+filterFeatureQ :: Type -> Maybe (FilterFeature PQName)
+filterFeatureQ typ = do
+  resultHead <- resultHeadQ typ
+  pure
+    FilterFeature
+      { resultHead,
+        polymorphic = polymorphic typ,
+        arity = arity typ
+      }
+
+data FilterFeatureCompat n = FilterFeatureCompat
+  { resultHead :: ResultHeadCompat n,
+    polymorphic :: PolymorphicCompat,
+    arity :: ArityCompat
+  }
+  deriving stock (Eq, Ord, Show, Generic, Functor, Foldable, Traversable)
+
+instance (Eq n) => Feature (FilterFeature n) where
+  type Compat (FilterFeature n) = FilterFeatureCompat n
+
+  toCompat (Arg FilterFeature {..}) =
+    FilterFeatureCompat
+      { resultHead = toCompat (Arg resultHead),
+        polymorphic = toCompat (Arg polymorphic),
+        arity = toCompat (Arg arity)
+      }
+  {-# INLINE toCompat #-}
+
+  matchesCompat compat (Arg feat) =
+    matchesCompat compat.resultHead (Arg feat.resultHead)
+      && matchesCompat compat.polymorphic (Arg feat.polymorphic)
+      && matchesCompat compat.arity (Arg feat.arity)
+  {-# INLINE matchesCompat #-}
+
+_subWitness :: Lens' (AllFeature n) (FilterFeature n)
+_subWitness = super
