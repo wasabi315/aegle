@@ -36,6 +36,7 @@ instance HasParser Command where
       index = command "index" "Index Agda libraries" do
         connSetting <- connectionSetting
         configFile <- argSetting "CONFIG_FILE" "YAML file listing Agda libraries to index" str
+        enableStatistics <- longSwitchSetting "statistics" "Collect statistics"
         pure $ Index Index.Command {..}
 
       search = command "search" "Search within indexed library" do
@@ -85,6 +86,9 @@ instance HasParser Command where
 
       envSetting var helpText readf =
         setting [env var, metavar var, reader readf, help helpText]
+
+      longSwitchSetting opt helpText =
+        setting [switch True, value False, long opt, help helpText]
 
 --------------------------------------------------------------------------------
 

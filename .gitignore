@@ -9,3 +9,4 @@ data/pg1
 dist-newstyle
 html
 .aegle-log
+stats.json

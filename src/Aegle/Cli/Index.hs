@@ -8,15 +8,13 @@ import Aegle.Database.Backend.PostgreSQL
 import Aegle.Index qualified as Index
 import Aegle.Index.Statistics
 import Aegle.Prelude
-import Aegle.Search.Feature
 import Control.Exception
 import Control.Foldl qualified as Foldl
-import Data.Map.Strict qualified as M
-import Data.Ord
+import Data.Aeson as JSON
 import Data.Set qualified as S
 import Data.Text qualified as T
 import Data.Vector qualified as V
-import Data.Yaml
+import Data.Yaml as Yaml
 import Deriving.Aeson
 import Hasql.Connection
 import Hasql.Connection.Setting
@@ -33,7 +31,8 @@ import System.IO
 
 data Command = Command
   { connSetting :: Setting,
-    configFile :: FilePath
+    configFile :: FilePath,
+    enableStatistics :: Bool
   }
 
 --------------------------------------------------------------------------------
@@ -42,12 +41,18 @@ index :: Command -> IO ()
 index Command {..} = do
   config <- loadConfigFile configFile
   logger <- createLogger
+  let statsBuilder =
+        if enableStatistics
+          then Just <$> Foldl.generalize statisticsBuilder
+          else pure Nothing
+
   (health, stats) <- withConnect connSetting \conn -> do
     migrate conn
     Index.index config logger do
-      liftA2 (,) (newDbBuilder conn) (Foldl.generalize statisticsBuilder)
+      liftA2 (,) (newDbBuilder conn) statsBuilder
+
   logHealth logger health
-  logStats logger stats
+  traverse_ (JSON.encodeFile "stats.json") stats
 
 type Logger = "logName" :? T.Text -> Doc AnsiStyle -> IO ()
 
@@ -97,7 +102,7 @@ loadConfigFile :: FilePath -> IO Index.Config
 loadConfigFile configFile = do
   configFile' <- makeAbsolute configFile
   let configDir = takeDirectory configFile'
-  rawConfig <- decodeFileThrow @_ @RawConfig configFile'
+  rawConfig <- Yaml.decodeFileThrow @_ @RawConfig configFile'
   let libraryConfigs =
         rawConfig.libraries <&> \config -> do
           let path = resolvePath configDir config.path
@@ -133,94 +138,6 @@ logHealth logger HealthCheck {..} = do
         : [ "・" <+> pretty exportAsQual <+> "→" <+> pretty canonicalName
           | DanglingExport {..} <- V.toList danglingExports
           ]
-
-logStats :: Logger -> Statistics -> IO ()
-logStats logger Statistics {..} =
-  logger ! #logName "stats" $ statsDoc
-  where
-    statsDoc =
-      vsep
-        [ numItemDoc,
-          numItemPerFeatureShapeDoc,
-          numItemPerArityDoc,
-          numItemPerRHTopDoc,
-          numCanonicalNamePerUnqualNameDoc,
-          emptyDoc
-        ]
-
-    numItemDoc = "Total items" <+> colon <+> pretty numItem
-
-    numItemPerFeatureShapeDoc =
-      "Total items per feature shape"
-        <+> colon
-        <+> nest
-          4
-          ( vsep
-              $ punctuate
-                comma
-                [ featureDoc feat <+> "→" <+> pretty num
-                | (feat, num) <- M.toList numItemPerFeatureShape
-                ]
-          )
-
-    numItemPerArityDoc =
-      "Total items per arity"
-        <+> colon
-        <+> nest
-          4
-          ( vsep
-              $ punctuate
-                comma
-                [ arityDoc arity <+> "→" <+> pretty num
-                | (arity, num) <- M.toList numItemPerArity
-                ]
-          )
-
-    numItemPerRHTopDoc =
-      "Total items per result head top name"
-        <+> colon
-        <+> nest
-          4
-          ( vsep
-              $ punctuate
-                comma
-                [ pretty name <+> "→" <+> pretty num
-                | (name, num) <- sortOn (Down . snd) $ M.toList numItemPerRHTop
-                ]
-          )
-
-    numCanonicalNamePerUnqualNameDoc =
-      "Total canonical names per colliding unqualified name"
-        <+> colon
-        <+> nest
-          4
-          ( vsep
-              $ punctuate
-                comma
-                [ pretty name <+> "→" <+> pretty num
-                | (name, num) <- sortOn (Down . snd) $ M.toList numCanonicalNamePerUnqualName,
-                  num > 1
-                ]
-          )
-
-    featureDoc FeatureShape {..} =
-      tupled
-        [ case resultHead of
-            RHU -> "U"
-            RHVar -> "Var"
-            RHTop {} -> "Top"
-            RHSigma -> "Σ"
-            RHProj1 -> ".1"
-            RHProj2 -> ".2",
-          case polymorphic of
-            Monomorphic -> "Mono"
-            Polymorphic -> "Poly",
-          if arityHasVar then "≧" else "="
-        ]
-
-    arityDoc Arity {..}
-      | hasVar = "≧" <> pretty arity
-      | otherwise = "=" <> pretty arity
 
 --------------------------------------------------------------------------------
 

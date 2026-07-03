@@ -53,7 +53,6 @@ data ResultHead n
   | RHProj1
   | RHProj2
   deriving stock (Eq, Ord, Show, Generic, Functor, Foldable, Traversable)
-  deriving (ToJSON, FromJSON) via Generically (ResultHead n)
 
 -- | The input type must be closed. Doesn't perform any reduction.
 resultHead' :: (QName -> n) -> (PQName -> n) -> Type -> Maybe (ResultHead n)
@@ -144,7 +143,6 @@ data Arity = Arity
     arity :: Int
   }
   deriving stock (Eq, Ord, Show, Generic)
-  deriving (ToJSON, FromJSON) via Generically Arity
 
 -- | The input type must be closed. Doesn't perform any reduction.
 arity :: Type -> Arity
@@ -183,7 +181,7 @@ data AllFeature n = AllFeature
     polymorphic :: Polymorphic,
     arity :: Arity
   }
-  deriving stock (Eq, Ord, Show, Generic)
+  deriving stock (Eq, Ord, Show, Generic, Functor, Foldable, Traversable)
 
 allFeature :: Type -> AllFeature QName
 allFeature typ =
@@ -224,7 +222,7 @@ data FilterFeature n = FilterFeature
     polymorphic :: Polymorphic,
     arity :: Arity
   }
-  deriving stock (Eq, Ord, Show, Generic)
+  deriving stock (Eq, Ord, Show, Generic, Functor, Foldable, Traversable)
 
 filterFeatureQ :: Type -> Maybe (FilterFeature PQName)
 filterFeatureQ typ = do

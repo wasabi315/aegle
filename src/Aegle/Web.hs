@@ -10,6 +10,7 @@ import Aegle.Core.Term
 import Aegle.Database.Backend
 import Aegle.Prelude
 import Aegle.Search qualified as Search
+import Data.Aeson (ToJSON)
 import Data.Text qualified as T
 import Data.Time.Clock
 import Lucid hiding (for_)
@@ -85,15 +86,14 @@ data Result = Result
   deriving (ToJSON) via Generically Result
 
 data Match = Match
-  { canonicalName :: QName,
+  { canonicalName :: T.Text,
     kind :: T.Text,
-    reexportedAs :: [QName],
-    -- return prettyprinted terms for now
+    reexportedAs :: [T.Text],
     signature :: T.Text,
     originalSignature :: T.Text,
     iso :: T.Text,
     solution :: T.Text,
-    moduleName :: ModuleName,
+    moduleName :: T.Text,
     position :: Int
   }
   deriving stock (Show, Generic)
@@ -120,11 +120,14 @@ search dbReader timeout = \query -> do
 
     convertMatch Search.Match {item = LibraryItem {..}, ..} =
       Match
-        { kind = convertDefKind kind,
+        { canonicalName = T.show $ pretty canonicalName,
+          kind = convertDefKind kind,
+          reexportedAs = T.show . pretty <$> reexportedAs,
           signature = T.show $ pretty $ Unqualified signature,
           originalSignature = T.show $ pretty $ Unqualified originalSignature,
           iso = T.show $ pretty iso,
           solution = T.show $ pretty $ Unqualified solution,
+          moduleName = T.show $ pretty moduleName,
           ..
         }
 

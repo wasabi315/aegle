@@ -35,12 +35,12 @@ newtype MetaVar = MetaVar Int
 -- | Names
 newtype Name = Name T.Text
   deriving stock (Generic)
-  deriving newtype (Eq, Ord, Show, Hashable, IsString, Flat, ToJSON, FromJSON, NFData, Pretty)
+  deriving newtype (Eq, Ord, Show, Hashable, IsString, Flat, NFData, Pretty)
 
 -- | Module names
 newtype ModuleName = ModuleName T.Text
   deriving stock (Generic)
-  deriving newtype (Eq, Ord, Show, Hashable, IsString, Flat, ToJSON, FromJSON, NFData, Pretty)
+  deriving newtype (Eq, Ord, Show, Hashable, IsString, Flat, NFData, Pretty)
 
 -- | Qualified names
 data QName = QName
@@ -49,7 +49,6 @@ data QName = QName
   }
   deriving stock (Eq, Ord, Show, Generic)
   deriving anyclass (Hashable, Flat, NFData)
-  deriving (ToJSON, FromJSON) via Generically QName
 
 -- | Possibly-qualified names
 data PQName
@@ -57,7 +56,6 @@ data PQName
   | Qual ModuleName Name
   deriving stock (Eq, Ord, Show, Generic)
   deriving anyclass (Flat, NFData)
-  deriving (ToJSON, FromJSON) via Generically PQName
 
 instance IsString PQName where
   fromString = Unqual . fromString

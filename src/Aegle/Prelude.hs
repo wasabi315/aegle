@@ -38,8 +38,6 @@ module Aegle.Prelude
     NFData,
     ($!!),
     Hashable,
-    FromJSON,
-    ToJSON,
     HasCallStack,
     elemIndex,
     intersperse,
@@ -88,7 +86,6 @@ import Control.Monad.Except
 import Control.Monad.IO.Class
 import Control.Monad.Reader
 import Control.Monad.State.Strict
-import Data.Aeson (FromJSON, ToJSON)
 import Data.Bifoldable
 import Data.Bifoldable1
 import Data.Bifunctor
