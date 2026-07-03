@@ -43,7 +43,7 @@ class Feature a where
   matchesCompat :: Compat a -> "db" :! a -> Bool
 
 --------------------------------------------------------------------------------
--- Features
+-- Result Head
 
 data ResultHead n
   = RHU
@@ -105,6 +105,7 @@ instance (Eq n) => Feature (ResultHead n) where
   {-# INLINE matchesCompat #-}
 
 --------------------------------------------------------------------------------
+-- Polymorphic
 
 -- | Polymorphic feature.
 data Polymorphic = Monomorphic | Polymorphic
@@ -155,7 +156,11 @@ arity = go [] False 0
               go (a : ctx) True (arity + 1) b
         _ ->
           go (a : ctx) hasVar (arity + 1) b
-      _ -> Arity {..}
+      a -> case headTerm a of
+        Var i
+          | endsInSort (ctx !! coerce i) ->
+              Arity {hasVar = True, ..}
+        _ -> Arity {..}
 
 data ArityCompat
   = HasVar
