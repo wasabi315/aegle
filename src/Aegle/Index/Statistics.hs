@@ -24,21 +24,21 @@ import Prettyprinter
 data Statistics = Statistics
   { totalItems :: {-# UNPACK #-} Int,
     featureShapes :: [FeatureShape],
-    resultHeadTops :: [ResultHeadTop],
     nameCollisions :: [NameCollision]
   }
   deriving stock (Show, Generic)
-  deriving (ToJSON, FromJSON) via Generically Statistics
+  deriving (ToJSON) via Generically Statistics
 
 data FeatureShape = FeatureShape
   { resultHead :: ResultHeadKind,
+    resultHeadTop :: Maybe T.Text,
     polymorphic :: Bool,
     arity :: Int,
     fixedArity :: Bool,
     count :: Int
   }
   deriving stock (Eq, Ord, Show, Generic)
-  deriving (ToJSON, FromJSON) via Generically FeatureShape
+  deriving (ToJSON) via CustomJSON '[OmitNothingFields] FeatureShape
 
 data ResultHeadKind
   = RHKU
@@ -49,28 +49,17 @@ data ResultHeadKind
   | RHKProj2
   deriving stock (Eq, Ord, Show, Generic)
   deriving
-    (ToJSON, FromJSON)
+    (ToJSON)
     via CustomJSON
           '[ConstructorTagModifier '[StripPrefix "RHK", CamelToSnake]]
           ResultHeadKind
-
-data ResultHeadTop = ResultHeadTop
-  { name :: T.Text,
-    count :: Int
-  }
-  deriving stock (Show, Generic)
-  deriving
-    (ToJSON, FromJSON)
-    via Generically ResultHeadTop
 
 data NameCollision = NameCollision
   { name :: T.Text,
     canonicalNames :: Int
   }
   deriving stock (Show, Generic)
-  deriving
-    (ToJSON, FromJSON)
-    via Generically NameCollision
+  deriving (ToJSON) via Generically NameCollision
 
 --------------------------------------------------------------------------------
 
@@ -79,9 +68,7 @@ statisticsBuilder = do
   totalItems <-
     countOf (#definitions . traverse)
   featureShapes <-
-    histogramOf (#definitions . traverse . #feature . to void)
-  resultHeadTops <-
-    histogramOf (#definitions . traverse . #feature . #resultHead . #_RHTop)
+    histogramOf (#definitions . traverse . #feature)
   nameCollisions <-
     fmap (M.filter (> 1)) do
       Foldl.handles (#exports . traverse) do
@@ -91,7 +78,6 @@ statisticsBuilder = do
     Statistics
       { totalItems,
         featureShapes = formatFeatureShapes featureShapes,
-        resultHeadTops = formatResultHeadTops resultHeadTops,
         nameCollisions = formatNameCollisions nameCollisions
       }
 
@@ -113,24 +99,21 @@ toResultHeadKind = \case
   RHProj1 -> RHKProj1
   RHProj2 -> RHKProj2
 
-formatFeatureShapes :: M.Map (AllFeature n) Int -> [FeatureShape]
+formatFeatureShapes :: M.Map (AllFeature QName) Int -> [FeatureShape]
 formatFeatureShapes =
   map
     ( \(AllFeature {..}, count) ->
         FeatureShape
           { count,
             resultHead = toResultHeadKind resultHead,
+            resultHeadTop = case resultHead of
+              RHTop n -> Just $! T.show $ pretty n
+              _ -> Nothing,
             polymorphic = polymorphic == Polymorphic,
             arity = arity.arity,
             fixedArity = not arity.hasVar
           }
     )
-    . sortOn (Down . snd)
-    . M.toList
-
-formatResultHeadTops :: M.Map QName Int -> [ResultHeadTop]
-formatResultHeadTops =
-  map (\(name, count) -> ResultHeadTop {name = T.show $ pretty name, ..})
     . sortOn (Down . snd)
     . M.toList
 

@@ -97,7 +97,7 @@ resolveNames :: (Traversable t) => DbReader m -> t PQName -> m (t [Referent])
 resolveNames DbReader {..} = resolveNames
 
 -- | Load library items
---   * whose names contain all the given text as substrings
+--   * whose names contain all the given texts as substrings
 --   * whose type signatures match at least one of the given compatibilities.
 --
 -- Note that the compatibilities may contain unresolved names.
