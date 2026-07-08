@@ -4,7 +4,6 @@ module Aegle.Web
   )
 where
 
-import Aegle.Core.Isomorphism
 import Aegle.Core.Name
 import Aegle.Core.Term
 import Aegle.Database.Backend
@@ -265,20 +264,9 @@ searchUI dbReader timeout = \query -> do
                   strong_ "Re-exported as: "
                   sequence_ $ intersperse ", " do
                     code_ . prettyHtml <$> reexportedAs
-              case (iso, solution) of
-                (Refl, Top {}) -> pure ()
-                (Refl, _) -> details_ do
-                  summary_ "Solution"
-                  p_ [class_ "detail-row"] do
-                    code_ $ prettyHtml $ Unqualified solution
-                _ -> details_ do
-                  summary_ "Isomorphism and solution"
-                  p_ [class_ "detail-row"] do
-                    strong_ "Isomorphism: "
-                    code_ $ prettyHtml iso
-                  p_ [class_ "detail-row"] do
-                    strong_ "Solution: "
-                    code_ $ prettyHtml $ Unqualified solution
+              p_ [class_ "detail-row"] do
+                strong_ "Solution: "
+                code_ $ prettyHtml $ Unqualified solution
 
 layoutHtml :: Html () -> Html ()
 layoutHtml content = doctypehtml_ do
