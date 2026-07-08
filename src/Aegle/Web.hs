@@ -110,6 +110,7 @@ search dbReader timeout = \query -> do
     config =
       Search.Config
         { querySrc = "<query param>",
+          recordCandTimes = False,
           ..
         }
 
@@ -176,6 +177,7 @@ searchUI dbReader timeout = \query -> do
     config =
       Search.Config
         { querySrc = "<query param>",
+          recordCandTimes = False,
           ..
         }
 

@@ -3,6 +3,7 @@ module Aegle.Search
     Config (..),
     Result (..),
     Match (..),
+    CandTime (..),
     Error (..),
   )
 where
@@ -34,13 +35,15 @@ import System.Timeout
 data Config = Config
   { dbReader :: DbReader IO,
     querySrc :: String,
-    timeout :: Int
+    timeout :: Int,
+    recordCandTimes :: Bool
   }
 
 data Result = Result
   { numCands :: Int,
     matches :: [Match],
-    time :: NominalDiffTime
+    time :: NominalDiffTime,
+    candTimes :: Maybe [CandTime]
   }
   deriving stock (Show, Generic)
 
@@ -51,6 +54,13 @@ data Match = Match
   }
   deriving stock (Show, Generic)
   deriving anyclass (NFData)
+
+data CandTime = CandTime
+  { name :: QName,
+    time :: NominalDiffTime,
+    matched :: Bool
+  }
+  deriving stock (Show, Generic)
 
 data Error
   = ParseError ParserError
@@ -69,7 +79,7 @@ instance Exception Error where
 
 search :: Config -> T.Text -> IO (Either Error Result)
 search config query = onTimeout config.timeout (Left Timeout) $ runExceptT do
-  ((numCands, matches), time) <- timed do
+  ((numCands, matches, candTimes), time) <- timed do
     -- 1. parse query
     Q.Query {..} <- parseQuery config.querySrc query ??% ParseError
 
@@ -92,10 +102,16 @@ search config query = onTimeout config.timeout (Left Timeout) $ runExceptT do
 
     -- 4. Load candidates
     cands <- liftIO $ loadCandidates config.dbReader names compats
+    let numCands = length cands
 
     -- 4. Try matching
-    matches <- liftIO $ match tenv resol typ' cands
-    pure (length cands, matches)
+    if config.recordCandTimes
+      then liftIO do
+        (matches, candTimes) <- matchWithTime tenv resol typ' cands
+        pure (numCands, matches, Just candTimes)
+      else liftIO do
+        matches <- match tenv resol typ' cands
+        pure (numCands, matches, Nothing)
 
   pure Result {..}
 
@@ -104,16 +120,26 @@ match tenv resol query items =
   Streamly.fromList items
     & Streamly.parConcatMap
       id
-      ( maybe Streamly.nil Streamly.fromPure
-          . IStr.streamToMaybe
-          . match' tenv resol query
+      ( \item@LibraryItem {..} ->
+          case IStr.streamToMaybe $ check0 tenv resol query canonicalName signature of
+            Nothing -> Streamly.nil
+            Just (iso, solution) -> Streamly.fromPure $! Match {..}
       )
     & Streamly.toList
 
-match' :: TopEnv -> Resol -> Term -> LibraryItem -> IStr.Stream Match
-match' tenv resol query item@LibraryItem {..} = do
-  (iso, solution) <- check0 tenv resol query canonicalName signature
-  pure Match {..}
+matchWithTime :: TopEnv -> Resol -> Type -> [LibraryItem] -> IO ([Match], [CandTime])
+matchWithTime tenv resol query items = do
+  results <- for items \item@LibraryItem {..} ->
+    (item,) <$> timedPure do
+      IStr.streamToMaybe $ check0 tenv resol query canonicalName signature
+  let candTimes =
+        results <&> \(item, (result, time)) ->
+          CandTime {name = item.canonicalName, matched = isJust result, ..}
+      matches =
+        flip mapMaybe results \(item, (result, _)) -> do
+          (iso, solution) <- result
+          pure Match {..}
+  pure (matches, candTimes)
 
 --------------------------------------------------------------------------------
 

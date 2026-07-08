@@ -12,13 +12,17 @@ import Aegle.Database.Backend.PostgreSQL
 import Aegle.Prelude
 import Aegle.Search as Search
 import Control.Exception
+import Data.Ord
 import Data.Text qualified as T
 import Hasql.Connection
 import Hasql.Connection.Setting
 import Prettyprinter
 import Prettyprinter.Render.Terminal
+import Prettyprinter.Render.Text
 import Prettyprinter.Util
+import System.Directory
 import System.Exit
+import System.FilePath
 import System.IO
 
 --------------------------------------------------------------------------------
@@ -42,14 +46,16 @@ searchWith dbReader timeout query = do
   let config =
         Search.Config
           { querySrc = "<interactive>",
+            recordCandTimes = True,
             ..
           }
   result <- Search.search config query
+  for_ (result ^? _Right . #candTimes . _Just) $ writeCandTimes query
   either putError putResult result
 
 putResult :: Result -> IO ()
 putResult Result {..} =
-  putDoc (doc <> line)
+  Prettyprinter.Render.Terminal.putDoc (doc <> line)
   where
     numMatches = length matches
 
@@ -105,6 +111,29 @@ putResult Result {..} =
       DKRecord -> "record"
       DKConstructor -> "constructor"
       DKPrimitive -> "primitive"
+
+writeCandTimes :: T.Text -> [CandTime] -> IO ()
+writeCandTimes query candTimes = do
+  cwd <- getCurrentDirectory
+  let logDir = cwd </> ".aegle-log" </> "search"
+      logFile = logDir </> "candidate-times.log"
+  createDirectoryIfMissing True logDir
+  let doc =
+        vsep
+          [ "--------------------------------------------------------------------------------",
+            "query:" <+> pretty query,
+            "candidate timings, slowest first:",
+            indent 2 $ vsep $ candTimeDoc <$> sortOn (Down . (.time)) candTimes
+          ]
+  withFile logFile AppendMode \hdl ->
+    Prettyprinter.Render.Text.hPutDoc hdl (doc <> line)
+  where
+    candTimeDoc CandTime {name, time, matched} =
+      hsep
+        [ viaShow time,
+          if matched then "matched" else "missed",
+          pretty name
+        ]
 
 putError :: Error -> IO ()
 putError = hPutStrLn stderr . displayException

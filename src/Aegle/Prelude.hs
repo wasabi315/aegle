@@ -66,6 +66,7 @@ module Aegle.Prelude
     applyN,
     (//),
     timed,
+    timedPure,
     (??:),
     (??%),
     (?:),
@@ -166,6 +167,16 @@ timed a = do
   t2 <- liftIO getCurrentTime
   let diff = diffUTCTime t2 t1
   pure (res, diff)
+{-# INLINE timed #-}
+
+timedPure :: (MonadIO m) => a -> m (a, NominalDiffTime)
+timedPure ~a = do
+  t1 <- liftIO getCurrentTime
+  let res = a
+  t2 <- liftIO getCurrentTime
+  let diff = diffUTCTime t2 t1
+  pure (res, diff)
+{-# NOINLINE timedPure #-}
 
 infix 0 ??:, ??%
 
