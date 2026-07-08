@@ -94,10 +94,14 @@ toTerm = go []
         | Just i <- x `elemIndex` ns -> C.Var (Index i)
       Var x -> C.TopAmb x
       U -> C.U
-      Pi x a b -> C.Pi x (go ns a) (go (x : ns) b)
+      Pi x a b -> do
+        let x' = if Unqual x `S.member` freeVars b then x else "_"
+        C.Pi x' (go ns a) (go (x' : ns) b)
       Lam x t -> C.Lam x (go (x : ns) t)
       App t u -> C.App (go ns t) (go ns u)
-      Sigma x a b -> C.Sigma x (go ns a) (go (x : ns) b)
+      Sigma x a b -> do
+        let x' = if Unqual x `S.member` freeVars b then x else "_"
+        C.Sigma x' (go ns a) (go (x' : ns) b)
       Pair t u -> C.Pair (go ns t) (go ns u)
       Proj1 t -> C.Proj1 (go ns t)
       Proj2 t -> C.Proj2 (go ns t)
