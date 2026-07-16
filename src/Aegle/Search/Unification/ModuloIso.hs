@@ -70,7 +70,7 @@ pickUpProjection tenv mctx lvl (Quant x a b) = (Quant x a b, Refl, mctx) : go lv
             go (l + 1) c2
           ]
       c -> do
-        let i = l - l
+        let i = l - lvl
         (c, mctx) <- maybeToList $ rename tenv mctx (skipPRenN (i + 1) idr) c
         let c' = eval tenv mctx ide c
             rest ~_ = dropLastProj (l + 1) (VSigma x a b)
