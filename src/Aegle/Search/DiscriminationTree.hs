@@ -8,6 +8,8 @@ import Aegle.Prelude
 import Aegle.Search.Unification.Pruning (PartialRenaming (..), liftPRen)
 import Data.IntMap.Strict qualified as IM
 import Data.Map.Lazy qualified as ML
+import Data.Map.Strict qualified as M
+import Data.Set.NonEmpty qualified as S1
 import Data.Text qualified as T
 
 --------------------------------------------------------------------------------
@@ -38,33 +40,56 @@ data DT a
 --------------------------------------------------------------------------------
 -- Discrimination tree "saturated" by permutation iso and possible unfolding
 
-reflDT :: Level -> Value -> DT a -> DT a
-reflDT l = \case
-  VRigid x sp -> etaDT l (TRigid x) sp
-  VOpaque x sp -> etaDT l (TOpaque x) sp
-  VTopAmb tenv x sp -> undefined
+reflDT :: Resol -> Level -> Value -> (Resol -> DT a) -> DT a
+reflDT resol l t k = case t of
+  VRigid x sp -> etaDT resol l (TRigid x) sp k
+  VOpaque x sp -> etaDT resol l (TOpaque x) sp k
+  VTopAmb tenv x sp -> unions do
+    x' <- S1.toList $ resol M.! x
+    let resol' = M.insert x (S1.singleton x') resol
+    pure case ML.lookup x' tenv of
+      Nothing -> reflDT resol' l (VOpaque x' sp) k
+      Just t -> reflDT resol' l (vAppSpine t sp) k
   VFlex {} -> impossible "reflTrie"
-  VU -> One TU
-  VPi _ a b -> One TPi . reflDT l a . reflDT (l + 1) (b $ VVar l)
-  VLam _ t -> One TLam . reflDT (l + 1) (t $ VVar l)
-  VSigma _ a b -> One TSigma . reflDT l a . reflDT (l + 1) (b $ VVar l)
-  VPair t u -> One TPair . reflDT l t . reflDT l u
-  VBrave {} -> const Empty
+  VU -> One TU (k resol)
+  VPi _ a b ->
+    One TPi do
+      reflDT resol l a \resol ->
+        reflDT resol (l + 1) (b $ VVar l) k
+  VLam _ t ->
+    One TLam do
+      reflDT resol (l + 1) (t $ VVar l) k
+  VSigma _ a b ->
+    One TSigma do
+      reflDT resol l a \resol ->
+        reflDT resol (l + 1) (b $ VVar l) k
+  VPair t u ->
+    One TPair do
+      reflDT resol l t \resol ->
+        reflDT resol l u k
+  VBrave {} -> Empty
 
-etaDT :: Level -> (Int -> Token) -> Spine -> DT a -> DT a
-etaDT l hd sp ~dt =
-  reflDTSpine l hd sp dt
-    `union` One TEtaLam (etaDT (l + 1) hd (SApp sp (VVar l)) dt)
-    `union` One TEtaPair (etaDT l hd (SProj1 sp) $ etaDT l hd (SProj2 sp) dt)
+etaDT :: Resol -> Level -> (Int -> Token) -> Spine -> (Resol -> DT a) -> DT a
+etaDT resol l hd sp k =
+  reflDTSpine resol l hd sp k
+    `union` One TEtaLam (etaDT resol (l + 1) hd (SApp sp (VVar l)) k)
+    `union` One TEtaPair (etaDT resol l hd (SProj1 sp) \resol -> etaDT resol l hd (SProj2 sp) k)
 
-reflDTSpine :: Level -> (Int -> Token) -> Spine -> DT a -> DT a
-reflDTSpine l hd = go 0
+reflDTSpine :: Resol -> Level -> (Int -> Token) -> Spine -> (Resol -> DT a) -> DT a
+reflDTSpine resol l hd sp k = go resol 0 sp k
   where
-    go len = \case
-      SNil -> One (hd len)
-      SApp sp u -> go (len + 1) sp . One TApp . reflDT l u
-      SProj1 sp -> go (len + 1) sp . One TProj1
-      SProj2 sp -> go (len + 1) sp . One TProj2
+    go resol len sp k = case sp of
+      SNil -> One (hd len) (k resol)
+      SApp sp u ->
+        go resol (len + 1) sp \resol ->
+          One TApp do
+            reflDT resol l u k
+      SProj1 sp ->
+        go resol (len + 1) sp \resol ->
+          One TProj1 (k resol)
+      SProj2 sp ->
+        go resol (len + 1) sp \resol ->
+          One TProj2 (k resol)
 
 unionWith :: (a -> a -> a) -> DT a -> DT a -> DT a
 unionWith f = \cases
