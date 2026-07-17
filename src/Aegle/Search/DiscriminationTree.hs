@@ -7,6 +7,7 @@ import Aegle.Core.Term
 import Aegle.Prelude
 import Aegle.Search.Unification.Pruning (PartialRenaming (..), liftPRen)
 import Data.IntMap.Strict qualified as IM
+import Data.List.NonEmpty qualified as NE
 import Data.Map.Lazy qualified as ML
 import Data.Map.Strict qualified as M
 import Data.Set.NonEmpty qualified as S1
@@ -37,8 +38,59 @@ data DT a
   | Node (ML.Map Token (DT a)) -- two or more
   deriving stock (Functor, Foldable, Traversable)
 
+unionWith :: (a -> a -> a) -> DT a -> DT a -> DT a
+unionWith f = \cases
+  Empty dt' -> dt'
+  dt Empty -> dt
+  (Leaf x) (Leaf y) -> Leaf $ f x y
+  (One tok dt) (One tok' dt')
+    | tok == tok' -> One tok $ unionWith f dt dt'
+    | otherwise -> Node $ ML.fromList [(tok, dt), (tok', dt')]
+  (One tok dt) (Node dts') -> Node $ ML.insertWith (unionWith f) tok dt dts'
+  (Node dts) (One tok dt') -> Node $ ML.insertWith (flip $ unionWith f) tok dt' dts
+  (Node dts) (Node dts') -> Node $ ML.unionWith (unionWith f) dts dts'
+  _ _ -> error "impossible"
+
+union :: DT a -> DT a -> DT a
+union = unionWith const
+
+unions :: (Foldable1 f) => f (DT a) -> DT a
+unions = foldr1 union
+
 --------------------------------------------------------------------------------
 -- Discrimination tree "saturated" by permutation iso and possible unfolding
+-- Branches are expanded on demand
+
+satDT :: Resol -> Level -> Value -> DT Iso
+satDT resol l t = satDT' resol l t (const Leaf)
+
+satDT' :: Resol -> Level -> Value -> (Resol -> Iso -> DT a) -> DT a
+satDT' resol l t k = case t of
+  VPi x a b -> satDTPi resol l (Quant x a b) k
+  VSigma x a b -> satDTSigma resol l (Quant x a b) k
+  VTopAmb tenv x sp -> unions do
+    x' <- S1.toList $ resol M.! x
+    resol <- pure $ M.insert x (S1.singleton x') resol
+    pure case ML.lookup x' tenv of
+      Nothing -> reflDT resol l (VOpaque x' sp) (`k` Refl)
+      Just t -> satDT' resol l (vAppSpine t sp) k
+  _ -> reflDT resol l t (`k` Refl)
+
+satDTPi :: Resol -> Level -> Quant -> (Resol -> Iso -> DT a) -> DT a
+satDTPi resol l pi k =
+  One TPi $ unions do
+    (Quant _ a b, i) <- error "TODO" pi :: NE.NonEmpty (Quant, Iso)
+    pure $ satDT' resol l a \resol ia ->
+      satDT' resol (l + 1) (b $ transportInv ia (VVar l)) \resol ib ->
+        k resol $! i <> piCongL ia <> piCongR ib
+
+satDTSigma :: Resol -> Level -> Quant -> (Resol -> Iso -> DT a) -> DT a
+satDTSigma resol l sig k =
+  One TSigma $ unions do
+    (Quant _ a b, i) <- error "TODO" sig :: NE.NonEmpty (Quant, Iso)
+    pure $ satDT' resol l a \resol ia ->
+      satDT' resol (l + 1) (b $ transportInv ia (VVar l)) \resol ib ->
+        k resol $! i <> sigmaCongL ia <> sigmaCongR ib
 
 reflDT :: Resol -> Level -> Value -> (Resol -> DT a) -> DT a
 reflDT resol l t k = case t of
@@ -46,10 +98,10 @@ reflDT resol l t k = case t of
   VOpaque x sp -> etaDT resol l (TOpaque x) sp k
   VTopAmb tenv x sp -> unions do
     x' <- S1.toList $ resol M.! x
-    let resol' = M.insert x (S1.singleton x') resol
+    resol <- pure $ M.insert x (S1.singleton x') resol
     pure case ML.lookup x' tenv of
-      Nothing -> reflDT resol' l (VOpaque x' sp) k
-      Just t -> reflDT resol' l (vAppSpine t sp) k
+      Nothing -> reflDT resol l (VOpaque x' sp) k
+      Just t -> reflDT resol l (vAppSpine t sp) k
   VFlex {} -> impossible "reflTrie"
   VU -> One TU (k resol)
   VPi _ a b ->
@@ -90,25 +142,6 @@ reflDTSpine resol l hd sp k = go resol 0 sp k
       SProj2 sp ->
         go resol (len + 1) sp \resol ->
           One TProj2 (k resol)
-
-unionWith :: (a -> a -> a) -> DT a -> DT a -> DT a
-unionWith f = \cases
-  Empty dt' -> dt'
-  dt Empty -> dt
-  (Leaf x) (Leaf y) -> Leaf $ f x y
-  (One tok dt) (One tok' dt')
-    | tok == tok' -> One tok $ unionWith f dt dt'
-    | otherwise -> Node $ ML.fromList [(tok, dt), (tok', dt')]
-  (One tok dt) (Node dts') -> Node $ ML.insertWith (unionWith f) tok dt dts'
-  (Node dts) (One tok dt') -> Node $ ML.insertWith (flip $ unionWith f) tok dt' dts
-  (Node dts) (Node dts') -> Node $ ML.unionWith (unionWith f) dts dts'
-  _ _ -> error "impossible"
-
-union :: DT a -> DT a -> DT a
-union = unionWith const
-
-unions :: (Foldable1 f) => f (DT a) -> DT a
-unions = foldr1 union
 
 --------------------------------------------------------------------------------
 -- Matching
@@ -157,7 +190,7 @@ match' tenv mctx l t dt k = case force mctx t of
           dt <- child (TRigid x len) dt
           matchSpine tenv mctx l sp dt k,
         -- eta-expand
-        -- don't descend TEtaLam and TEtaPair!
+        -- don't take TEtaLam and TEtaPair!
         do
           dt <- child TLam dt
           match' tenv mctx (l + 1) (t $$ VVar l) dt k,
@@ -173,7 +206,7 @@ match' tenv mctx l t dt k = case force mctx t of
           dt <- child (TOpaque x len) dt
           matchSpine tenv mctx l sp dt k,
         -- eta-expand
-        -- don't descend TEtaLam and TEtaPair!
+        -- don't take TEtaLam and TEtaPair!
         do
           dt <- child TLam dt
           match' tenv mctx (l + 1) (t $$ VVar l) dt k,
