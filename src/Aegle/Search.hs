@@ -22,7 +22,7 @@ import Data.ImmatureStream qualified as IStr
 import Data.List.NonEmpty qualified as NE
 import Data.Map.Lazy qualified as ML
 import Data.Map.Strict qualified as M
-import Data.Set.NonEmpty qualified as S1
+import Data.Set.NonEmpty qualified as NES
 import Data.Text qualified as T
 import Data.Time.Clock
 import Prettyprinter
@@ -86,7 +86,7 @@ search config query = onTimeout config.timeout (Left Timeout) $ runExceptT do
     -- 2. resolve free variables and obtain 'Resol' and 'TopEnv'
     refMap <- liftIO $ resolveNames config.dbReader $ M.fromSet id (Q.freeVars typ)
     resol <- flip M.traverseWithKey refMap \x refs ->
-      fmap (S1.fromList . fmap (.canonicalName)) (NE.nonEmpty refs)
+      fmap (NES.fromList . fmap (.canonicalName)) (NE.nonEmpty refs)
         ??: NotFound x
     let mctx = emptyMetaCtx resol
         tenv = flip foldMap (Compose refMap) \Referent {..} ->

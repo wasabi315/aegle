@@ -46,6 +46,8 @@ data Term
   deriving stock (Show, Generic)
   deriving anyclass (Flat, NFData)
 
+{-# DEPRECATED TopAmb "TODO: Delete" #-}
+
 type Type = Term
 
 type Pruning = [Bool]

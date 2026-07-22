@@ -61,12 +61,24 @@ liftPRen PRen {..} =
       ..
     }
 
+instance HasField "lift" PartialRenaming PartialRenaming where
+  getField = liftPRen
+  {-# INLINE getField #-}
+
 -- | @PRen Γ Δ → PRen Γ (Δ, x : A)@.
 skipPRen :: PartialRenaming -> PartialRenaming
 skipPRen = #cod +~ 1
 
+instance HasField "skip" PartialRenaming PartialRenaming where
+  getField = skipPRen
+  {-# INLINE getField #-}
+
 skipPRenN :: Level -> PartialRenaming -> PartialRenaming
 skipPRenN n = #cod +~ n
+
+instance HasField "skipN" PartialRenaming (Level -> PartialRenaming) where
+  getField = flip skipPRenN
+  {-# INLINE getField #-}
 
 -- Monad for pruning
 type Prune = StateT MetaCtx Maybe

@@ -10,8 +10,8 @@ import Data.IntMap.Strict qualified as IM
 import Data.List.NonEmpty qualified as NE
 import Data.Map.Lazy qualified as ML
 import Data.Map.Strict qualified as M
-import Data.Set.NonEmpty qualified as S1
-import Data.Set.NonEmpty.Extra qualified as S1
+import Data.Set.NonEmpty qualified as NES
+import Data.Set.NonEmpty.Extra qualified as NES
 import Prettyprinter
 
 --------------------------------------------------------------------------------
@@ -29,6 +29,10 @@ data Value
   | VSigma Name VType (Value -> VType)
   | VPair Value Value
   | VBrave Value Spine
+
+{-# DEPRECATED VTopAmb "TODO: Delete" #-}
+
+{-# DEPRECATED VBrave "TODO: Delete" #-}
 
 type VType = Value
 
@@ -64,7 +68,7 @@ data MetaEntry
   | Solved Value ~VType
 
 -- | Unresolved name → set of canonical names may denoted
-type Resol = M.Map PQName (S1.NESet QName)
+type Resol = M.Map PQName (NES.NESet QName)
 
 --------------------------------------------------------------------------------
 -- Meta-context operation
@@ -96,20 +100,20 @@ writeMeta :: MetaCtx -> MetaVar -> Value -> VType -> MetaCtx
 writeMeta mctx m t ~a =
   mctx {metaCtx = IM.insert (coerce m) (Solved t a) mctx.metaCtx}
 
-lookupResol :: MetaCtx -> PQName -> S1.NESet QName
+lookupResol :: MetaCtx -> PQName -> NES.NESet QName
 lookupResol mctx n = mctx.resol M.! n
 
 -- | Resolve an unresolved name @n@ as a canonical name @n'@.
 -- Returns 'Nothing' if @n@ does not denote @n'@ according to the given 'MetaCtx'.
 resolve :: MetaCtx -> PQName -> QName -> Maybe MetaCtx
 resolve mctx n n' = do
-  guard $ n' `S1.member` (mctx.resol M.! n)
+  guard $ n' `NES.member` (mctx.resol M.! n)
   pure $! unsafeResolve mctx n n'
 
 unsafeResolve :: MetaCtx -> PQName -> QName -> MetaCtx
-unsafeResolve mctx n n' = unsafeRestrict mctx n (S1.singleton n')
+unsafeResolve mctx n n' = unsafeRestrict mctx n (NES.singleton n')
 
-unsafeRestrict :: MetaCtx -> PQName -> S1.NESet QName -> MetaCtx
+unsafeRestrict :: MetaCtx -> PQName -> NES.NESet QName -> MetaCtx
 unsafeRestrict mctx n ns = mctx {resol = M.insert n ns mctx.resol}
 
 --------------------------------------------------------------------------------
@@ -151,8 +155,9 @@ vTop tenv n = ML.findWithDefault (VOpaque n SNil) n tenv
 -- Reduce only when the name has been resolved
 vTopAmb :: TopEnv -> MetaCtx -> PQName -> Value
 vTopAmb tenv mctx n = case lookupResol mctx n of
-  S1.Singleton n' -> vTop tenv n'
+  NES.Singleton n' -> vTop tenv n'
   _ -> VTopAmb tenv n SNil
+{-# DEPRECATED vTopAmb "TODO: Delete" #-}
 
 vAppPruning :: Env -> Value -> Pruning -> Value
 vAppPruning env ~v pr = case (env, pr) of
@@ -191,6 +196,12 @@ vProj2 = \case
   VBrave b sp -> VBrave b (SProj2 sp)
   t -> VBrave t (SProj2 SNil)
 
+instance HasField "p1" Value Value where
+  getField = vProj1
+
+instance HasField "p2" Value Value where
+  getField = vProj2
+
 vAppSpine :: Value -> Spine -> Value
 vAppSpine t = \case
   SNil -> t
@@ -204,7 +215,7 @@ force mctx = \case
     | Solved t _ <- mctx.metaCtx IM.! coerce m ->
         force mctx (vAppSpine t sp)
   VTopAmb tenv n sp
-    | S1.Singleton n' <- lookupResol mctx n ->
+    | NES.Singleton n' <- lookupResol mctx n ->
         force mctx (vAppSpine (vTop tenv n') sp)
   t -> t
 
@@ -222,13 +233,13 @@ forceNondet mctx = \case
     | Solved t _ <- mctx.metaCtx IM.! coerce m ->
         forceNondet mctx (vAppSpine t sp)
   VTopAmb tenv n sp
-    | S1.Singleton n' <- lookupResol mctx n ->
+    | NES.Singleton n' <- lookupResol mctx n ->
         forceNondet mctx (vAppSpine (vTop tenv n') sp)
   VTopAmb tenv n sp -> do
     asum
       [ do
-          ns <- S1.withNonEmpty empty pure do
-            S1.filter (`ML.notMember` tenv) (lookupResol mctx n)
+          ns <- NES.withNonEmpty empty pure do
+            NES.filter (`ML.notMember` tenv) (lookupResol mctx n)
           let mctx' = unsafeRestrict mctx n ns
           pure (VTopAmb tenv n sp, mctx'),
         expandNondet tenv mctx n sp
@@ -333,8 +344,8 @@ instance Pretty MetaCtx where
                 Unsolved _ -> Nothing
         ]
       ++ [ pretty x <+> case xs of
-             S1.Singleton x' -> "=" <+> pretty x'
-             _ -> "∈" <+> align (list (fmap pretty $ NE.toList $ S1.toList xs))
+             NES.Singleton x' -> "=" <+> pretty x'
+             _ -> "∈" <+> align (list (fmap pretty $ NE.toList $ NES.toList xs))
          | (x, xs) <- M.toList mctx.resol
          ]
 

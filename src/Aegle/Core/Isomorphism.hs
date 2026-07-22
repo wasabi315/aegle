@@ -70,7 +70,7 @@ data Iso
     --  ----------------------------------
     --   (x : A) * B[x] ~ (x : A) * B'[x]
     SigmaCongR Iso
-  deriving stock (Show, Generic)
+  deriving stock (Eq, Ord, Show, Generic)
   deriving anyclass (NFData)
 
 instance Semigroup Iso where
