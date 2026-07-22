@@ -69,7 +69,10 @@ library
       Aegle.Index.Utils
       Aegle.Prelude
       Aegle.Search
-      Aegle.Search.DiscriminationTree
+      Aegle.Search.DiscrimTree
+      Aegle.Search.DiscrimTree.Match
+      Aegle.Search.DiscrimTree.Saturate
+      Aegle.Search.Evaluation
       Aegle.Search.Feature
       Aegle.Search.Match
       Aegle.Search.Parser

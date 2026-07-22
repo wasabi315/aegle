@@ -35,6 +35,7 @@ module Aegle.Prelude
     Generic,
     Generically (..),
     Typeable,
+    HasField (..),
     NFData,
     ($!!),
     Hashable,
@@ -114,6 +115,7 @@ import Data.Traversable
 import Data.Typeable (Typeable)
 import Data.Void
 import GHC.Generics
+import GHC.Records
 import GHC.Stack
 import Lens.Micro.Platform
 import Named
@@ -205,7 +207,7 @@ trace = Debug.Trace.trace
 #else
 
 trace :: String -> a -> a
-trace ~_ x = x
+trace = flip const
 
 #endif
 
