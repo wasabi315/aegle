@@ -33,10 +33,10 @@ data Query = Query
 data Term
   = Var PQName
   | U
-  | Pi Name Term Term
+  | Pi Name Type Type
   | Lam Name Term
   | App Term Term
-  | Sigma Name Term Term
+  | Sigma Name Type Type
   | Pair Term Term
   | Proj1 Term
   | Proj2 Term
@@ -75,16 +75,19 @@ headTerm :: Term -> Term
 headTerm = (.head) . appView
 
 freeVars :: Term -> S.Set PQName
-freeVars = \case
-  Var x -> S.singleton x
-  U -> S.empty
-  Pi x a b -> S.delete (Unqual x) $ freeVars a <> freeVars b
-  Lam x t -> S.delete (Unqual x) $ freeVars t
-  App t u -> freeVars t <> freeVars u
-  Sigma x a b -> S.delete (Unqual x) $ freeVars a <> freeVars b
-  Pair t u -> freeVars t <> freeVars u
-  Proj1 t -> freeVars t
-  Proj2 t -> freeVars t
+freeVars = go mempty
+  where
+    go ns = \case
+      Var (Unqual x) | x `S.member` ns -> mempty
+      Var x -> S.singleton x
+      U -> S.empty
+      Pi x a b -> go ns a <> go (S.insert x ns) b
+      Lam x t -> go (S.insert x ns) t
+      App t u -> go ns t <> go ns u
+      Sigma x a b -> go ns a <> go (S.insert x ns) b
+      Pair t u -> go ns t <> go ns u
+      Proj1 t -> go ns t
+      Proj2 t -> go ns t
 
 toTerm :: Term -> C.Term
 toTerm = go []

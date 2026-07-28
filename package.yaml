@@ -170,15 +170,12 @@ executables:
     dependencies:
       - aegle
     when:
-      - condition: flag(debug)
-        then:
-          ghc-options:
-            - -threaded
-        else:
-          ghc-options:
-            - -threaded
-            - -rtsopts
-            - -with-rtsopts= "-A64M -N"
+      - condition: "!flag(debug)"
+        ghc-options:
+          - -threaded
+          - -rtsopts
+          - -with-rtsopts= "-A64M -N"
+          - -feager-blackholing
 
 tests:
   aegle-test:

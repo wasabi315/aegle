@@ -300,10 +300,8 @@ executable aegle
     ghc-options: -ddump-simpl -dsuppress-all -dno-suppress-type-signatures -ddump-to-file
   if flag(llvm)
     ghc-options: -fllvm
-  if flag(debug)
-    ghc-options: -threaded
-  else
-    ghc-options: -threaded -rtsopts -with-rtsopts= "-A64M -N"
+  if !flag(debug)
+    ghc-options: -threaded -rtsopts -with-rtsopts= "-A64M -N" -feager-blackholing
 
 test-suite aegle-test
   type: exitcode-stdio-1.0

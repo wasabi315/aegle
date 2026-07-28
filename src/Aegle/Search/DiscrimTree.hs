@@ -48,15 +48,15 @@ child tok = \case
 
 --------------------------------------------------------------------------------
 
-union :: (Semigroup a) => DiscrimTree a -> DiscrimTree a -> DiscrimTree a
-union = \cases
-  (Leaf x) (Leaf y) -> Leaf $ x <> y
-  (Node dts) (Node dts') -> Node $ ML.unionWith union dts dts'
-  (Leaf {}) (Node {}) -> impossible "unionWith"
-  (Node {}) (Leaf {}) -> impossible "unionWith"
-
 instance (Semigroup a) => Semigroup (DiscrimTree a) where
-  (<>) = union
+  (<>) = go
+    where
+      go :: DiscrimTree a -> DiscrimTree a -> DiscrimTree a
+      go = \cases
+        (Leaf x) (Leaf y) -> Leaf $ x <> y
+        (Node dts) (Node dts') -> Node $ ML.unionWith go dts dts'
+        (Leaf {}) (Node {}) -> impossible "(<>)"
+        (Node {}) (Leaf {}) -> impossible "(<>)"
   {-# INLINE (<>) #-}
 
 instance (Semigroup a) => Monoid (DiscrimTree a) where
@@ -99,4 +99,4 @@ instance (Pretty a) => Pretty (DiscrimTree a) where
             hsep (toks []) <> ":" <> nest 2 do
               line <> vsep (uncurry go <$> dts)
 
-      notEtas = filter ((`notElem` [TEtaLam, TEtaPair]) . fst) . ML.toAscList
+      notEtas = filter ((`notElem` [TEtaLam, TEtaPair]) . fst) . ML.assocs

@@ -2,6 +2,7 @@ module Aegle.Search.Parser
   ( parseQuery,
     ParserError,
     keyword,
+    parseTerm,
   )
 where
 
@@ -178,6 +179,9 @@ pQuery = do
   _ <- char ':'
   typ <- pTerm
   pure Query {..}
+
+parseTerm :: FilePath -> T.Text -> Either ParserError Type
+parseTerm fname src = parse (ws *> pTerm <* eof) fname src
 
 parseQuery :: FilePath -> T.Text -> Either ParserError Query
 parseQuery fname src = parse (ws *> pQuery <* eof) fname src

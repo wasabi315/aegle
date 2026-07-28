@@ -14,7 +14,7 @@ import Data.Set qualified as S
 data Value
   = VRigid Level Spine
   | VOpaque {-# UNPACK #-} QName Spine
-  | VResol PQName (S.Set QName) Spine (ML.Map QName Value) -- at least one is non-empty
+  | VResol PQName (S.Set QName) Spine (ML.Map QName Value) -- covering, disjoint and at least one is non-empty
   | VU
   | VPi Name VType (Value -> VType)
   | VLam Name (Value -> Value)
@@ -33,16 +33,16 @@ data Spine
 pattern VVar :: Level -> Value
 pattern VVar x = VRigid x SNil
 
-data Quant = Quant Name Value (Value -> Value)
+data Quant = Quant Name VType (Value -> VType)
 
 -- | Environment keyed by names
 type Env = [(Name, Value)]
 
 -- | Environment keyed by ambiguous names
-type TopEnv = ML.Map PQName TopEnvEntry
+type TopEnv = M.Map PQName TopEnvEntry
 
 data TopEnvEntry = TopEnvEntry
-  { -- opaques and transps are disjoint and at least one is non-empty
+  { -- opaques and transps are covering, disjoint and at least one is non-empty
     opaques :: S.Set QName,
     transps :: ML.Map QName Value
   }
