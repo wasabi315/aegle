@@ -17,42 +17,21 @@ tests :: TestTree
 tests =
   testGroup
     "Aegle.Search.Feature"
-    [ testGroup
-        "ResultHead"
-        [ testPropertyNamed "compatible reflexive" "prop_compatible_reflexive" do
-            prop_compatible_reflexive $ genResultHead (pure ()),
-          testPropertyNamed "compatible transitive" "prop_compatible_transitive" do
-            prop_compatible_transitive $ genResultHead (pure ())
-        ],
-      testGroup
-        "Polymorphic"
-        [ testPropertyNamed "compatible reflexive" "prop_compatible_reflexive" do
-            prop_compatible_reflexive genPolymorphic,
-          testPropertyNamed "compatible transitive" "prop_compatible_transitive" do
-            prop_compatible_transitive genPolymorphic
-        ],
-      testGroup
-        "Arity"
-        [ testPropertyNamed "compatible reflexive" "prop_compatible_reflexive" do
-            prop_compatible_reflexive genArity,
-          testPropertyNamed "compatible transitive" "prop_compatible_transitive" do
-            prop_compatible_transitive genArity
-        ],
-      testGroup
-        "AllFeature"
-        [ testPropertyNamed "compatible reflexive" "prop_compatible_reflexive" do
-            prop_compatible_reflexive $ genAllFeature (pure ()),
-          testPropertyNamed "compatible transitive" "prop_compatible_transitive" do
-            prop_compatible_transitive $ genAllFeature (pure ())
-        ],
-      testGroup
-        "FilterFeature"
-        [ testPropertyNamed "compatible reflexive" "prop_compatible_reflexive" do
-            prop_compatible_reflexive $ genFilterFeature (pure ()),
-          testPropertyNamed "compatible transitive" "prop_compatible_transitive" do
-            prop_compatible_transitive $ genFilterFeature (pure ())
-        ]
+    [ testsFor "ResultHead" $ genResultHead (pure ()),
+      testsFor "Polymorphic" genPolymorphic,
+      testsFor "Arity" genArity,
+      testsFor "AllFeature" $ genAllFeature (pure ()),
+      testsFor "FilterFeature" $ genFilterFeature (pure ())
     ]
+  where
+    testsFor name gen =
+      testGroup
+        name
+        [ testPropertyNamed "compatible reflexive" "prop_compatible_reflexive" do
+            prop_compatible_reflexive gen,
+          testPropertyNamed "compatible transitive" "prop_compatible_transitive" do
+            prop_compatible_transitive gen
+        ]
 
 --------------------------------------------------------------------------------
 -- Properties
