@@ -1,4 +1,11 @@
-module Aegle.Search.DiscrimTree.Saturate where
+module Aegle.Search.DiscrimTree.Saturate
+  ( saturate,
+    saturate0,
+    Resol,
+    ResolEntry (..),
+    SatLeaf (..),
+  )
+where
 
 import Aegle.Core.Isomorphism hiding (transport, transportInv)
 import Aegle.Core.Name
@@ -22,29 +29,28 @@ data ResolEntry
   = Resolved QName
   | OpaqueOnly -- only when there are possible opaque names
 
--- | Expose the head as far as the recorded resolution decisions allow.
-expose :: Resol -> Value -> Value
-expose resol = \case
+-- | Resolve as far as existing resolution entries permit.
+resolve :: Resol -> Value -> Value
+resolve resol = \case
   t@(VResol x xs sp ts) -> case M.lookup x resol of
     Nothing -> t
     Just OpaqueOnly -> VResol x xs sp mempty
     Just (Resolved x') -> case M.lookup x' ts of
-      Just t -> expose resol t
+      Just t -> resolve resol t
       Nothing -> VOpaque x' sp
   t -> t
 
--- | Resolve ambiguous names non-deterministically until head is exposed.
-resolve :: Resol -> Value -> [(Resol, Value)]
-resolve resol t = case expose resol t of
+resolveNondet :: Resol -> Value -> [(Resol, Value)]
+resolveNondet resol t = case resolve resol t of
   VResol x xs sp ts ->
     concat
-      [ flip map (S.elems xs) \x' -> do
+      [ S.elems xs <&> \x' -> do
           let resol' = M.insert x (Resolved x') resol
           (resol', VOpaque x' sp),
         do
           (x', t) <- ML.assocs ts
           let resol' = M.insert x (Resolved x') resol
-          resolve resol' t
+          resolveNondet resol' t
       ]
   t -> [(resol, t)]
 
@@ -106,7 +112,7 @@ sigmaSwapsLast = \case
 instantiateNthPi :: Int -> Resol -> Value -> VType -> VType
 instantiateNthPi i resol ~t = go i
   where
-    go i u = case (i, expose resol u) of
+    go i u = case (i, resolve resol u) of
       (0, VPi _ _ b) -> b t
       (i, VPi x a b) -> VPi x a $ go (i - 1) . b
       _ -> impossible "instantiateNthPi"
@@ -115,7 +121,7 @@ instantiateNthPi i resol ~t = go i
 instantiateNthSigma :: Int -> Resol -> Value -> VType -> VType
 instantiateNthSigma i resol ~t = go i
   where
-    go i u = case (i, expose resol u) of
+    go i u = case (i, resolve resol u) of
       (0, VSigma _ _ b) -> b t
       (i, VSigma x a b) -> VSigma x a $ go (i - 1) . b
       _ -> impossible "instantiateNthSigma"
@@ -125,7 +131,7 @@ instantiateNthSigma i resol ~t = go i
 dropLastProjection :: Int -> Resol -> VType -> VType
 dropLastProjection i resol = go i
   where
-    go i t = case (i, expose resol t) of
+    go i t = case (i, resolve resol t) of
       (0, VSigma _ a _) -> a
       (i, VSigma x a b)
         | i > 0 -> VSigma x a $ go (i - 1) . b
@@ -139,7 +145,7 @@ data Strengthen
 strengthen :: Resol -> Level -> Level -> Value -> [Resol]
 strengthen resol from to = unwrap resol . go to resol
   where
-    go l resol t = case expose resol t of
+    go l resol t = case resolve resol t of
       VRigid x sp
         | from <= x && x < to -> NeedResol []
         | otherwise -> goSpine l resol sp
@@ -189,7 +195,7 @@ pickUpDomain :: Resol -> Level -> Quant -> [(Resol, Quant, Iso)]
 pickUpDomain resol l (Quant x a b) =
   (resol, Quant x a b, Refl) : go resol (l + 1) (b $ VVar l)
   where
-    go resol l' t = case expose resol t of
+    go resol l' t = case resolve resol t of
       VPi y c d ->
         concat
           [ do
@@ -210,7 +216,7 @@ pickUpProjection :: Resol -> Level -> Quant -> [(Resol, Quant, Iso)]
 pickUpProjection resol l (Quant x a b) =
   (resol, Quant x a b, Refl) : go resol (l + 1) (b $ VVar l)
   where
-    go resol l' t = case expose resol t of
+    go resol l' t = case resolve resol t of
       VSigma y c d ->
         concat
           [ do
@@ -292,7 +298,7 @@ saturate resol l t =
 
 saturate' :: Resol -> Level -> Value -> (Resol -> Iso -> SatDT) -> SatDT
 saturate' resol l t sub =
-  flip foldMap' (resolve resol t) \(resol, t) -> case t of
+  flip foldMap' (resolveNondet resol t) \(resol, t) -> case t of
     VPi x a b -> saturatePi resol l (Quant x a b) sub
     VSigma x a b -> saturateSigma resol l (Quant x a b) sub
     _ -> saturateRefl' resol l t (`sub` Refl)
@@ -313,7 +319,7 @@ saturateSigma resol l sig sub = one TSigma do
 
 saturateRefl :: Resol -> Level -> Value -> (Resol -> SatDT) -> SatDT
 saturateRefl resol l t sub =
-  flip foldMap (resolve resol t) \(resol, t) ->
+  flip foldMap' (resolveNondet resol t) \(resol, t) ->
     saturateRefl' resol l t sub
 
 saturateRefl' :: Resol -> Level -> Value -> (Resol -> SatDT) -> SatDT
