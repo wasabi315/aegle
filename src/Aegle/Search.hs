@@ -15,7 +15,7 @@ import Aegle.Core.Term
 import Aegle.Database.Backend
 import Aegle.Prelude
 import Aegle.Search.Feature
-import Aegle.Search.Match
+import Aegle.Search.Instantiation
 import Aegle.Search.Parser
 import Aegle.Search.Query qualified as Q
 import Data.ImmatureStream qualified as IStr

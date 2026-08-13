@@ -1,4 +1,4 @@
-module Aegle.Search.Match
+module Aegle.Search.Instantiation
   ( check0,
     check,
   )
