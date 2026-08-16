@@ -9,7 +9,7 @@ import Aegle.Core.Isomorphism
 import Aegle.Core.Name
 import Aegle.Core.Term
 import Aegle.Prelude
-import Aegle.Search.Unification.ModuloIso
+import Aegle.Search.Matching.ModuloIso
 import Data.ImmatureStream qualified as IStr
 import Prettyprinter
 
@@ -68,8 +68,10 @@ check mctx ctx query itemName item =
   asum
     [ do
         (item, inst, mctx) <- possibleInstantiation mctx ctx item (VOpaque itemName SNil)
-        (i, i', mctx) <- IStr.maybeToStream $ listToMaybe $ unifyIso ctx.topEnv mctx ctx.level item query
-        guard $ allMetaSolved mctx
+        (i, i', mctx) <- IStr.maybeToStream $ listToMaybe do
+          (i, i', mctx) <- matchIso ctx.topEnv mctx ctx.level ! #pat item ! #term query
+          guard $ allMetaSolved mctx
+          pure (i, i', mctx)
         let j = i <> sym i'
             ~sol = closeTm ctx.locals $ quote mctx ctx.level $ transport j inst
         pure (j, sol),

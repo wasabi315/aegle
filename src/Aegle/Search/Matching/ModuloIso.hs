@@ -1,6 +1,6 @@
-module Aegle.Search.Unification.ModuloIso
-  ( unifyIso0,
-    unifyIso,
+module Aegle.Search.Matching.ModuloIso
+  ( matchIso0,
+    matchIso,
     assocSwap,
     currySwap,
   )
@@ -11,14 +11,14 @@ import Aegle.Core.Isomorphism
 import Aegle.Core.Name
 import Aegle.Core.Term
 import Aegle.Prelude
-import Aegle.Search.Unification
-import Aegle.Search.Unification.Pruning
-import Prettyprinter
+import Aegle.Search.Matching
+import Aegle.Search.Matching.Pruning
 
 --------------------------------------------------------------------------------
 -- Rewriting types
 
 -- | Pick up a domain without breaking dependencies.
+-- Assuming the given pi contains no metas.
 pickUpDomain :: TopEnv -> MetaCtx -> Level -> Quant -> [(Quant, Iso, MetaCtx)]
 pickUpDomain tenv mctx lvl (Quant x a b) = (Quant x a b, Refl, mctx) : go lvl b
   where
@@ -30,7 +30,8 @@ pickUpDomain tenv mctx lvl (Quant x a b) = (Quant x a b, Refl, mctx) : go lvl b
         asum
           [ do
               let i = l - lvl
-              -- Strengthen c1. This may involve pruning.
+              -- Strengthen c1.
+              -- TODO: we don't need pruning here
               (c1, mctx) <- maybeToList $ rename tenv mctx (skipPRenN (i + 1) idr) c1
               let c1' = eval tenv mctx ide c1
                   rest ~vc1 = VPi x a (instPiAt i vc1 . b)
@@ -38,6 +39,7 @@ pickUpDomain tenv mctx lvl (Quant x a b) = (Quant x a b, Refl, mctx) : go lvl b
               pure (Quant y c1' rest, s, mctx),
             go (l + 1) c2
           ]
+      -- TODO: consider case where head is topamb
       _ -> []
 
     instPiAt i ~v t = case (i, force mctx t) of
@@ -50,6 +52,7 @@ pickUpDomain tenv mctx lvl (Quant x a b) = (Quant x a b, Refl, mctx) : go lvl b
       n -> piCongR (swaps (n - 1)) <> PiSwap
 
 -- | Pick up a projection without breaking dependencies.
+-- Assuming the given sigma contains no metas.
 pickUpProjection :: TopEnv -> MetaCtx -> Level -> Quant -> [(Quant, Iso, MetaCtx)]
 pickUpProjection tenv mctx lvl (Quant x a b) = (Quant x a b, Refl, mctx) : go lvl b
   where
@@ -61,7 +64,8 @@ pickUpProjection tenv mctx lvl (Quant x a b) = (Quant x a b, Refl, mctx) : go lv
         asum
           [ do
               let i = l - lvl
-              -- Strengthen c1. This may involve pruning.
+              -- Strengthen c1.
+              -- TODO: we don't need pruning here
               (c1, mctx) <- maybeToList $ rename tenv mctx (skipPRenN (i + 1) idr) c1
               let c1' = eval tenv mctx ide c1
                   rest ~vc1 = VSigma x a (instSigmaAt i vc1 . b)
@@ -69,6 +73,7 @@ pickUpProjection tenv mctx lvl (Quant x a b) = (Quant x a b, Refl, mctx) : go lv
               pure (Quant y c1' rest, s, mctx),
             go (l + 1) c2
           ]
+      -- TODO: consider case where head is topamb
       c -> do
         let i = l - lvl
         (c, mctx) <- maybeToList $ rename tenv mctx (skipPRenN (i + 1) idr) c
@@ -130,83 +135,72 @@ currySwap tenv mctx lvl q = do
     q -> pure (q, i, mctx)
 
 --------------------------------------------------------------------------------
--- Unification modulo type isomorphism
+-- Matching modulo type isomorphism
 
-unifyIso0 :: TopEnv -> MetaCtx -> Term -> Term -> [(Iso, MetaCtx)]
-unifyIso0 tenv mctx t t' = do
-  let v = eval tenv mctx [] t
-      v' = eval tenv mctx [] t'
-  (i, i', mctx) <- unifyIso tenv mctx 0 v v'
+matchIso0 :: TopEnv -> MetaCtx -> "pat" :! Term -> "term" :! Term -> [(Iso, MetaCtx)]
+matchIso0 tenv mctx (Arg p) (Arg t) = do
+  let vp = eval tenv mctx [] p
+      vt = eval tenv mctx [] t
+  (i, i', mctx) <- matchIso tenv mctx 0 ! #pat vp ! #term vt
   let j = i <> sym i'
   pure (j, mctx)
 
-unifyIso :: TopEnv -> MetaCtx -> Level -> Value -> Value -> [(Iso, Iso, MetaCtx)]
-unifyIso tenv mctx lvl t t' | traceUnifyIso tenv mctx lvl t t' = undefined
-unifyIso tenv mctx lvl t t' = case (force mctx t, force mctx t') of
+matchIso :: TopEnv -> MetaCtx -> Level -> "pat" :! Value -> "term" :! Value -> [(Iso, Iso, MetaCtx)]
+matchIso tenv mctx lvl (Arg p) (Arg t) = case (force mctx p, force mctx t) of
   (VBrave {}, _) -> []
   (_, VBrave {}) -> []
-  (VPi x a b, VPi x' a' b') ->
-    unifyPi tenv mctx lvl (Quant x a b) (Quant x' a' b')
-  (VSigma x a b, VSigma x' a' b') ->
-    unifySigma tenv mctx lvl (Quant x a b) (Quant x' a' b')
-  (VTopAmb tenv' x sp, t') ->
+  (VPi px pa pb, VPi x a b) ->
+    matchPi tenv mctx lvl ! #pat (Quant px pa pb) ! #term (Quant x a b)
+  (VSigma px pa pb, VSigma x a b) ->
+    matchSigma tenv mctx lvl ! #pat (Quant px pa pb) ! #term (Quant x a b)
+  (VTopAmb tenv' px psp, t) ->
+    asum
+      [ do
+          (p, mctx) <- expandNondet tenv' mctx px psp
+          matchIso tenv mctx lvl ! #pat p ! #term t,
+        do
+          mctx <- match tenv mctx lvl ! #pat (VTopAmb tenv' px psp) ! #term t
+          pure (Refl, Refl, mctx)
+      ]
+  (p, VTopAmb tenv' x sp) ->
     asum
       [ do
           (t, mctx) <- expandNondet tenv' mctx x sp
-          unifyIso tenv mctx lvl t t',
+          matchIso tenv mctx lvl ! #pat p ! #term t,
         do
-          mctx <- unify tenv mctx lvl (VTopAmb tenv' x sp) t'
+          mctx <- match tenv mctx lvl ! #pat p ! #term (VTopAmb tenv' x sp)
           pure (Refl, Refl, mctx)
       ]
-  (t, VTopAmb tenv' x' sp') ->
-    asum
-      [ do
-          (t', mctx) <- expandNondet tenv' mctx x' sp'
-          unifyIso tenv mctx lvl t t',
-        do
-          mctx <- unify tenv mctx lvl t (VTopAmb tenv' x' sp')
-          pure (Refl, Refl, mctx)
-      ]
-  (t, t') -> do
-    mctx <- unify tenv mctx lvl t t'
+  (p, t) -> do
+    mctx <- match tenv mctx lvl ! #pat p ! #term t
     pure (Refl, Refl, mctx)
 
-unifyPi :: TopEnv -> MetaCtx -> Level -> Quant -> Quant -> [(Iso, Iso, MetaCtx)]
-unifyPi tenv mctx lvl pi pi' = do
-  let (Quant _ a b, i) = curry mctx pi
-  flip foldMapA (currySwap tenv mctx lvl pi') \(Quant _ a' b', i', mctx) -> do
-    (ia, ia', mctx) <- unifyIso tenv mctx lvl a a'
-    let v = transportInv ia (VVar lvl)
-        v' = transportInv ia' (VVar lvl)
-    (ib, ib', mctx) <- unifyIso tenv mctx (lvl + 1) (b v) (b' v')
+matchPi :: TopEnv -> MetaCtx -> Level -> "pat" :! Quant -> "term" :! Quant -> [(Iso, Iso, MetaCtx)]
+matchPi tenv mctx lvl (Arg ppi) (Arg pi) = do
+  let (Quant _ pa pb, i) = curry mctx ppi
+  -- permutation on term side
+  -- TODO: consider case where a is a flex term (can be a sigma, unblocks currying!)
+  -- TODO: consider case where b is a flex term (can be a pi, unblocks permutation!)
+  flip foldMapA (currySwap tenv mctx lvl pi) \(Quant _ a b, i', mctx) -> do
+    (ia, ia', mctx) <- matchIso tenv mctx lvl ! #pat pa ! #term a
+    let pv = transportInv ia (VVar lvl)
+        v = transportInv ia' (VVar lvl)
+    (ib, ib', mctx) <- matchIso tenv mctx (lvl + 1) ! #pat (pb pv) ! #term (b v)
     let j = i <> piCongL ia <> piCongR ib
         j' = i' <> piCongL ia' <> piCongR ib'
     pure (j, j', mctx)
 
-unifySigma :: TopEnv -> MetaCtx -> Level -> Quant -> Quant -> [(Iso, Iso, MetaCtx)]
-unifySigma tenv mctx lvl sig sig' = do
-  let (Quant _ a b, i) = assoc mctx sig
-  flip foldMapA (assocSwap tenv mctx lvl sig') \(Quant _ a' b', i', mctx) -> do
-    (ia, ia', mctx) <- unifyIso tenv mctx lvl a a'
-    let v = transportInv ia (VVar lvl)
-        v' = transportInv ia' (VVar lvl)
-    (ib, ib', mctx) <- unifyIso tenv mctx (lvl + 1) (b v) (b' v')
+matchSigma :: TopEnv -> MetaCtx -> Level -> "pat" :! Quant -> "term" :! Quant -> [(Iso, Iso, MetaCtx)]
+matchSigma tenv mctx lvl (Arg psig) (Arg sig) = do
+  let (Quant _ pa pb, i) = assoc mctx psig
+  -- permutation on term side
+  -- TODO: consider case where a is a flex term (can be a sigma, unblocks assoc!)
+  -- TODO: consider case where b is a flex term (can be a sigma, unblocks permutation!)
+  flip foldMapA (assocSwap tenv mctx lvl sig) \(Quant _ a b, i', mctx) -> do
+    (ia, ia', mctx) <- matchIso tenv mctx lvl ! #pat pa ! #term a
+    let pv = transportInv ia (VVar lvl)
+        v = transportInv ia' (VVar lvl)
+    (ib, ib', mctx) <- matchIso tenv mctx (lvl + 1) ! #pat (pb pv) ! #term (b v)
     let j = i <> sigmaCongL ia <> sigmaCongR ib
         j' = i' <> sigmaCongL ia' <> sigmaCongR ib'
     pure (j, j', mctx)
-
---------------------------------------------------------------------------------
-
-traceUnifyIso :: TopEnv -> MetaCtx -> Level -> Value -> Value -> Bool
-traceUnifyIso tenv mctx l v v' = traceFalse $ show do
-  vsep
-    [ "unifyIso",
-      indent 4
-        $ vsep
-          [ "tenv" <+> colon <+> align (pretty tenv),
-            "mctx" <+> colon <+> align (pretty mctx),
-            "ctx size" <+> colon <+> pretty l,
-            "lhs" <+> colon <+> pretty ((mctx, l) :⊢ v),
-            "rhs" <+> colon <+> pretty ((mctx, l) :⊢ v')
-          ]
-    ]

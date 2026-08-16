@@ -1,4 +1,4 @@
-module Aegle.Search.Unification.Pruning
+module Aegle.Search.Matching.Pruning
   ( PartialRenaming (..),
     emptyPRen,
     idPRen,

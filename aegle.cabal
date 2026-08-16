@@ -71,11 +71,11 @@ library
       Aegle.Search
       Aegle.Search.Feature
       Aegle.Search.Instantiation
+      Aegle.Search.Matching
+      Aegle.Search.Matching.ModuloIso
+      Aegle.Search.Matching.Pruning
       Aegle.Search.Parser
       Aegle.Search.Query
-      Aegle.Search.Unification
-      Aegle.Search.Unification.ModuloIso
-      Aegle.Search.Unification.Pruning
       Aegle.Web
       Data.ImmatureStream
       Data.Set.NonEmpty.Extra
