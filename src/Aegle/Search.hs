@@ -93,8 +93,8 @@ search config query = onTimeout config.timeout (Left Timeout) $ runExceptT do
       pure TopEnvEntry {opaques = S.fromList opaques, ..}
 
     -- 3. Speculatively normalise the query type and compute possible features
-    let typ' = Q.toTerm typ
-        typs = quoteNondet mctx 0 (eval tenv mctx [] typ')
+    let typ' = Q.eval tenv [] typ
+        typs = quoteNondet mctx 0 typ'
         feats = nubOrd $ mapMaybe (filterFeatureQ . fst) typs
         compats = feats <&> \feat -> toCompat ! #query feat
 
@@ -113,7 +113,7 @@ search config query = onTimeout config.timeout (Left Timeout) $ runExceptT do
 
   pure Result {..}
 
-match :: TopEnv -> Type -> [LibraryItem] -> IO [Match]
+match :: TopEnv -> Value -> [LibraryItem] -> IO [Match]
 match tenv query items =
   Streamly.fromList items
     & Streamly.parConcatMap
@@ -125,7 +125,7 @@ match tenv query items =
       )
     & Streamly.toList
 
-matchWithTime :: TopEnv -> Type -> [LibraryItem] -> IO ([Match], [CandTime])
+matchWithTime :: TopEnv -> Value -> [LibraryItem] -> IO ([Match], [CandTime])
 matchWithTime tenv query items = do
   results <- for items \item@LibraryItem {..} ->
     (item,) <$> timedPure do

@@ -8,15 +8,16 @@ module Aegle.Search.Query
     headTerm,
     returnType,
     freeVars,
-    toTerm,
+    eval,
     Unqualified (..),
   )
 where
 
+import Aegle.Core.Evaluation hiding (eval)
 import Aegle.Core.Name
 import Aegle.Core.Term (AppView (..), TeleView (..))
-import Aegle.Core.Term qualified as C
 import Aegle.Prelude
+import Data.Map.Strict qualified as M
 import Data.Set qualified as S
 import Data.Text qualified as T
 import Prettyprinter
@@ -75,36 +76,41 @@ headTerm :: Term -> Term
 headTerm = (.head) . appView
 
 freeVars :: Term -> S.Set PQName
-freeVars = \case
-  Var x -> S.singleton x
-  U -> S.empty
-  Pi x a b -> S.delete (Unqual x) $ freeVars a <> freeVars b
-  Lam x t -> S.delete (Unqual x) $ freeVars t
-  App t u -> freeVars t <> freeVars u
-  Sigma x a b -> S.delete (Unqual x) $ freeVars a <> freeVars b
-  Pair t u -> freeVars t <> freeVars u
-  Proj1 t -> freeVars t
-  Proj2 t -> freeVars t
-
-toTerm :: Term -> C.Term
-toTerm = go []
+freeVars = go []
   where
-    go ns = \case
-      Var (Unqual x)
-        | Just i <- x `elemIndex` ns -> C.Var (Index i)
-      Var x -> C.Amb x
-      U -> C.U
-      Pi x a b -> do
-        let x' = if Unqual x `S.member` freeVars b then x else "_"
-        C.Pi x' (go ns a) (go (x' : ns) b)
-      Lam x t -> C.Lam x (go (x : ns) t)
-      App t u -> C.App (go ns t) (go ns u)
-      Sigma x a b -> do
-        let x' = if Unqual x `S.member` freeVars b then x else "_"
-        C.Sigma x' (go ns a) (go (x' : ns) b)
-      Pair t u -> C.Pair (go ns t) (go ns u)
-      Proj1 t -> C.Proj1 (go ns t)
-      Proj2 t -> C.Proj2 (go ns t)
+    go xs = \case
+      Var (Unqual x) | x `elem` xs -> S.empty
+      Var x -> S.singleton x
+      U -> S.empty
+      Pi x a b -> go xs a <> go (x : xs) b
+      Lam x t -> go (x : xs) t
+      App t u -> go xs t <> go xs u
+      Sigma x a b -> go xs a <> go (x : xs) b
+      Pair t u -> go xs t <> go xs u
+      Proj1 t -> go xs t
+      Proj2 t -> go xs t
+
+--------------------------------------------------------------------------------
+-- Evaluation
+
+eval :: TopEnv -> [(Name, Value)] -> Term -> Value
+eval tenv env = \case
+  Var (Unqual x)
+    | Just t <- lookup x env -> t
+  Var x
+    | TopEnvEntry {..} <- tenv M.! x -> VAmb x SNil opaques transps
+  U -> VU
+  Pi x a b -> do
+    let x' = if Unqual x `S.member` freeVars b then x else "_"
+    VPi x' (eval tenv env a) \ ~v -> eval tenv ((x', v) : env) b
+  Lam x t -> VLam x \v -> eval tenv ((x, v) : env) t
+  App t u -> eval tenv env t $$ eval tenv env u
+  Sigma x a b -> do
+    let x' = if Unqual x `S.member` freeVars b then x else "_"
+    VSigma x' (eval tenv env a) \ ~v -> eval tenv ((x', v) : env) b
+  Pair t u -> eval tenv env t `VPair` eval tenv env u
+  Proj1 t -> vProj1 (eval tenv env t)
+  Proj2 t -> vProj2 (eval tenv env t)
 
 --------------------------------------------------------------------------------
 -- Prettyprinting

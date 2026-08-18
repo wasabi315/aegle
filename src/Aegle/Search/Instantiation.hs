@@ -53,13 +53,12 @@ closeTm = \cases
   Here t -> t
   (Bind locs x _) b -> closeTm locs (Lam x b)
 
-check0 :: TopEnv -> Term -> QName -> Term -> IStr.Stream (Iso, Term)
+check0 :: TopEnv -> Value -> QName -> Type -> IStr.Stream (Iso, Term)
 check0 tenv query itemName item = do
   let ctx = initCtx tenv
       mctx = emptyMetaCtx mempty
-      query' = eval tenv mctx [] query
       item' = eval tenv mctx [] item
-  check mctx ctx query' itemName item'
+  check mctx ctx query itemName item'
 
 -- FIXME: currently not considering pi permutation
 check :: MetaCtx -> Ctx -> Value -> QName -> Value -> IStr.Stream (Iso, Term)
