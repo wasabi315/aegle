@@ -28,6 +28,7 @@ module Aegle.Prelude
     module Data.String,
     module Data.Traversable,
     module Data.Void,
+    module GHC.Records,
     module Lens.Micro.Platform,
     module Witherable,
     (***),
@@ -114,6 +115,7 @@ import Data.Traversable
 import Data.Typeable (Typeable)
 import Data.Void
 import GHC.Generics
+import GHC.Records
 import GHC.Stack
 import Lens.Micro.Platform
 import Named

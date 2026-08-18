@@ -92,7 +92,7 @@ translateDef f ty args = case prettyShow f of
   "Agda.Builtin.Sigma.snd" -> translateSnd ty args
   _ -> do
     let name = translateQName f
-    translateApp (TS.Top name) ty args
+    translateApp (TS.Opaque name) ty args
 
 translateSigma :: Type -> [Term] -> Transl TS.Term
 translateSigma ty args =
@@ -148,7 +148,7 @@ translateCon ch i ty pars args = do
       -- For making parameters explicit
       -- e.g) Builtin.List._∷_ x xs -> Builtin.List._∷_ A x xs
       -- TODO: Reuse things from Agda.TypeChecking.ReconstructParameters
-      t <- translateApp (TS.Top name) dataDef.defType $ map unArg pars
+      t <- translateApp (TS.Opaque name) dataDef.defType $ map unArg pars
       translateApp t ty args
 
 translateSpined ::
@@ -180,7 +180,7 @@ translateProj ::
 translateProj q tty t ty args = do
   let name = translateQName q
   arg <- translateTerm tty t
-  translateApp (TS.Top name `TS.App` arg) ty args
+  translateApp (TS.Opaque name `TS.App` arg) ty args
 
 translateApp :: TS.Term -> Type -> [Term] -> Transl TS.Term
 translateApp f ty args = do
@@ -222,5 +222,5 @@ translateLit = \case
   LitNat n -> do
     zero <- translateQName <$> getBuiltinName_ BuiltinZero
     suc <- translateQName <$> getBuiltinName_ BuiltinSuc
-    pure $ iterate' n (TS.Top suc `TS.App`) (TS.Top zero)
+    pure $ iterate' n (TS.Opaque suc `TS.App`) (TS.Opaque zero)
   x -> aegleError $ vcat ["cannot compile literal:", nest 2 $ prettyTCM x]

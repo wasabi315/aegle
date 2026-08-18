@@ -11,6 +11,7 @@ import Aegle.Prelude
 import Aegle.Search.Matching.Pruning
 import Data.IntMap.Strict qualified as IM
 import Data.IntSet qualified as IS
+import Data.Set qualified as S
 
 --------------------------------------------------------------------------------
 -- Solving flex/rigid
@@ -83,29 +84,24 @@ match tenv mctx l (Arg p) (Arg t) = case (force mctx p, force mctx t) of
     | px == x -> matchSpine tenv mctx l ! #pat psp ! #term sp
   (VOpaque px psp, VOpaque x sp)
     | px == x -> matchSpine tenv mctx l ! #pat psp ! #term sp
-  (VTopAmb _ px psp, VTopAmb _ x sp)
-    | px == x -> matchSpine tenv mctx l ! #pat psp ! #term sp
   (VFlex m psp, t) -> maybeToList $ solve tenv mctx l m psp t
-  (VTopAmb tenv' px psp, t) ->
-    concat
-      [ do
-          VOpaque x' sp' <- pure t
-          mctx <- maybeToList $ resolve mctx px x'
-          matchSpine tenv mctx l ! #pat psp ! #term sp',
-        do
-          (p, mctx) <- expandNondet tenv' mctx px psp
-          match tenv mctx l ! #pat p ! #term t
-      ]
-  (p, VTopAmb tenv' x sp) ->
-    concat
-      [ do
-          VOpaque px psp <- pure p
-          mctx <- maybeToList $ resolve mctx x px
-          matchSpine tenv mctx l ! #pat psp ! #term sp,
-        do
-          (t, mctx) <- expandNondet tenv' mctx x sp
-          match tenv mctx l ! #pat p ! #term t
-      ]
+  (VAmb px psp pxs [], VOpaque x sp)
+    | x `S.member` pxs -> do
+        let mctx' = resolveOpaque mctx px x
+        matchSpine tenv mctx' l ! #pat psp ! #term sp
+  (VOpaque px psp, VAmb x sp xs [])
+    | px `S.member` xs -> do
+        let mctx' = resolveOpaque mctx x px
+        matchSpine tenv mctx' l ! #pat psp ! #term sp
+  -- we don't take intersection currently
+  (VAmb px psp _ [], VAmb x sp _ [])
+    | px == x -> matchSpine tenv mctx l ! #pat psp ! #term sp
+  (VAmb px psp pxs pts@(_ : _), t) -> do
+    (p, mctx) <- chooseAmb mctx px psp pxs pts
+    match tenv mctx l ! #pat p ! #term t
+  (p, VAmb x sp xs ts@(_ : _)) -> do
+    (t, mctx) <- chooseAmb mctx x sp xs ts
+    match tenv mctx l ! #pat p ! #term t
   _ -> []
 
 matchSpine :: TopEnv -> MetaCtx -> Level -> "pat" :! Spine -> "term" :! Spine -> [MetaCtx]

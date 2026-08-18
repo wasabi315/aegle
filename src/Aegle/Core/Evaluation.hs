@@ -7,11 +7,9 @@ import Aegle.Core.Name
 import Aegle.Core.Term
 import Aegle.Prelude
 import Data.IntMap.Strict qualified as IM
-import Data.List.NonEmpty qualified as NE
 import Data.Map.Lazy qualified as ML
 import Data.Map.Strict qualified as M
-import Data.Set.NonEmpty qualified as S1
-import Data.Set.NonEmpty.Extra qualified as S1
+import Data.Set qualified as S
 import Prettyprinter
 
 --------------------------------------------------------------------------------
@@ -22,7 +20,7 @@ data Value
   = VRigid Level Spine
   | VFlex MetaVar Spine
   | VOpaque {-# UNPACK #-} QName Spine
-  | VTopAmb TopEnv PQName Spine
+  | VAmb PQName Spine (S.Set QName) [Value]
   | VU
   | VPi Name VType (Value -> VType)
   | VLam Name (Value -> Value)
@@ -46,11 +44,14 @@ pattern VMeta m = VFlex m SNil
 
 data Quant = Quant Name Value (Value -> Value)
 
--- | Environment keyed by De Bruijn indices
 type Env = [Value]
 
--- | Environment keyed by top-level names
-type TopEnv = ML.Map QName Value
+type TopEnv = M.Map PQName TopEnvEntry
+
+data TopEnvEntry = TopEnvEntry
+  { opaques :: S.Set QName,
+    transps :: [Value]
+  }
 
 -- | Meta-context
 data MetaCtx = MetaCtx
@@ -58,13 +59,18 @@ data MetaCtx = MetaCtx
     metaCtx :: IM.IntMap MetaEntry,
     resol :: Resol
   }
+  deriving stock (Generic)
 
 data MetaEntry
   = Unsolved ~VType
   | Solved Value ~VType
 
--- | Unresolved name → set of canonical names may denoted
-type Resol = M.Map PQName (S1.NESet QName)
+type Resol = M.Map PQName ResolEntry
+
+data ResolEntry
+  = ResolvedOpaque QName
+  | ResolvedTransp Value
+  | OpaqueOnly
 
 --------------------------------------------------------------------------------
 -- Meta-context operation
@@ -94,23 +100,16 @@ lookupUnsolved mctx m = case mctx.metaCtx IM.! coerce m of
 
 writeMeta :: MetaCtx -> MetaVar -> Value -> VType -> MetaCtx
 writeMeta mctx m t ~a =
-  mctx {metaCtx = IM.insert (coerce m) (Solved t a) mctx.metaCtx}
+  mctx & #metaCtx . at (coerce m) ?~ Solved t a
 
-lookupResol :: MetaCtx -> PQName -> S1.NESet QName
-lookupResol mctx n = mctx.resol M.! n
+resolveOpaque :: MetaCtx -> PQName -> QName -> MetaCtx
+resolveOpaque mctx x y = mctx & #resol . at x ?~ ResolvedOpaque y
 
--- | Resolve an unresolved name @n@ as a canonical name @n'@.
--- Returns 'Nothing' if @n@ does not denote @n'@ according to the given 'MetaCtx'.
-resolve :: MetaCtx -> PQName -> QName -> Maybe MetaCtx
-resolve mctx n n' = do
-  guard $ n' `S1.member` (mctx.resol M.! n)
-  pure $! unsafeResolve mctx n n'
+resolveTransp :: MetaCtx -> PQName -> Value -> MetaCtx
+resolveTransp mctx x t = mctx & #resol . at x ?~ ResolvedTransp t
 
-unsafeResolve :: MetaCtx -> PQName -> QName -> MetaCtx
-unsafeResolve mctx n n' = unsafeRestrict mctx n (S1.singleton n')
-
-unsafeRestrict :: MetaCtx -> PQName -> S1.NESet QName -> MetaCtx
-unsafeRestrict mctx n ns = mctx {resol = M.insert n ns mctx.resol}
+setOpaqueOnly :: MetaCtx -> PQName -> MetaCtx
+setOpaqueOnly mctx x = mctx & #resol . at x ?~ OpaqueOnly
 
 --------------------------------------------------------------------------------
 -- Evaluation
@@ -122,8 +121,8 @@ eval :: TopEnv -> MetaCtx -> Env -> Term -> Value
 eval tenv mctx env = \case
   Var (Index x) -> env !! x
   Meta m -> vMeta mctx m
-  Top x -> vTop tenv x
-  TopAmb x -> vTopAmb tenv mctx x
+  Opaque x -> VOpaque x SNil
+  Amb x | TopEnvEntry {..} <- tenv M.! x -> VAmb x SNil opaques transps
   U -> VU
   Pi x a b -> VPi x (eval tenv mctx env a) (evalBind tenv mctx env b)
   Lam x t -> VLam x (evalBind' tenv mctx env t)
@@ -145,15 +144,6 @@ vMeta mctx m = case mctx.metaCtx IM.! coerce m of
   Unsolved {} -> VMeta m
   Solved v _ -> v
 
-vTop :: TopEnv -> QName -> Value
-vTop tenv n = ML.findWithDefault (VOpaque n SNil) n tenv
-
--- Reduce only when the name has been resolved
-vTopAmb :: TopEnv -> MetaCtx -> PQName -> Value
-vTopAmb tenv mctx n = case lookupResol mctx n of
-  S1.Singleton n' -> vTop tenv n'
-  _ -> VTopAmb tenv n SNil
-
 vAppPruning :: Env -> Value -> Pruning -> Value
 vAppPruning env ~v pr = case (env, pr) of
   ([], []) -> v
@@ -167,7 +157,7 @@ t $$ u = case t of
   VRigid x sp -> VRigid x (SApp sp u)
   VFlex m sp -> VFlex m (SApp sp u)
   VOpaque x sp -> VOpaque x (SApp sp u)
-  VTopAmb tenv x sp -> VTopAmb tenv x (SApp sp u)
+  VAmb x sp xs ts -> VAmb x (SApp sp u) xs ts
   VBrave b sp -> VBrave b (SApp sp u)
   t -> VBrave t (SApp SNil u)
 
@@ -177,7 +167,7 @@ vProj1 = \case
   VRigid x sp -> VRigid x (SProj1 sp)
   VFlex m sp -> VFlex m (SProj1 sp)
   VOpaque x sp -> VOpaque x (SProj1 sp)
-  VTopAmb tenv x sp -> VTopAmb tenv x (SProj1 sp)
+  VAmb x sp xs ts -> VAmb x (SProj1 sp) xs ts
   VBrave b sp -> VBrave b (SProj1 sp)
   t -> VBrave t (SProj1 SNil)
 
@@ -187,7 +177,7 @@ vProj2 = \case
   VRigid x sp -> VRigid x (SProj2 sp)
   VFlex m sp -> VFlex m (SProj2 sp)
   VOpaque x sp -> VOpaque x (SProj2 sp)
-  VTopAmb tenv x sp -> VTopAmb tenv x (SProj2 sp)
+  VAmb x sp xs ts -> VAmb x (SProj2 sp) xs ts
   VBrave b sp -> VBrave b (SProj2 sp)
   t -> VBrave t (SProj2 SNil)
 
@@ -203,36 +193,39 @@ force mctx = \case
   VFlex m sp
     | Solved t _ <- mctx.metaCtx IM.! coerce m ->
         force mctx (vAppSpine t sp)
-  VTopAmb tenv n sp
-    | S1.Singleton n' <- lookupResol mctx n ->
-        force mctx (vAppSpine (vTop tenv n') sp)
+  VAmb x sp xs _
+    | Just resol <- M.lookup x mctx.resol -> case resol of
+        OpaqueOnly -> VAmb x sp xs []
+        ResolvedOpaque x' -> VOpaque x' sp
+        ResolvedTransp t -> force mctx (vAppSpine t sp)
   t -> t
 
-expandNondet :: TopEnv -> MetaCtx -> PQName -> Spine -> [(Value, MetaCtx)]
-expandNondet tenv mctx n sp = do
-  n' <- toList $ lookupResol mctx n
-  Just t <- pure $ ML.lookup n' tenv
-  let mctx' = unsafeResolve mctx n n'
-      v = vAppSpine t sp
-  pure (v, mctx')
+-- | Choose resolution for an unresolved ambiguous name
+chooseAmb :: MetaCtx -> PQName -> Spine -> S.Set QName -> [Value] -> [(Value, MetaCtx)]
+chooseAmb mctx x sp xs ts =
+  [VAmb x sp xs [] // setOpaqueOnly mctx x | not $ S.null xs]
+    ++ [vAppSpine t sp // resolveTransp mctx x t | t <- ts]
 
 forceNondet :: MetaCtx -> Value -> [(Value, MetaCtx)]
 forceNondet mctx = \case
   VFlex m sp
     | Solved t _ <- mctx.metaCtx IM.! coerce m ->
         forceNondet mctx (vAppSpine t sp)
-  VTopAmb tenv n sp
-    | S1.Singleton n' <- lookupResol mctx n ->
-        forceNondet mctx (vAppSpine (vTop tenv n') sp)
-  VTopAmb tenv n sp -> do
-    asum
-      [ do
-          ns <- S1.withNonEmpty empty pure do
-            S1.filter (`ML.notMember` tenv) (lookupResol mctx n)
-          let mctx' = unsafeRestrict mctx n ns
-          pure (VTopAmb tenv n sp, mctx'),
-        expandNondet tenv mctx n sp
-      ]
+  VAmb x sp xs ts -> case M.lookup x mctx.resol of
+    Just (ResolvedOpaque x') -> pure (VOpaque x' sp, mctx)
+    Just (ResolvedTransp t) -> forceNondet mctx (vAppSpine t sp)
+    Just OpaqueOnly -> pure (VAmb x sp xs [], mctx)
+    Nothing ->
+      mconcat
+        [ do
+            guard $ not $ S.null xs
+            let mctx' = setOpaqueOnly mctx x
+            pure (VAmb x sp xs [], mctx'),
+          do
+            t <- ts
+            let mctx' = resolveTransp mctx x t
+            forceNondet mctx' (vAppSpine t sp)
+        ]
   t -> pure (t, mctx)
 
 --------------------------------------------------------------------------------
@@ -245,8 +238,8 @@ quote :: MetaCtx -> Level -> Value -> Term
 quote mctx l t = case force mctx t of
   VRigid x sp -> quoteSpine mctx l (Var (levelToIndex l x)) sp
   VFlex m sp -> quoteSpine mctx l (Meta m) sp
-  VOpaque x sp -> quoteSpine mctx l (Top x) sp
-  VTopAmb _ x sp -> quoteSpine mctx l (TopAmb x) sp
+  VOpaque x sp -> quoteSpine mctx l (Opaque x) sp
+  VAmb x sp _ _ -> quoteSpine mctx l (Amb x) sp
   VU -> U
   VPi x a b -> Pi x (quote mctx l a) (quoteBind mctx l b)
   VLam x t -> Lam x (quoteBind mctx l t)
@@ -270,8 +263,9 @@ quoteNondet mctx l t = do
   case t of
     VRigid x sp -> quoteSpineNondet mctx l (Var (levelToIndex l x)) sp
     VFlex m sp -> quoteSpineNondet mctx l (Meta m) sp
-    VOpaque x sp -> quoteSpineNondet mctx l (Top x) sp
-    VTopAmb _ x sp -> quoteSpineNondet mctx l (TopAmb x) sp
+    VOpaque x sp -> quoteSpineNondet mctx l (Opaque x) sp
+    -- ts should be empty
+    VAmb x sp _ _ts -> quoteSpineNondet mctx l (Amb x) sp
     VU -> pure (U, mctx)
     VPi x a b -> do
       (a, mctx) <- quoteNondet mctx l a
@@ -310,13 +304,22 @@ quoteSpineNondet mctx l h = \case
 --------------------------------------------------------------------------------
 -- Prettyprinting
 
+instance Pretty TopEnvEntry where
+  pretty TopEnvEntry {..} =
+    group
+      $ encloseSep (flatAlt "{ " "{") (flatAlt " }" "}") ", "
+      $ [ pretty x
+        | x <- S.toList opaques
+        ]
+      ++ [ pretty ((emptyMetaCtx mempty, Level 0) :⊢ t)
+         | t <- transps
+         ]
+
 instance Pretty TopEnv where
   pretty tenv =
     group
       $ encloseSep (flatAlt "{ " "{") (flatAlt " }" "}") ", "
-      $ [ pretty m
-            <+> "="
-            <+> pretty ((emptyMetaCtx mempty, Level 0) :⊢ t)
+      $ [ pretty m <+> "=" <+> pretty t
         | (m, t) <- ML.toList tenv
         ]
 
@@ -333,8 +336,9 @@ instance Pretty MetaCtx where
                 Unsolved _ -> Nothing
         ]
       ++ [ pretty x <+> case xs of
-             S1.Singleton x' -> "=" <+> pretty x'
-             _ -> "∈" <+> align (list (fmap pretty $ NE.toList $ S1.toList xs))
+             OpaqueOnly -> "∈ opaques"
+             ResolvedOpaque x -> "=" <+> pretty x
+             ResolvedTransp t -> "=" <+> pretty ((emptyMetaCtx mempty, Level 0) :⊢ t)
          | (x, xs) <- M.toList mctx.resol
          ]
 

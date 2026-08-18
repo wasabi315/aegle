@@ -56,11 +56,11 @@ data ResultHead n
 
 -- | The input type must be closed. Doesn't perform any reduction.
 resultHead' :: (QName -> n) -> (PQName -> n) -> Type -> Maybe (ResultHead n)
-resultHead' onTop onTopAmb t = case headTerm (returnType t) of
+resultHead' onOpaque onAmb t = case headTerm (returnType t) of
   U -> Just RHU
   Var {} -> Just RHVar
-  Top x -> Just $ RHTop (onTop x)
-  TopAmb x -> Just $ RHTop (onTopAmb x)
+  Opaque x -> Just $ RHTop (onOpaque x)
+  Amb x -> Just $ RHTop (onAmb x)
   Sigma {} -> Just RHSigma
   Proj1 {} -> Just RHProj1
   Proj2 {} -> Just RHProj2

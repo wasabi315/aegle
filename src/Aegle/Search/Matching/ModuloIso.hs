@@ -39,7 +39,7 @@ pickUpDomain tenv mctx lvl (Quant x a b) = (Quant x a b, Refl, mctx) : go lvl b
               pure (Quant y c1' rest, s, mctx),
             go (l + 1) c2
           ]
-      -- TODO: consider case where head is topamb
+      -- TODO: consider case where head is VAmb
       _ -> []
 
     instPiAt i ~v t = case (i, force mctx t) of
@@ -73,7 +73,7 @@ pickUpProjection tenv mctx lvl (Quant x a b) = (Quant x a b, Refl, mctx) : go lv
               pure (Quant y c1' rest, s, mctx),
             go (l + 1) c2
           ]
-      -- TODO: consider case where head is topamb
+      -- TODO: consider case where head is VAmb
       c -> do
         let i = l - lvl
         (c, mctx) <- maybeToList $ rename tenv mctx (skipPRenN (i + 1) idr) c
@@ -106,6 +106,7 @@ assocSwap tenv mctx lvl q = do
   case q of
     -- When the selected projection is a sigma type, we invoke
     -- assocSwap recursively to make the first projection of the sigma non-sigma!
+    -- TODO: Consider case when domain is VAmb
     Quant x (VSigma y a b) c -> do
       (Quant y a b, j, mctx) <- assocSwap tenv mctx lvl (Quant y a b)
       let -- Then associate to make the first projection non-sigma.
@@ -127,6 +128,7 @@ currySwap :: TopEnv -> MetaCtx -> Level -> Quant -> [(Quant, Iso, MetaCtx)]
 currySwap tenv mctx lvl q = do
   (q, i, mctx) <- pickUpDomain tenv mctx lvl q
   case q of
+    -- TODO: consider when domain is VAmb
     Quant x (VSigma y a b) c -> do
       (Quant y a b, j, mctx) <- assocSwap tenv mctx lvl (Quant y a b)
       let q = Quant y a \ ~u -> VPi x (b u) \ ~v -> c (transportInv j (VPair u v))
@@ -147,36 +149,26 @@ matchIso0 tenv mctx (Arg p) (Arg t) = do
 
 matchIso :: TopEnv -> MetaCtx -> Level -> "pat" :! Value -> "term" :! Value -> [(Iso, Iso, MetaCtx)]
 matchIso tenv mctx lvl (Arg p) (Arg t) = case (force mctx p, force mctx t) of
+  (_, VFlex {}) -> error "matchIso: metavariable in term"
+  -- TODO: consider when p is VFlex
+  -- (VFlex {}, t) -> ???
   (VBrave {}, _) -> []
   (_, VBrave {}) -> []
   (VPi px pa pb, VPi x a b) ->
     matchPi tenv mctx lvl ! #pat (Quant px pa pb) ! #term (Quant x a b)
   (VSigma px pa pb, VSigma x a b) ->
     matchSigma tenv mctx lvl ! #pat (Quant px pa pb) ! #term (Quant x a b)
-  (VTopAmb tenv' px psp, t) ->
-    asum
-      [ do
-          (p, mctx) <- expandNondet tenv' mctx px psp
-          matchIso tenv mctx lvl ! #pat p ! #term t,
-        do
-          mctx <- match tenv mctx lvl ! #pat (VTopAmb tenv' px psp) ! #term t
-          pure (Refl, Refl, mctx)
-      ]
-  (p, VTopAmb tenv' x sp) ->
-    asum
-      [ do
-          (t, mctx) <- expandNondet tenv' mctx x sp
-          matchIso tenv mctx lvl ! #pat p ! #term t,
-        do
-          mctx <- match tenv mctx lvl ! #pat p ! #term (VTopAmb tenv' x sp)
-          pure (Refl, Refl, mctx)
-      ]
-  (p, t) -> do
-    mctx <- match tenv mctx lvl ! #pat p ! #term t
-    pure (Refl, Refl, mctx)
+  (VAmb px psp pxs pts@(_ : _), t) -> do
+    (p, mctx) <- chooseAmb mctx px psp pxs pts
+    matchIso tenv mctx lvl ! #pat p ! #term t
+  (p, VAmb x sp xs ts@(_ : _)) -> do
+    (t, mctx) <- chooseAmb mctx x sp xs ts
+    matchIso tenv mctx lvl ! #pat p ! #term t
+  (p, t) -> (Refl,Refl,) <$> match tenv mctx lvl ! #pat p ! #term t
 
 matchPi :: TopEnv -> MetaCtx -> Level -> "pat" :! Quant -> "term" :! Quant -> [(Iso, Iso, MetaCtx)]
 matchPi tenv mctx lvl (Arg ppi) (Arg pi) = do
+  -- TODO: consider case when pa is VAmb
   let (Quant _ pa pb, i) = curry mctx ppi
   -- permutation on term side
   -- TODO: consider case where a is a flex term (can be a sigma, unblocks currying!)
@@ -192,6 +184,7 @@ matchPi tenv mctx lvl (Arg ppi) (Arg pi) = do
 
 matchSigma :: TopEnv -> MetaCtx -> Level -> "pat" :! Quant -> "term" :! Quant -> [(Iso, Iso, MetaCtx)]
 matchSigma tenv mctx lvl (Arg psig) (Arg sig) = do
+  -- TODO: consider case when pa is VAmb
   let (Quant _ pa pb, i) = assoc mctx psig
   -- permutation on term side
   -- TODO: consider case where a is a flex term (can be a sigma, unblocks assoc!)

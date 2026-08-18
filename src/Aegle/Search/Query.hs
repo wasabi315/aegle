@@ -92,7 +92,7 @@ toTerm = go []
     go ns = \case
       Var (Unqual x)
         | Just i <- x `elemIndex` ns -> C.Var (Index i)
-      Var x -> C.TopAmb x
+      Var x -> C.Amb x
       U -> C.U
       Pi x a b -> do
         let x' = if Unqual x `S.member` freeVars b then x else "_"

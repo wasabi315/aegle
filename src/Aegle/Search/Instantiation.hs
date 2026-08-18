@@ -53,10 +53,10 @@ closeTm = \cases
   Here t -> t
   (Bind locs x _) b -> closeTm locs (Lam x b)
 
-check0 :: TopEnv -> Resol -> Term -> QName -> Term -> IStr.Stream (Iso, Term)
-check0 tenv resol query itemName item = do
+check0 :: TopEnv -> Term -> QName -> Term -> IStr.Stream (Iso, Term)
+check0 tenv query itemName item = do
   let ctx = initCtx tenv
-      mctx = emptyMetaCtx resol
+      mctx = emptyMetaCtx mempty
       query' = eval tenv mctx [] query
       item' = eval tenv mctx [] item
   check mctx ctx query' itemName item'

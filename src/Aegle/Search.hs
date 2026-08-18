@@ -19,10 +19,8 @@ import Aegle.Search.Instantiation
 import Aegle.Search.Parser
 import Aegle.Search.Query qualified as Q
 import Data.ImmatureStream qualified as IStr
-import Data.List.NonEmpty qualified as NE
-import Data.Map.Lazy qualified as ML
 import Data.Map.Strict qualified as M
-import Data.Set.NonEmpty qualified as S1
+import Data.Set qualified as S
 import Data.Text qualified as T
 import Data.Time.Clock
 import Prettyprinter
@@ -83,16 +81,16 @@ search config query = onTimeout config.timeout (Left Timeout) $ runExceptT do
     -- 1. parse query
     Q.Query {..} <- parseQuery config.querySrc query ??% ParseError
 
-    -- 2. resolve free variables and obtain 'Resol' and 'TopEnv'
+    -- 2. resolve free variables and obtain 'MetaCtx' and 'TopEnv'
     refMap <- liftIO $ resolveNames config.dbReader $ M.fromSet id (Q.freeVars typ)
-    resol <- flip M.traverseWithKey refMap \x refs ->
-      fmap (S1.fromList . fmap (.canonicalName)) (NE.nonEmpty refs)
-        ??: NotFound x
-    let mctx = emptyMetaCtx resol
-        tenv = flip foldMap (Compose refMap) \Referent {..} ->
-          foldMap
-            (ML.singleton canonicalName . eval mempty mctx [])
-            body
+    let mctx = emptyMetaCtx mempty
+    tenv <- flip M.traverseWithKey refMap \x refs -> do
+      when (null refs) do
+        throwError (NotFound x)
+      let (opaques, transps) =
+            partitionEithers $ refs <&> \Referent {..} ->
+              maybe (Left canonicalName) (Right . eval mempty mctx []) body
+      pure TopEnvEntry {opaques = S.fromList opaques, ..}
 
     -- 3. Speculatively normalise the query type and compute possible features
     let typ' = Q.toTerm typ
@@ -107,31 +105,31 @@ search config query = onTimeout config.timeout (Left Timeout) $ runExceptT do
     -- 4. Try matching
     if config.recordCandTimes
       then liftIO do
-        (matches, candTimes) <- matchWithTime tenv resol typ' cands
+        (matches, candTimes) <- matchWithTime tenv typ' cands
         pure (numCands, matches, Just candTimes)
       else liftIO do
-        matches <- match tenv resol typ' cands
+        matches <- match tenv typ' cands
         pure (numCands, matches, Nothing)
 
   pure Result {..}
 
-match :: TopEnv -> Resol -> Type -> [LibraryItem] -> IO [Match]
-match tenv resol query items =
+match :: TopEnv -> Type -> [LibraryItem] -> IO [Match]
+match tenv query items =
   Streamly.fromList items
     & Streamly.parConcatMap
       id
       ( \item@LibraryItem {..} ->
-          case IStr.streamToMaybe $ check0 tenv resol query canonicalName signature of
+          case IStr.streamToMaybe $ check0 tenv query canonicalName signature of
             Nothing -> Streamly.nil
             Just (iso, solution) -> Streamly.fromPure $! Match {..}
       )
     & Streamly.toList
 
-matchWithTime :: TopEnv -> Resol -> Type -> [LibraryItem] -> IO ([Match], [CandTime])
-matchWithTime tenv resol query items = do
+matchWithTime :: TopEnv -> Type -> [LibraryItem] -> IO ([Match], [CandTime])
+matchWithTime tenv query items = do
   results <- for items \item@LibraryItem {..} ->
     (item,) <$> timedPure do
-      IStr.streamToMaybe $ check0 tenv resol query canonicalName signature
+      IStr.streamToMaybe $ check0 tenv query canonicalName signature
   let candTimes =
         results <&> \(item, (result, time)) ->
           CandTime {name = item.canonicalName, matched = isJust result, ..}

@@ -99,7 +99,7 @@ putResult Result {..} =
                   Refl -> Nothing
                   _ -> Just $ "◦ isomorphism    :" <+> pretty iso,
                 case solution of
-                  Top {} -> Nothing
+                  Opaque {} -> Nothing
                   _ -> Just $ "◦ solution       :" <+> pretty (Unqualified solution)
               ]
         ]

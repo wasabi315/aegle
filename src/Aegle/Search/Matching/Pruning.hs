@@ -168,8 +168,8 @@ renameP tenv pren t =
     VRigid (Level x) sp -> case IM.lookup x pren.ren of
       Nothing -> empty -- scope error ("escaping variable" error)
       Just x' -> renameSpine tenv pren (Var $ levelToIndex pren.dom x') sp
-    VOpaque x sp -> renameSpine tenv pren (Top x) sp
-    VTopAmb _ x sp -> renameSpine tenv pren (TopAmb x) sp
+    VOpaque x sp -> renameSpine tenv pren (Opaque x) sp
+    VAmb x sp _ _ -> renameSpine tenv pren (Amb x) sp
     VU -> pure U
     VPi x a b ->
       Pi x

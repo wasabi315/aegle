@@ -32,8 +32,8 @@ import Prettyprinter
 data Term
   = Var Index -- x
   | Meta MetaVar -- ?m
-  | Top {-# UNPACK #-} QName -- M.f
-  | TopAmb PQName
+  | Opaque {-# UNPACK #-} QName -- M.f
+  | Amb PQName
   | U -- U
   | Pi Name Type Type -- (x : A) → B
   | Lam Name Term -- λ x → t
@@ -61,8 +61,8 @@ freeVars :: Term -> S.Set Index
 freeVars = \case
   Var i -> S.singleton i
   Meta {} -> S.empty
-  Top {} -> S.empty
-  TopAmb {} -> S.empty
+  Opaque {} -> S.empty
+  Amb {} -> S.empty
   U -> S.empty
   Pi _ a b -> freeVars a <> freeVarBind b
   Lam _ t -> freeVarBind t
@@ -83,8 +83,8 @@ weakenBy n = go 0
         | i < d -> Var i
         | otherwise -> Var (i + coerce n)
       t@Meta {} -> t
-      t@Top {} -> t
-      t@TopAmb {} -> t
+      t@Opaque {} -> t
+      t@Amb {} -> t
       U -> U
       Pi x a b -> Pi x (go d a) (go (d + 1) b)
       Lam x t -> Lam x (go (d + 1) t)
@@ -138,8 +138,8 @@ termSize = \case
   Var {} -> 1
   U -> 1
   Meta {} -> 1
-  Top {} -> 1
-  TopAmb {} -> 1
+  Opaque {} -> 1
+  Amb {} -> 1
   Pi _ a b -> 1 + termSize a + termSize b
   Lam _ t -> 1 + termSize t
   App t u -> 1 + termSize t + termSize u
@@ -218,11 +218,11 @@ pretty' qual = goPair
         Nothing -> pretty i
         Just n -> pretty n
       Meta m -> pretty m
-      Top x
+      Opaque x
         | qual -> pretty x
         | otherwise -> pretty x.name
-      TopAmb (Unqual x) -> pretty x
-      TopAmb (Qual m x)
+      Amb (Unqual x) -> pretty x
+      Amb (Qual m x)
         | qual -> pretty (Qual m x)
         | otherwise -> pretty x
       U -> "Set"
