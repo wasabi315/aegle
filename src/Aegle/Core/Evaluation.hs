@@ -100,16 +100,27 @@ lookupUnsolved mctx m = case mctx.metaCtx IM.! coerce m of
 
 writeMeta :: MetaCtx -> MetaVar -> Value -> VType -> MetaCtx
 writeMeta mctx m t ~a =
-  mctx & #metaCtx . at (coerce m) ?~ Solved t a
+  mctx
+    { metaCtx = IM.insert (coerce m) (Solved t a) mctx.metaCtx
+    }
 
 resolveOpaque :: MetaCtx -> PQName -> QName -> MetaCtx
-resolveOpaque mctx x y = mctx & #resol . at x ?~ ResolvedOpaque y
+resolveOpaque mctx x y =
+  mctx
+    { resol = M.insert x (ResolvedOpaque y) mctx.resol
+    }
 
 resolveTransp :: MetaCtx -> PQName -> Value -> MetaCtx
-resolveTransp mctx x t = mctx & #resol . at x ?~ ResolvedTransp t
+resolveTransp mctx x t =
+  mctx
+    { resol = M.insert x (ResolvedTransp t) mctx.resol
+    }
 
 setOpaqueOnly :: MetaCtx -> PQName -> MetaCtx
-setOpaqueOnly mctx x = mctx & #resol . at x ?~ OpaqueOnly
+setOpaqueOnly mctx x =
+  mctx
+    { resol = M.insert x OpaqueOnly mctx.resol
+    }
 
 --------------------------------------------------------------------------------
 -- Evaluation
@@ -205,6 +216,7 @@ chooseAmb :: MetaCtx -> PQName -> Spine -> S.Set QName -> [Value] -> [(Value, Me
 chooseAmb mctx x sp xs ts =
   [VAmb x sp xs [] // setOpaqueOnly mctx x | not $ S.null xs]
     ++ [vAppSpine t sp // resolveTransp mctx x t | t <- ts]
+{-# INLINE chooseAmb #-}
 
 forceNondet :: MetaCtx -> Value -> [(Value, MetaCtx)]
 forceNondet mctx = \case

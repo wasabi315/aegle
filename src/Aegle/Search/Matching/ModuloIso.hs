@@ -27,7 +27,7 @@ pickUpDomain tenv mctx lvl (Quant x a b) = (Quant x a b, Refl, mctx) : go lvl b
 
     go l c = case force mctx $ c (VVar l) of
       VPi y c1 c2 ->
-        asum
+        concat
           [ do
               let i = l - lvl
               -- Strengthen c1.
@@ -61,7 +61,7 @@ pickUpProjection tenv mctx lvl (Quant x a b) = (Quant x a b, Refl, mctx) : go lv
 
     go l c = case force mctx $ c (VVar l) of
       VSigma y c1 c2 ->
-        asum
+        concat
           [ do
               let i = l - lvl
               -- Strengthen c1.
@@ -173,14 +173,14 @@ matchPi tenv mctx lvl (Arg ppi) (Arg pi) = do
   -- permutation on term side
   -- TODO: consider case where a is a flex term (can be a sigma, unblocks currying!)
   -- TODO: consider case where b is a flex term (can be a pi, unblocks permutation!)
-  flip foldMapA (currySwap tenv mctx lvl pi) \(Quant _ a b, i', mctx) -> do
-    (ia, ia', mctx) <- matchIso tenv mctx lvl ! #pat pa ! #term a
-    let pv = transportInv ia (VVar lvl)
-        v = transportInv ia' (VVar lvl)
-    (ib, ib', mctx) <- matchIso tenv mctx (lvl + 1) ! #pat (pb pv) ! #term (b v)
-    let j = i <> piCongL ia <> piCongR ib
-        j' = i' <> piCongL ia' <> piCongR ib'
-    pure (j, j', mctx)
+  (Quant _ a b, i', mctx) <- currySwap tenv mctx lvl pi
+  (ia, ia', mctx) <- matchIso tenv mctx lvl ! #pat pa ! #term a
+  let pv = transportInv ia (VVar lvl)
+      v = transportInv ia' (VVar lvl)
+  (ib, ib', mctx) <- matchIso tenv mctx (lvl + 1) ! #pat (pb pv) ! #term (b v)
+  let j = i <> piCongL ia <> piCongR ib
+      j' = i' <> piCongL ia' <> piCongR ib'
+  pure (j, j', mctx)
 
 matchSigma :: TopEnv -> MetaCtx -> Level -> "pat" :! Quant -> "term" :! Quant -> [(Iso, Iso, MetaCtx)]
 matchSigma tenv mctx lvl (Arg psig) (Arg sig) = do
@@ -189,11 +189,11 @@ matchSigma tenv mctx lvl (Arg psig) (Arg sig) = do
   -- permutation on term side
   -- TODO: consider case where a is a flex term (can be a sigma, unblocks assoc!)
   -- TODO: consider case where b is a flex term (can be a sigma, unblocks permutation!)
-  flip foldMapA (assocSwap tenv mctx lvl sig) \(Quant _ a b, i', mctx) -> do
-    (ia, ia', mctx) <- matchIso tenv mctx lvl ! #pat pa ! #term a
-    let pv = transportInv ia (VVar lvl)
-        v = transportInv ia' (VVar lvl)
-    (ib, ib', mctx) <- matchIso tenv mctx (lvl + 1) ! #pat (pb pv) ! #term (b v)
-    let j = i <> sigmaCongL ia <> sigmaCongR ib
-        j' = i' <> sigmaCongL ia' <> sigmaCongR ib'
-    pure (j, j', mctx)
+  (Quant _ a b, i', mctx) <- assocSwap tenv mctx lvl sig
+  (ia, ia', mctx) <- matchIso tenv mctx lvl ! #pat pa ! #term a
+  let pv = transportInv ia (VVar lvl)
+      v = transportInv ia' (VVar lvl)
+  (ib, ib', mctx) <- matchIso tenv mctx (lvl + 1) ! #pat (pb pv) ! #term (b v)
+  let j = i <> sigmaCongL ia <> sigmaCongR ib
+      j' = i' <> sigmaCongL ia' <> sigmaCongR ib'
+  pure (j, j', mctx)
