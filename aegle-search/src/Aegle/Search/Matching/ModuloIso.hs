@@ -171,11 +171,12 @@ matchIso mctx lvl (Arg p) (Arg t) = case (force mctx p, force mctx t) of
 
 matchPi :: MetaCtx -> Level -> "pat" :! VQuant -> "term" :! VQuant -> [(Iso, Iso, MetaCtx)]
 matchPi mctx lvl (Arg ppi) (Arg pi) = do
-  -- TODO: consider case when pa is VAmb
-  let (VQuant _ pa pb, i) = curry mctx ppi
-  -- permutation on term side
+  -- TODO: consider case where pa is VAmb
   -- TODO: consider case where a is a flex term (can be a sigma, unblocks currying!)
-  -- TODO: consider case where b is a flex term (can be a pi, unblocks permutation!)
+  -- TODO: consider case where b is a flex term (can be a pi!)
+  let (VQuant _ pa pb, i) = curry mctx ppi
+  -- permutation only on term side
+  -- TODO: unfold toplevel VAmb before currySwap!
   (VQuant _ a b, i', mctx) <- currySwap mctx lvl pi
   (ia, ia', mctx) <- matchIso mctx lvl ! #pat pa ! #term a
   let pv = transportInv ia (VVar lvl)
@@ -188,10 +189,10 @@ matchPi mctx lvl (Arg ppi) (Arg pi) = do
 matchSigma :: MetaCtx -> Level -> "pat" :! VQuant -> "term" :! VQuant -> [(Iso, Iso, MetaCtx)]
 matchSigma mctx lvl (Arg psig) (Arg sig) = do
   -- TODO: consider case when pa is VAmb
-  let (VQuant _ pa pb, i) = assoc mctx psig
-  -- permutation on term side
   -- TODO: consider case where a is a flex term (can be a sigma, unblocks assoc!)
-  -- TODO: consider case where b is a flex term (can be a sigma, unblocks permutation!)
+  -- TODO: consider case where b is a flex term (can be a sigma!)
+  let (VQuant _ pa pb, i) = assoc mctx psig
+  -- permutation only on term side
   (VQuant _ a b, i', mctx) <- assocSwap mctx lvl sig
   (ia, ia', mctx) <- matchIso mctx lvl ! #pat pa ! #term a
   let pv = transportInv ia (VVar lvl)
