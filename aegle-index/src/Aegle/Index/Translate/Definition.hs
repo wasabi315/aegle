@@ -1,5 +1,6 @@
 module Aegle.Index.Translate.Definition
-  ( translateDefinition,
+  ( translateDefinition
+  , isIndexableDefinition
   )
 where
 
@@ -22,7 +23,7 @@ import Agda.Utils.Monad hiding (guard, unless)
 
 translateDefinition :: Definition -> Transl (Maybe TS.Definition)
 translateDefinition def = setCurrentRangeQ def.defName do
-  ifM (isErasable def.defType) (pure Nothing) case def.theDef of
+  ifNotM (isIndexableDefinition def) (pure Nothing) case def.theDef of
     AxiomDefn {} -> Just <$> translateToAxiom def
     AbstractDefn {} -> Just <$> translateToAxiom def
     FunctionDefn {} -> Just <$> translateFunDef def
@@ -33,6 +34,14 @@ translateDefinition def = setCurrentRangeQ def.defName do
     DataOrRecSigDefn {} -> pure Nothing
     GeneralizableVar {} -> pure Nothing
     PrimitiveSortDefn {} -> pure Nothing
+
+-- | Whether a definition can be represented as a library item.
+isIndexableDefinition :: Definition -> Transl Bool
+isIndexableDefinition def = case def.theDef of
+  DataOrRecSigDefn {} -> pure False
+  GeneralizableVar {} -> pure False
+  PrimitiveSortDefn {} -> pure False
+  _ -> not <$> isErasable def.defType
 
 getKind :: Defn -> TS.DefKind
 getKind = \case

@@ -1,6 +1,6 @@
 cabal-version: 2.2
 
--- This file has been generated from package.yaml by hpack version 0.39.6.
+-- This file has been generated from package.yaml by hpack version 0.38.1.
 --
 -- see: https://github.com/sol/hpack
 
@@ -16,6 +16,9 @@ maintainer:     wasabi.nvim.st@gmail.com
 copyright:      2016 András Kovács, 2025 Satoshi Takimoto
 license:        BSD-3-Clause
 build-type:     Simple
+data-files:
+    test/fixtures/reexports/reexports.agda-lib
+    test/fixtures/reexports/src/Reexports.agda
 
 source-repository head
   type: git
@@ -87,6 +90,60 @@ library
     , foldl
     , prettyprinter
     , prettyprinter-ansi-terminal
+    , text
+  default-language: GHC2024
+  if flag(debug)
+    cpp-options: -DDEBUG
+  if flag(dump)
+    ghc-options: -ddump-simpl -dsuppress-all -dno-suppress-type-signatures -ddump-to-file
+  if flag(llvm)
+    ghc-options: -fllvm
+
+test-suite aegle-index-test
+  type: exitcode-stdio-1.0
+  main-is: Main.hs
+  other-modules:
+      Paths_aegle_index
+  autogen-modules:
+      Paths_aegle_index
+  hs-source-dirs:
+      test
+  default-extensions:
+      AllowAmbiguousTypes
+      BlockArguments
+      CPP
+      DerivingVia
+      DeriveAnyClass
+      DuplicateRecordFields
+      MultilineStrings
+      MultiParamTypeClasses
+      NoFieldSelectors
+      NoImplicitPrelude
+      OrPatterns
+      OverloadedLabels
+      OverloadedStrings
+      OverloadedRecordDot
+      PatternSynonyms
+      QualifiedDo
+      RecordWildCards
+      Strict
+      TypeFamilies
+      ViewPatterns
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-deriving-strategies -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -Wno-name-shadowing -O2 -funbox-strict-fields -optP-Wno-nonportable-include-path
+  build-depends:
+      Agda
+    , aegle-core
+    , aegle-index
+    , base >=4.7 && <5
+    , containers
+    , deriving-aeson
+    , directory
+    , filemanip
+    , foldl
+    , prettyprinter
+    , prettyprinter-ansi-terminal
+    , tasty
+    , tasty-hunit
     , text
   default-language: GHC2024
   if flag(debug)

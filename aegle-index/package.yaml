@@ -94,3 +94,19 @@ when:
 
 library:
   source-dirs: src
+
+data-files:
+  - test/fixtures/reexports/*.agda-lib
+  - test/fixtures/reexports/src/*.agda
+
+tests:
+  aegle-index-test:
+    main: Main.hs
+    source-dirs: test
+    dependencies:
+      - aegle-core
+      - aegle-index
+      - containers
+      - foldl
+      - tasty
+      - tasty-hunit
